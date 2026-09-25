@@ -124,18 +124,18 @@ Acceptance
 ### P1-D · Fuel logging and honest stats
 Branch `fix/p1d-fuel-stats`. Depends on P1-B.
 
-- [ ] **P1-D1** Full / Partial toggle in `LogFillupModal` and the Fuel page panel. The MPG preview respects it
+- [x] **P1-D1** Full / Partial toggle in `LogFillupModal` and the Fuel page panel. The MPG preview respects it
       and shows "Partial fills aren't averaged until the next full tank" when partial is selected.
-- [ ] **P1-D2** Tank-size warning in both forms (currently only the modal has it).
-- [ ] **P1-D3** `getFuelStats`: compare month-to-date spend with the same number of days last month. Return
+- [x] **P1-D2** Tank-size warning in both forms (currently only the modal has it).
+- [x] **P1-D3** `getFuelStats`: compare month-to-date spend with the same number of days last month. Return
       `null` delta when last month has no data; the tile then shows no delta instead of "−100%".
-- [ ] **P1-D4** Trends "price paid" card: plot price per fill-up over time for the last 12 fill-ups, colored
+- [x] **P1-D4** Trends "price paid" card: plot price per fill-up over time for the last 12 fill-ups, colored
       relative to the vehicle's own average (±3%). Delete `getPricePaidBuckets` and the hard-coded $3.55 / $3.32.
-- [ ] **P1-D5** Trends footer stats: "Spend / month" becomes the average monthly fuel spend over the last
+- [x] **P1-D5** Trends footer stats: "Spend / month" becomes the average monthly fuel spend over the last
       6 months; "Gal / month" uses real gallons, not miles ÷ MPG.
-- [ ] **P1-D6** Trends "Looking ahead": list every interval from `getDueSoonItems` instead of hard-coded oil,
+- [x] **P1-D6** Trends "Looking ahead": list every interval from `getDueSoonItems` instead of hard-coded oil,
       tires and brakes.
-- [ ] **P1-D7** Tests for the new stat functions.
+- [x] **P1-D7** Tests for the new stat functions.
 
 Acceptance
 - On the 3rd of a month with one fill-up, the spend tile compares against the 1st to 3rd of last month.
@@ -164,21 +164,21 @@ Acceptance
 ### P1-F · Visual bugs, placeholders and tracking toggles
 Branch `fix/p1f-visual`. Depends on nothing (can run in parallel with P1-B to P1-E).
 
-- [ ] **P1-F1** Extend `theme.extend.opacity` in `tailwind.config.js` with every off-scale value in use:
+- [x] **P1-F1** Extend `theme.extend.opacity` in `tailwind.config.js` with every off-scale value in use:
       `2.5 3 4 4.5 6 8 9 12 14 16 18 24 42 52 62`. Add a comment explaining why. Verify the sidebar active
       state, modal backdrop and the Trends cost-per-mile `<select>` (make it dark with light text).
 - [ ] **P1-F2** Remove the hard-coded 70% bars from the dashboard stat tiles. Drive the "Coming up" bars from
       `progress` (P1-C3), colored by status.
-- [ ] **P1-F3** Replace the static "SAVED LOCALLY" badge with a connection indicator that pings `/api/health`
+- [x] **P1-F3** Replace the static "SAVED LOCALLY" badge with a connection indicator that pings `/api/health`
       every 30 s: "Connected" (green) or "Can't reach server" (red).
-- [ ] **P1-F4** Add Wipers subcategories: Front wiper blades, Rear wiper blade, Washer fluid.
-- [ ] **P1-F5** Hide placeholders until their feature exists: receipt drop zone (P4-C), Mobile nav item (P4-A),
+- [x] **P1-F4** Add Wipers subcategories: Front wiper blades, Rear wiper blade, Washer fluid.
+- [x] **P1-F5** Hide placeholders until their feature exists: receipt drop zone (P4-C), Mobile nav item (P4-A),
       Reminders row (P4-D). Units and Currency render as read-only info, not controls. "Mark done" on due cards
       is removed until P3-D implements it; "Log now" stays.
-- [ ] **P1-F6** Honor `tracksFuel` / `tracksService` per the design handoff: hide Fuel and Trends (or
+- [x] **P1-F6** Honor `tracksFuel` / `tracksService` per the design handoff: hide Fuel and Trends (or
       Maintenance) nav items, header buttons, stat tiles and activity filters; redirect to Dashboard if the
       current page gets hidden; show the "Fuel tracking is off" panel on the dashboard.
-- [ ] **P1-F7** Small fixes: header odometer uses `toLocaleString()`; `index.html` title "Odometer"; the main
+- [x] **P1-F7** Small fixes: header odometer uses `toLocaleString()`; `index.html` title "Odometer"; the main
       scroll container resets to top on page change; replace the 🔧 emoji in Edit vehicle with `WrenchIcon`.
 
 Acceptance
@@ -406,6 +406,8 @@ Backlog (not scheduled): units and currency settings (L/100 km, km, liters), hou
 
 Newest first. One line per merged PR: date, group, PR link, one-sentence summary.
 
+- 2026-09-25 · P1-D · Full / Partial toggle, tank warning in both forms, month-to-date spend vs the same days last month, a 12-fill price chart around the vehicle's own average, real 6-month spend and gallon averages, and Looking ahead for every interval.
+- 2026-09-25 · P1-F · Opacity scale extended, connection indicator, Wipers subcategories, placeholders hidden, `tracksFuel` / `tracksService` honored (including Garage cards), title, scroll reset and wrench icon. P1-F2 is half done: the fake 70% tile bars are gone; the Coming up bars wait for `progress` from P1-C3.
 - 2026-09-25 · P1-B · Server owns the odometer (recomputed on every write, D9) and rejects out-of-order fill-up readings with an inline 422; route tests via `node --test`. Fill-ups sharing a date are ordered by entry, so a new one must be the day's highest reading. Existing dev DBs still need `rm server/data/odometer.db` once (P1-B7).
 - 2026-09-25 · P1-A · Vitest harness and `lib/dates.js`; every date default, parse, sort and interval calculation now uses local `YYYY-MM-DD` strings.
 - 2026-09-24 · Plan · Added this plan, `roadmap.html` and `CLAUDE.md`.

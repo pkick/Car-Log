@@ -266,7 +266,7 @@ export default function FuelLog({ vehicle }) {
               <div className="bg-[oklch(0.55_0.17_28/10%)] border border-[oklch(0.55_0.17_28/30%)] rounded-lg p-3">
                 <p className="font-semibold text-red text-sm mb-1">Gallons exceed tank size</p>
                 <p className="text-xs text-ink/60">
-                  The {vehicle.nickname}'s tank holds {vehicle.tankSize} gal. Save anyway if the pump receipt says otherwise.
+                  {vehicle.nickname}'s tank holds {vehicle.tankSize} gal. Save anyway if the pump receipt says otherwise.
                 </p>
               </div>
             )}

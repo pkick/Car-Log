@@ -76,20 +76,22 @@ export default function Garage({ vehicles, activeVehicleId, onSetActive, onEditV
               </p>
 
               {/* Mini Stats */}
-              <div className="space-y-2 mb-6 pb-6 border-b border-ink/8">
-                <div className="flex justify-between items-center">
-                  <span className="text-xs font-mono text-ink/45">Avg MPG</span>
-                  <span className="font-semibold">{avgMpg ?? '—'}</span>
+              {vehicle.tracksFuel !== false && (
+                <div className="space-y-2 mb-6 pb-6 border-b border-ink/8">
+                  <div className="flex justify-between items-center">
+                    <span className="text-xs font-mono text-ink/45">Avg MPG</span>
+                    <span className="font-semibold">{avgMpg ?? '—'}</span>
+                  </div>
+                  <div className="flex justify-between items-center">
+                    <span className="text-xs font-mono text-ink/45">$ / mi</span>
+                    <span className="font-semibold">{costPerMile != null ? `$${costPerMile.toFixed(2)}` : '—'}</span>
+                  </div>
+                  <div className="flex justify-between items-center">
+                    <span className="text-xs font-mono text-ink/45">Fills</span>
+                    <span className="font-semibold">{fills.length}</span>
+                  </div>
                 </div>
-                <div className="flex justify-between items-center">
-                  <span className="text-xs font-mono text-ink/45">$ / mi</span>
-                  <span className="font-semibold">{costPerMile != null ? `$${costPerMile.toFixed(2)}` : '—'}</span>
-                </div>
-                <div className="flex justify-between items-center">
-                  <span className="text-xs font-mono text-ink/45">Fills</span>
-                  <span className="font-semibold">{fills.length}</span>
-                </div>
-              </div>
+              )}
 
               {/* Actions */}
               <div className="flex gap-2.5">
