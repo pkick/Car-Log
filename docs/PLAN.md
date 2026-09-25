@@ -57,16 +57,16 @@ fails silently. No redesign yet.
 ### P1-A · Test harness and local dates
 Branch `fix/p1a-dates`. Depends on nothing.
 
-- [ ] **P1-A1** Add Vitest to `app/` with a `test` script that runs under `TZ=America/Los_Angeles`.
+- [x] **P1-A1** Add Vitest to `app/` with a `test` script that runs under `TZ=America/Los_Angeles`.
       Add baseline tests that lock in `computeFillMpg` (partial fills accumulate, first full fill has no MPG).
-- [ ] **P1-A2** Create `app/src/lib/dates.js` with JSDoc and tests: `todayISO()`, `parseISODate(str)` (local
+- [x] **P1-A2** Create `app/src/lib/dates.js` with JSDoc and tests: `todayISO()`, `parseISODate(str)` (local
       midnight), `addMonths(iso, n)` (calendar months, clamps day 31), `daysBetween(a, b)`, `monthKey(iso)`,
       `isWithinDays(iso, n, today)`.
-- [ ] **P1-A3** Replace every `toISOString()` default and every `new Date('YYYY-MM-DD')` parse (14 call sites in
+- [x] **P1-A3** Replace every `toISOString()` default and every `new Date('YYYY-MM-DD')` parse (14 call sites in
       11 files: `LogFillupModal`, `AddVehicleModal`, `LogServiceModal`, `LogPolicyModal`, `vehicleStats`,
       `exportCsv`, `Documents`, `Trends`, `FuelLog`, `Settings`, `Dashboard`). `grep -rn "new Date(" app/src` must
       only show `new Date()` for "now" inside `dates.js`.
-- [ ] **P1-A4** Replace `interval.months * 30` in `getDueSoonItems` with `addMonths` so due dates land on real
+- [x] **P1-A4** Replace `interval.months * 30` in `getDueSoonItems` with `addMonths` so due dates land on real
       calendar dates.
 
 Acceptance
@@ -406,4 +406,5 @@ Backlog (not scheduled): units and currency settings (L/100 km, km, liters), hou
 
 Newest first. One line per merged PR: date, group, PR link, one-sentence summary.
 
+- 2026-09-25 · P1-A · Vitest harness and `lib/dates.js`; every date default, parse, sort and interval calculation now uses local `YYYY-MM-DD` strings.
 - 2026-09-24 · Plan · Added this plan, `roadmap.html` and `CLAUDE.md`.

@@ -76,8 +76,10 @@ describe('addMonths', () => {
     expect(addMonths('2026-09-25', 0)).toBe('2026-09-25')
   })
 
-  it('throws on malformed input', () => {
-    expect(() => addMonths('09/25/2026', 1)).toThrow(RangeError)
+  it('returns null for malformed input', () => {
+    expect(addMonths('09/25/2026', 1)).toBeNull()
+    expect(addMonths('', 1)).toBeNull()
+    expect(addMonths('2026-02-30', 1)).toBeNull()
   })
 })
 
@@ -93,6 +95,11 @@ describe('daysBetween', () => {
     expect(daysBetween('2026-10-31', '2026-11-02')).toBe(2)
   })
 
+  it('returns NaN when either date is malformed', () => {
+    expect(daysBetween('', '2026-09-25')).toBeNaN()
+    expect(daysBetween('2026-09-25', null)).toBeNaN()
+  })
+
   it('spans years and leap days', () => {
     expect(daysBetween('2027-12-31', '2028-03-01')).toBe(61)
     expect(daysBetween('2026-01-31', '2027-01-31')).toBe(365)
@@ -105,8 +112,10 @@ describe('monthKey', () => {
     expect(monthKey('2026-12-31')).toBe('2026-12')
   })
 
-  it('throws on malformed input', () => {
-    expect(() => monthKey('2026-9-1')).toThrow(RangeError)
+  it('returns null for malformed input, so it never matches a real month', () => {
+    expect(monthKey('2026-9-1')).toBeNull()
+    expect(monthKey('')).toBeNull()
+    expect(monthKey(undefined)).toBeNull()
   })
 })
 
@@ -119,6 +128,10 @@ describe('isWithinDays', () => {
   it('excludes the day before the window and dates after today', () => {
     expect(isWithinDays('2026-06-26', 90, '2026-09-25')).toBe(false)
     expect(isWithinDays('2026-09-26', 90, '2026-09-25')).toBe(false)
+  })
+
+  it('excludes malformed dates', () => {
+    expect(isWithinDays('', Infinity, '2026-09-25')).toBe(false)
   })
 
   it('treats Infinity as all past dates', () => {

@@ -12,7 +12,7 @@ import {
 } from '../lib/vehicleStats'
 import { isWithinDays, parseISODate } from '../lib/dates'
 
-const shortDate = (dateStr) => parseISODate(dateStr).toLocaleDateString('en-US', { month: 'short', day: 'numeric' }).toUpperCase()
+const shortDate = (dateStr) => parseISODate(dateStr)?.toLocaleDateString('en-US', { month: 'short', day: 'numeric' }).toUpperCase() ?? '—'
 
 const WINDOW_DAYS = { '90-days': 90, '6-months': 182, '1-year': 365, 'all-time': Infinity }
 const WINDOW_LABEL = { '90-days': 'ROLLING 90 DAYS', '6-months': 'ROLLING 6 MONTHS', '1-year': 'ROLLING 1 YEAR', 'all-time': 'ALL TIME' }

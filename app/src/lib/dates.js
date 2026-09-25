@@ -1,5 +1,7 @@
 // Calendar dates are local `YYYY-MM-DD` strings end to end (PLAN.md D8). This is the only module that
 // constructs `Date` objects; everything else passes the strings around and compares them as text.
+// Malformed input yields `null` (or `NaN` / `false`) instead of throwing, so one bad stored record
+// can't crash a page while the server still accepts any string.
 
 const ISO_DATE = /^(\d{4})-(\d{2})-(\d{2})$/
 const MS_PER_DAY = 86400000
@@ -15,21 +17,23 @@ const pad = (n) => String(n).padStart(2, '0')
 const formatParts = (year, month, day) => `${year}-${pad(month)}-${pad(day)}`
 
 /**
- * @param {string} iso
- * @returns {{ year: number, month: number, day: number }}
- */
-function splitISO(iso) {
-  const match = ISO_DATE.exec(iso ?? '')
-  if (!match) throw new RangeError(`Expected a YYYY-MM-DD date, got ${JSON.stringify(iso)}`)
-  return { year: Number(match[1]), month: Number(match[2]), day: Number(match[3]) }
-}
-
-/**
  * @param {number} year
  * @param {number} month 1-12
  * @returns {number}
  */
 const daysInMonth = (year, month) => new Date(year, month, 0).getDate()
+
+/**
+ * @param {string} iso
+ * @returns {{ year: number, month: number, day: number } | null} `null` unless `iso` is a real calendar date.
+ */
+function splitISO(iso) {
+  const match = ISO_DATE.exec(iso ?? '')
+  if (!match) return null
+  const [year, month, day] = match.slice(1).map(Number)
+  if (month < 1 || month > 12 || day < 1 || day > daysInMonth(year, month)) return null
+  return { year, month, day }
+}
 
 /**
  * Today's date in the local time zone.
@@ -54,11 +58,8 @@ export function currentYear() {
  * @returns {Date | null} `null` when `str` is not a valid calendar date.
  */
 export function parseISODate(str) {
-  const match = ISO_DATE.exec(str ?? '')
-  if (!match) return null
-  const [year, month, day] = [Number(match[1]), Number(match[2]), Number(match[3])]
-  if (month < 1 || month > 12 || day < 1 || day > daysInMonth(year, month)) return null
-  return new Date(year, month - 1, day)
+  const parts = splitISO(str)
+  return parts && new Date(parts.year, parts.month - 1, parts.day)
 }
 
 /**
@@ -66,10 +67,12 @@ export function parseISODate(str) {
  * (Jan 31 + 1 month is Feb 28, or Feb 29 in a leap year).
  * @param {string} iso `YYYY-MM-DD`
  * @param {number} n months to add; may be negative.
- * @returns {string} `YYYY-MM-DD`
+ * @returns {string | null} `YYYY-MM-DD`, or `null` when `iso` is malformed.
  */
 export function addMonths(iso, n) {
-  const { year, month, day } = splitISO(iso)
+  const parts = splitISO(iso)
+  if (!parts) return null
+  const { year, month, day } = parts
   const monthIndex = year * 12 + (month - 1) + n
   const targetYear = Math.floor(monthIndex / 12)
   const targetMonth = monthIndex - targetYear * 12 + 1
@@ -80,11 +83,12 @@ export function addMonths(iso, n) {
  * Whole calendar days from `a` to `b`. Positive when `b` is later. Unaffected by DST changes.
  * @param {string} a `YYYY-MM-DD`
  * @param {string} b `YYYY-MM-DD`
- * @returns {number}
+ * @returns {number} `NaN` when either date is malformed.
  */
 export function daysBetween(a, b) {
   const from = splitISO(a)
   const to = splitISO(b)
+  if (!from || !to) return NaN
   return (
     (Date.UTC(to.year, to.month - 1, to.day) - Date.UTC(from.year, from.month - 1, from.day)) / MS_PER_DAY
   )
@@ -93,16 +97,15 @@ export function daysBetween(a, b) {
 /**
  * The month a date falls in, for grouping.
  * @param {string} iso `YYYY-MM-DD`
- * @returns {string} `YYYY-MM`
+ * @returns {string | null} `YYYY-MM`, or `null` when `iso` is malformed.
  */
 export function monthKey(iso) {
-  splitISO(iso)
-  return iso.slice(0, 7)
+  return splitISO(iso) && iso.slice(0, 7)
 }
 
 /**
  * Whether `iso` falls in the `n` days up to and including `today`. Dates after `today` are outside
- * the window.
+ * the window, and malformed dates are never inside it.
  * @param {string} iso `YYYY-MM-DD`
  * @param {number} n window length in days; `Infinity` matches every date up to `today`.
  * @param {string} [today] `YYYY-MM-DD`; defaults to {@link todayISO}.
