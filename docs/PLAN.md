@@ -9,8 +9,7 @@ The visual companion with wireframes is [`roadmap.html`](roadmap.html) (open it 
 - Tick a task's box in the same PR that completes it, and add a line to the [Progress log](#progress-log).
 - Every group lists its acceptance checks. A group is done only when all of them pass and the
   [Definition of done](#definition-of-done) is met.
-- Phases 1 to 3 are specified in detail. Phase 4 groups are scoped epics; expand them into tasks
-  (in a PR that only edits this file) before starting one.
+- Every phase is specified as task groups. Phase 4 was expanded from scoped epics on 2026-09-25.
 - Decisions below are defaults. To change one, edit it here with the date and the reason.
 
 ---
@@ -32,6 +31,10 @@ The visual companion with wireframes is [`roadmap.html`](roadmap.html) (open it 
 | D11 | **Charts are hand-rolled SVG components** (Sparkline, LineChart, BarChart, ProgressTrack). | Small bundle, full control, matches the design language. |
 | D12 | **Command palette uses `cmdk`.** | Fall back to a hand-rolled list if it conflicts with React 19. |
 | D13 | **Keep the custom icon set** in `components/icons.jsx`. Add new icons there on the same 24px, 2px-stroke grid. | |
+| D14 | **Offline and install need HTTPS.** Service workers only register on `https://` or `localhost`, so P4-B's offline mode and install prompt work when the NAS is reached through a reverse proxy with a certificate (e.g. Nginx Proxy Manager, SWAG or Tailscale Serve). Plain `http://nas:3001` keeps working without them. | Decided 2026-09-25 while expanding Phase 4. |
+| D15 | **Background jobs run inside the API process** (a timer aligned to local time), not a separate cron container. | One container stays the deploy unit. Decided 2026-09-25. |
+| D16 | **Logic the server also needs lives in `shared/`** (plain ESM, no React), imported by `app/` and `server/` and copied into the image. Start with the due-soon math when P4-D needs it. | Decided 2026-09-25. |
+| D17 | **Uploads are files under `DATA_DIR/receipts`**, never blobs in SQLite. Thumbnails are made in the browser (canvas) for JPEG, PNG and WebP; HEIC and PDF get a file tile. No native image libraries. | Keeps the image small and appdata backups simple. Decided 2026-09-25. |
 
 ---
 
@@ -380,23 +383,159 @@ Branch `feat/p3g-garage-docs`. Depends on P2-B.
 
 ## Phase 4 · Reach
 
-Scoped epics. Expand each into tasks before starting it.
+Goal: use it at the pump, keep documents with the records, get reminded, and bring history in from other apps.
+Expanded from the original epics on 2026-09-25 (docs-only change, as this file requires).
 
-- **P4-A · Responsive layout.** Breakpoints: ≥1240 desktop; 900 to 1240 compact (2-up tiles, stacked rows,
-  scrolling tables); <900 bottom tab bar with center + button and the M1 to M7 screens from the design handoff.
-- **P4-B · PWA and offline.** `vite-plugin-pwa`, manifest and icons, IndexedDB outbox for writes, sync on
-  reconnect, last-write-wins.
-- **P4-C · Receipts and documents.** Uploads to `DATA_DIR/receipts` (multer), `receipts` table, thumbnails on
-  service and policy records, viewer, size and type limits.
-- **P4-D · Reminders.** Notification settings (ntfy, Pushover, SMTP email), a daily server check, a weekly
-  digest, and default warn-at values in Settings.
-- **P4-E · CSV import.** Upload, column mapping, preview, duplicate detection; presets for Fuelly and Drivvo.
-- **P4-F · Vehicle profile and cost of ownership.** Vehicle page with specs, photo, and all-in cost per mile
-  including insurance and registration; optional purchase price.
-- **P4-G · First-run onboarding.** Zero-vehicle screen from the design handoff, 3-step strip, Import CSV entry,
-  opt-in demo data.
-- **P4-H · VIN decode.** Server calls NHTSA vPIC to fill year, make, model and trim; fails gracefully offline.
-- **P4-I · Year in review.** Annual summary and PDF export.
+### P4-A · Responsive layout
+Branch `feat/p4a-responsive`. Depends on P3-B, P3-C, P3-D. Reference: handoff "Mobile set" M1 to M7, roadmap 4A.
+
+- [ ] **P4-A1** Breakpoints in `tailwind.config.js`: `compact` 900px and `desktop` 1240px. The app shell switches
+      between sidebar (≥1240), compact (900 to 1240: icon-only sidebar with tooltips) and phone (<900).
+- [ ] **P4-A2** Compact layout: stat tiles 2-up, two-column cards stack, tables scroll inside their card, modals
+      and drawers use the full width minus 16px gutters.
+- [ ] **P4-A3** Phone shell: bottom tab bar HOME / FUEL / SERVICE / MORE with a 52px center + button that overlaps
+      the bar and opens an action sheet (Log fill-up, Log service, Log payment). MORE opens Trends, Documents,
+      Garage and Settings. The header shrinks to the vehicle pill. Respect safe-area insets.
+- [ ] **P4-A4** Phone versions of Home (M1), Fuel log cards with ALL / FULL / PARTIAL chips (M3), Maintenance
+      cards (M5), Trends (M6) and Garage (M7), as responsive variants of the existing pages, not separate ones.
+- [ ] **P4-A5** Quick-add fill-up (M2): below 900px the `FillUpDrawer` becomes a full-screen sheet with oversized
+      Gallons and Total paid, the decimal keypad, Full / Partial and the live MPG card. The odometer stays
+      unprefilled (P1-B5 wins over the handoff) and shows the last reading and the live "+N mi" delta.
+- [ ] **P4-A6** Log service on a phone is two steps (M4): category grid with count badges, then cost and notes.
+- [ ] **P4-A7** Tap targets ≥ 44px; no horizontal page scroll at 390px; Playwright checks at 390, 1024 and 1400
+      wide for every page. From here on the Definition of done includes the 390px check.
+
+Acceptance
+- Every page is usable at 390px with no horizontal scroll.
+- Logging a full fill-up on a phone takes: +, Fill-up, three fields, Save.
+
+### P4-B · PWA and offline
+Branch `feat/p4b-pwa`. Depends on P4-A, P2-D. See D14.
+
+- [ ] **P4-B1** `vite-plugin-pwa`: manifest (name, icons 192/512/maskable from the app mark, slate theme color,
+      standalone), precached app shell, network-first runtime caching for `GET /api/*`.
+- [ ] **P4-B2** Offline reads: the app opens offline with the last synced data and an "Offline · data from 9:41 AM"
+      banner.
+- [ ] **P4-B3** Server idempotency: records get `clientId TEXT UNIQUE` and `updatedAt` (migration). A POST that
+      repeats a `clientId` returns the existing record instead of inserting a duplicate.
+- [ ] **P4-B4** Outbox: writes made offline go to an IndexedDB outbox with client ids and show immediately with a
+      "Waiting to sync" marker. Pure outbox logic (ordering, temp-id mapping, retries) lives in `lib/` with tests.
+- [ ] **P4-B5** Sync on reconnect (online event plus the health ping): flush in order, last write wins. A write the
+      server rejects (400/422) stays in the outbox with its message so it can be fixed or discarded.
+- [ ] **P4-B6** Settings › Install: shows the install button when the browser offers it, iOS instructions
+      otherwise, and the HTTPS note from D14 when the page isn't secure.
+
+Acceptance
+- With the server stopped, a fill-up logged on the phone shows as waiting; after the server is back it syncs once,
+  with no duplicate.
+- The app installs from Chrome over HTTPS.
+
+### P4-C · Receipts and documents
+Branch `feat/p4c-receipts`. Depends on P2-F, P3-D, P3-G. See D17.
+
+- [ ] **P4-C1** Migration: `receipts` table (`id, recordType, recordId, storedName, filename, mimeType, size,
+      thumbName, createdAt`). `recordType` is `service`, `policy` or `vehicle`.
+- [ ] **P4-C2** API with `multer`: `POST /api/receipts` (10 MB limit; JPEG, PNG, WebP, HEIC, PDF), `GET
+      /api/receipts/:id` and `/thumb`, `DELETE`. Files get random names under `DATA_DIR/receipts`.
+- [ ] **P4-C3** Drop zone back in Log service and on Log payment: drag and drop, click, paste; upload progress;
+      remove. The browser makes the thumbnail before upload.
+- [ ] **P4-C4** Thumbnails on service history and payment rows; a viewer (Modal lg) with next / previous, PDFs
+      embedded, and a download link.
+- [ ] **P4-C5** Documents page: vehicle documents not tied to a payment (insurance card, registration).
+- [ ] **P4-C6** Deleting a record, vehicle or receipt removes its files. JSON backup includes receipt metadata;
+      README says files are covered by the appdata backup, not by the JSON export.
+- [ ] **P4-C7** Route tests: type and size limits, cascade file removal, missing file handling.
+
+Acceptance
+- A photo attached to a service shows as a thumbnail in history and opens in the viewer.
+- Deleting the record removes the file from disk.
+
+### P4-D · Reminders
+Branch `feat/p4d-reminders`. Depends on P2-F, P3-D, P3-G. See D15 and D16.
+
+- [ ] **P4-D1** Move the due-soon and renewal math into `shared/` (D16) and import it from the app and the server.
+- [ ] **P4-D2** Settings › Notifications: ntfy (server, topic, token), Pushover (user key, app token) and SMTP
+      email (host, port, TLS, user, password, from, to). Stored server-side in a `settings` table (migration);
+      secrets are write-only in the API. "Send test" per channel.
+- [ ] **P4-D3** Daily check at a configured local time (default 8:00): one message per interval or renewal when it
+      becomes due soon and again when it becomes overdue, deduplicated through a `notification_log` table.
+- [ ] **P4-D4** Weekly digest on a configured day: what's coming up and this month's spend.
+- [ ] **P4-D5** Default warn-at values (miles and days) in Settings, used for new intervals and for renewals
+      (currently a fixed 30 days).
+- [ ] **P4-D6** Tests: the pure "what to send today" function, dedupe, message text, and each channel against a
+      local mock (ntfy and Pushover over HTTP, SMTP through `nodemailer`'s stream transport).
+
+Acceptance
+- With ntfy configured, an overdue interval sends exactly one notification per state change.
+- "Send test" succeeds for every configured channel and shows the provider's error when it fails.
+
+### P4-E · CSV import
+Branch `feat/p4e-csv-import`. Depends on P2-F, P2-D.
+
+- [ ] **P4-E1** Upload a CSV in Settings (and from first run, P4-G); parse in the browser with `papaparse`.
+- [ ] **P4-E2** Mapping step: pick the target vehicle, map columns to date, odometer, gallons, price per gallon,
+      total, full / partial, station and notes; preview the first 10 rows as they will be saved.
+- [ ] **P4-E3** Presets that auto-map Fuelly and Drivvo exports and this app's own CSV export.
+- [ ] **P4-E4** Row checks in `lib/` with tests: invalid rows with reasons, duplicates (same vehicle, date and
+      odometer), and odometer order across existing plus imported fill-ups.
+- [ ] **P4-E5** `POST /api/import/fill-ups`: one transaction, the same validation as single writes, returns
+      per-row results; the odometer is recomputed once at the end.
+
+Acceptance
+- A Fuelly export imports with the same MPG Fuelly showed, and importing it twice adds nothing.
+
+### P4-F · Vehicle profile and cost of ownership
+Branch `feat/p4f-vehicle-profile`. Depends on P2-C, P3-A, P3-G, P4-C.
+
+- [ ] **P4-F1** Route `/v/:vehicleId/profile`, opened from the Garage card and the vehicle switcher.
+- [ ] **P4-F2** Specs, purchase details and a photo (stored as a `vehicle` receipt from P4-C), shown on the Garage
+      card and in the switcher.
+- [ ] **P4-F3** Optional purchase price (migration), shown with total spent since purchase.
+- [ ] **P4-F4** `getCostOfOwnership()` in `lib/` with tests: fuel, service, insurance and registration by month,
+      all-in cost per mile and per month for a range.
+- [ ] **P4-F5** Profile shows the breakdown as stacked bars (P3-A) and the all-in cost per mile.
+
+Acceptance
+- All-in cost per mile includes insurance and registration and matches a hand calculation in the tests.
+
+### P4-G · First-run onboarding
+Branch `feat/p4g-first-run`. Depends on P2-B; the Import button appears once P4-E lands.
+
+- [ ] **P4-G1** Replace `FirstVehiclePanel` with the handoff first-run screen: car mark, title, one line of copy
+      (about the NAS, not "this device"), Add vehicle and Import CSV, and a 3-step strip (Add the vehicle, Set
+      intervals, Log a fill-up) that ticks off as each is done. The page header is hidden.
+- [ ] **P4-G2** Empty vehicle: stat rail with em-dashes and hints ("needs 2 fill-ups") and two invitation cards,
+      "No fill-ups yet" and "No service history".
+- [ ] **P4-G3** Opt-in demo data: "Explore with demo data" calls `POST /api/demo` (empty DB only); a banner offers
+      "Clear demo data" (`DELETE /api/demo`). Demo rows are flagged (migration).
+- [ ] **P4-G4** Route tests for the demo endpoints.
+
+Acceptance
+- A fresh install shows the first-run screen; demo data can be loaded and cleared, leaving an empty database.
+
+### P4-H · VIN decode
+Branch `feat/p4h-vin`. Depends on P2-B.
+
+- [ ] **P4-H1** VIN check in `lib/` with tests: 17 characters, no I, O or Q, valid check digit.
+- [ ] **P4-H2** `GET /api/vin/:vin` proxies NHTSA vPIC `DecodeVinValues` with a 5-second timeout and an in-memory
+      cache.
+- [ ] **P4-H3** Add and Edit vehicle: "Decode" next to VIN fills year, make, model and trim (asks before
+      overwriting typed values); failures show inline and the form keeps working.
+- [ ] **P4-H4** Route tests with a mocked fetch: success, unknown VIN, timeout.
+
+Acceptance
+- A valid VIN fills the fields; with no internet the form still saves.
+
+### P4-I · Year in review
+Branch `feat/p4i-year-review`. Depends on P3-A, P4-F.
+
+- [ ] **P4-I1** `getYearInReview()` in `lib/` with tests: miles, fuel cost and gallons, best and worst tank,
+      service spend by category, insurance and registration, all-in cost per mile, most-used station.
+- [ ] **P4-I2** Page `/v/:vehicleId/year/:year` plus an all-vehicles view, built from the chart kit.
+- [ ] **P4-I3** Export as PDF through a print stylesheet and the browser's print dialog (no PDF library).
+
+Acceptance
+- Last year's totals match hand totals in the tests; printing gives a clean one- or two-page PDF.
 
 Backlog (not scheduled): units and currency settings (L/100 km, km, liters), household accounts (see D1).
 
@@ -407,6 +546,7 @@ Backlog (not scheduled): units and currency settings (L/100 km, km, liters), hou
 Newest first. One line per merged PR: date, group, PR link, one-sentence summary.
 
 - 2026-09-25 · P1-C · Intervals list the services that reset them (D10); the server owns the defaults (`GET /api/defaults/intervals`); due items carry `progress`, `dueDate` and `dueOdometer`, labels follow whichever limit is closer, and the Coming up bars use `progress` (finishes P1-F2). Needs a dev DB reset.
+- 2026-09-25 · Plan · Expanded the Phase 4 epics into task groups P4-A to P4-I (47 tasks) and added decisions D14 to D17.
 - 2026-09-25 · P1-E · `400 { error, field }` validation on every write, `ON DELETE CASCADE` for records (startup warns about an old DB); every form awaits its save and shows the server's message inline ("Can't reach the server" when it's down); no `alert()`; the last vehicle can be deleted and the app shows an "Add your first vehicle" panel. **Phase 1 complete.**
 - 2026-09-25 · P1-D · Full / Partial toggle, tank warning in both forms, month-to-date spend vs the same days last month, a 12-fill price chart around the vehicle's own average, real 6-month spend and gallon averages, and Looking ahead for every interval.
 - 2026-09-25 · P1-F · Opacity scale extended, connection indicator, Wipers subcategories, placeholders hidden, `tracksFuel` / `tracksService` honored (including Garage cards), title, scroll reset and wrench icon. P1-F2 is half done: the fake 70% tile bars are gone; the Coming up bars wait for `progress` from P1-C3.
