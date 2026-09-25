@@ -1,16 +1,8 @@
 import { Router } from 'express'
 import { db } from '../db.js'
+import { rowToVehicle, recomputeOdometer } from '../vehicles.js'
 
 const router = Router()
-
-function rowToVehicle(row) {
-  return {
-    ...row,
-    tracksFuel: !!row.tracksFuel,
-    tracksService: !!row.tracksService,
-    intervals: row.intervals ? JSON.parse(row.intervals) : [],
-  }
-}
 
 router.get('/', (req, res) => {
   const rows = db.prepare('SELECT * FROM vehicles ORDER BY id').all()
@@ -20,16 +12,15 @@ router.get('/', (req, res) => {
 router.post('/', (req, res) => {
   const v = req.body
   const info = db.prepare(`
-    INSERT INTO vehicles (nickname, year, make, model, trim, vin, plate, purchaseDate, purchaseOdometer, registrationRenewal, insuranceRenewal, tankSize, tracksFuel, tracksService, odometer, intervals, color)
-    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+    INSERT INTO vehicles (nickname, year, make, model, trim, vin, plate, purchaseDate, purchaseOdometer, registrationRenewal, insuranceRenewal, tankSize, tracksFuel, tracksService, intervals, color)
+    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
   `).run(
     v.nickname, v.year ?? null, v.make ?? null, v.model ?? null, v.trim ?? null, v.vin ?? null, v.plate ?? null,
     v.purchaseDate ?? null, v.purchaseOdometer ?? null, v.registrationRenewal ?? null, v.insuranceRenewal ?? null,
-    v.tankSize ?? null, v.tracksFuel === false ? 0 : 1, v.tracksService === false ? 0 : 1, v.odometer ?? 0,
+    v.tankSize ?? null, v.tracksFuel === false ? 0 : 1, v.tracksService === false ? 0 : 1,
     JSON.stringify(v.intervals ?? []), v.color ?? 'slate'
   )
-  const row = db.prepare('SELECT * FROM vehicles WHERE id = ?').get(info.lastInsertRowid)
-  res.status(201).json(rowToVehicle(row))
+  res.status(201).json(recomputeOdometer(info.lastInsertRowid))
 })
 
 router.patch('/:id', (req, res) => {
@@ -39,16 +30,15 @@ router.patch('/:id', (req, res) => {
 
   const merged = { ...rowToVehicle(existing), ...req.body }
   db.prepare(`
-    UPDATE vehicles SET nickname=?, year=?, make=?, model=?, trim=?, vin=?, plate=?, purchaseDate=?, purchaseOdometer=?, registrationRenewal=?, insuranceRenewal=?, tankSize=?, tracksFuel=?, tracksService=?, odometer=?, intervals=?, color=?
+    UPDATE vehicles SET nickname=?, year=?, make=?, model=?, trim=?, vin=?, plate=?, purchaseDate=?, purchaseOdometer=?, registrationRenewal=?, insuranceRenewal=?, tankSize=?, tracksFuel=?, tracksService=?, intervals=?, color=?
     WHERE id=?
   `).run(
     merged.nickname, merged.year, merged.make, merged.model, merged.trim, merged.vin, merged.plate,
     merged.purchaseDate, merged.purchaseOdometer, merged.registrationRenewal, merged.insuranceRenewal,
-    merged.tankSize, merged.tracksFuel ? 1 : 0, merged.tracksService ? 1 : 0, merged.odometer,
+    merged.tankSize, merged.tracksFuel ? 1 : 0, merged.tracksService ? 1 : 0,
     JSON.stringify(merged.intervals ?? []), merged.color ?? 'slate', id
   )
-  const row = db.prepare('SELECT * FROM vehicles WHERE id = ?').get(id)
-  res.json(rowToVehicle(row))
+  res.json(recomputeOdometer(id))
 })
 
 router.delete('/:id', (req, res) => {

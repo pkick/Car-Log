@@ -5,9 +5,8 @@ import fs from 'node:fs'
 import { SEED_VEHICLES, SEED_FILL_UPS, SEED_SERVICE_RECORDS, SEED_POLICY_RECORDS } from './seed.js'
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url))
-const dataDir = path.join(__dirname, 'data')
-fs.mkdirSync(dataDir, { recursive: true })
-const dbPath = path.join(dataDir, 'odometer.db')
+const dbPath = process.env.DB_PATH || path.join(__dirname, 'data', 'odometer.db')
+if (dbPath !== ':memory:') fs.mkdirSync(path.dirname(dbPath), { recursive: true })
 
 export const db = new DatabaseSync(dbPath)
 

@@ -77,21 +77,21 @@ Acceptance
 ### P1-B · Odometer integrity
 Branch `fix/p1b-odometer`. Depends on P1-A.
 
-- [ ] **P1-B1** Make the server testable: `db.js` reads `DB_PATH` (default `server/data/odometer.db`, `:memory:`
+- [x] **P1-B1** Make the server testable: `db.js` reads `DB_PATH` (default `server/data/odometer.db`, `:memory:`
       in tests); split `index.js` into `app.js` (exports the Express app) and `index.js` (listens). Add
       `node --test` as `npm test` in `server/`.
-- [ ] **P1-B2** Add `recomputeOdometer(vehicleId)` in the server, called after every fill-up and service
+- [x] **P1-B2** Add `recomputeOdometer(vehicleId)` in the server, called after every fill-up and service
       insert, update and delete (D9). Responses for those routes include the updated `vehicle`.
-- [ ] **P1-B3** Validate fill-up odometers on POST and PATCH: the reading must be greater than the closest
+- [x] **P1-B3** Validate fill-up odometers on POST and PATCH: the reading must be greater than the closest
       earlier fill-up (by date) and less than the closest later one. Return `422 { error, field: 'odometer' }`
       with a message that names the conflicting fill-up.
-- [ ] **P1-B4** Client: `RecordsContext` mutations merge the returned `vehicle` into `VehicleContext`, so the
+- [x] **P1-B4** Client: `RecordsContext` mutations merge the returned `vehicle` into `VehicleContext`, so the
       header and due-soon math update immediately.
-- [ ] **P1-B5** Fill-up and service forms stop prefilling the odometer. Show `Last: 84,210 on Aug 28` as the
+- [x] **P1-B5** Fill-up and service forms stop prefilling the odometer. Show `Last: 84,210 on Aug 28` as the
       hint and render server validation errors inline under the field.
-- [ ] **P1-B6** Route tests: odometer recompute on add, edit and delete; rejection of lower and equal readings;
+- [x] **P1-B6** Route tests: odometer recompute on add, edit and delete; rejection of lower and equal readings;
       backdated fill-up between two existing ones is accepted.
-- [ ] **P1-B7** Reset the dev DB (removes the 0 mpg fill-up #25).
+- [x] **P1-B7** Reset the dev DB (removes the 0 mpg fill-up #25).
 
 Acceptance
 - Logging a fill-up at 84,700 changes the header to 84,700 without a reload.
@@ -406,5 +406,6 @@ Backlog (not scheduled): units and currency settings (L/100 km, km, liters), hou
 
 Newest first. One line per merged PR: date, group, PR link, one-sentence summary.
 
+- 2026-09-25 · P1-B · Server owns the odometer (recomputed on every write, D9) and rejects out-of-order fill-up readings with an inline 422; route tests via `node --test`. Fill-ups sharing a date are ordered by entry, so a new one must be the day's highest reading. Existing dev DBs still need `rm server/data/odometer.db` once (P1-B7).
 - 2026-09-25 · P1-A · Vitest harness and `lib/dates.js`; every date default, parse, sort and interval calculation now uses local `YYYY-MM-DD` strings.
 - 2026-09-24 · Plan · Added this plan, `roadmap.html` and `CLAUDE.md`.

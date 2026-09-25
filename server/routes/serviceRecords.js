@@ -1,5 +1,6 @@
 import { Router } from 'express'
 import { db } from '../db.js'
+import { recomputeOdometer } from '../vehicles.js'
 
 const router = Router()
 
@@ -25,7 +26,7 @@ router.post('/', (req, res) => {
     r.cost ?? 0, r.performedBy ?? null, r.shopName ?? null, r.partsUsed ?? '', r.notes ?? ''
   )
   const row = db.prepare('SELECT * FROM service_records WHERE id = ?').get(info.lastInsertRowid)
-  res.status(201).json(rowToServiceRecord(row))
+  res.status(201).json({ serviceRecord: rowToServiceRecord(row), vehicle: recomputeOdometer(row.vehicleId) })
 })
 
 router.patch('/:id', (req, res) => {
@@ -35,19 +36,23 @@ router.patch('/:id', (req, res) => {
 
   const merged = { ...rowToServiceRecord(existing), ...req.body }
   db.prepare(`
-    UPDATE service_records SET vehicleId=?, date=?, odometer=?, categoryId=?, services=?, cost=?, performedBy=?, shopName=?, partsUsed=?, notes=?
+    UPDATE service_records SET date=?, odometer=?, categoryId=?, services=?, cost=?, performedBy=?, shopName=?, partsUsed=?, notes=?
     WHERE id=?
   `).run(
-    merged.vehicleId, merged.date, merged.odometer, merged.categoryId, JSON.stringify(merged.services ?? []),
+    merged.date, merged.odometer, merged.categoryId, JSON.stringify(merged.services ?? []),
     merged.cost, merged.performedBy, merged.shopName, merged.partsUsed, merged.notes, id
   )
   const row = db.prepare('SELECT * FROM service_records WHERE id = ?').get(id)
-  res.json(rowToServiceRecord(row))
+  res.json({ serviceRecord: rowToServiceRecord(row), vehicle: recomputeOdometer(row.vehicleId) })
 })
 
 router.delete('/:id', (req, res) => {
-  db.prepare('DELETE FROM service_records WHERE id = ?').run(Number(req.params.id))
-  res.status(204).end()
+  const id = Number(req.params.id)
+  const existing = db.prepare('SELECT * FROM service_records WHERE id = ?').get(id)
+  if (!existing) return res.status(404).json({ error: 'Service record not found' })
+
+  db.prepare('DELETE FROM service_records WHERE id = ?').run(id)
+  res.json({ vehicle: recomputeOdometer(existing.vehicleId) })
 })
 
 export default router
