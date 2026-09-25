@@ -1,0 +1,409 @@
+# Odometer polish plan
+
+The working plan for taking Odometer from a working tracker to a polished, SaaS-quality self-hosted app.
+The visual companion with wireframes is [`roadmap.html`](roadmap.html) (open it in a browser).
+
+**How to use this file**
+
+- Work happens in **task groups** (e.g. `P1-B`). Each group is one branch and one pull request.
+- Tick a task's box in the same PR that completes it, and add a line to the [Progress log](#progress-log).
+- Every group lists its acceptance checks. A group is done only when all of them pass and the
+  [Definition of done](#definition-of-done) is met.
+- Phases 1 to 3 are specified in detail. Phase 4 groups are scoped epics; expand them into tasks
+  (in a PR that only edits this file) before starting one.
+- Decisions below are defaults. To change one, edit it here with the date and the reason.
+
+---
+
+## Decisions
+
+| ID | Decision | Notes |
+|----|----------|-------|
+| D1 | **Personal, self-hosted, single household.** No sign-in, no multi-tenancy. | Keep all data access behind the REST API so accounts stay possible later. Decided 2026-09-24. |
+| D2 | **Dev data is disposable until P2-F.** Schema changes may drop and reseed the DB (`rm server/data/odometer.db`). | From P2-F on, every schema change ships as a numbered migration. Decided 2026-09-24. |
+| D3 | **One branch + PR per task group.** Branch names: `fix/p1b-odometer`, `feat/p2a-primitives`, etc. PRs target `main`. | Decided 2026-09-24. |
+| D4 | **Stay on Tailwind 3.4.** Extend the opacity scale in P1-F; move color tokens to CSS variables in P2-A. | Tailwind 4 would fix opacity natively but is a large migration with no user-facing gain. Revisit after Phase 3. |
+| D5 | **Tests:** Vitest for `app/src/lib` (pure logic, run with `TZ=America/Los_Angeles`); `node:test` for server routes against an in-memory DB. | No component-test framework until a bug justifies one. |
+| D6 | **Routing:** `react-router` v7 in library mode (P2-C). URLs: `/v/:vehicleId/{overview,fuel,maintenance,documents,trends}`, `/garage`, `/settings`. | Active vehicle comes from the URL; localStorage only remembers the last one. |
+| D7 | **JavaScript with JSDoc**, no TypeScript migration for now. | Add JSDoc types to every `lib/` export. |
+| D8 | **Dates are `YYYY-MM-DD` strings in local time** end to end. Never pass them through `new Date(str)` or `toISOString()`; use `lib/dates.js`. | Fixes the off-by-one-day bugs. |
+| D9 | **Odometer source of truth:** the server keeps `vehicles.odometer = MAX(purchaseOdometer, all fill-up odometers, all service odometers)`, recomputed on every write. | The client never sets it directly except when adding a vehicle. |
+| D10 | **Intervals match on service names**, not categories. Each interval stores `services: string[]`. | A record resets an interval if any of its services is in that list. |
+| D11 | **Charts are hand-rolled SVG components** (Sparkline, LineChart, BarChart, ProgressTrack). | Small bundle, full control, matches the design language. |
+| D12 | **Command palette uses `cmdk`.** | Fall back to a hand-rolled list if it conflicts with React 19. |
+| D13 | **Keep the custom icon set** in `components/icons.jsx`. Add new icons there on the same 24px, 2px-stroke grid. | |
+
+---
+
+## Definition of done
+
+Applies to every task group.
+
+- [ ] `npm run lint` passes in `app/`.
+- [ ] `npm test` passes in `app/` and `server/` (once P1-A and P1-B add them).
+- [ ] `npm run build` passes in `app/`.
+- [ ] The change is verified in the running app (server on :3001, Vite on :5173) at desktop width, and at 390px once P4-A has landed.
+- [ ] No new one-off styling once the P2-A primitives exist: use `components/ui`.
+- [ ] Boxes ticked here and a Progress log line added in the same PR.
+- [ ] PR description lists what changed, how it was verified, and any follow-ups.
+
+---
+
+## Phase 1 · Trust the numbers
+
+Goal: every number the app shows is correct, every flow that looks usable works, and nothing
+fails silently. No redesign yet.
+
+### P1-A · Test harness and local dates
+Branch `fix/p1a-dates`. Depends on nothing.
+
+- [ ] **P1-A1** Add Vitest to `app/` with a `test` script that runs under `TZ=America/Los_Angeles`.
+      Add baseline tests that lock in `computeFillMpg` (partial fills accumulate, first full fill has no MPG).
+- [ ] **P1-A2** Create `app/src/lib/dates.js` with JSDoc and tests: `todayISO()`, `parseISODate(str)` (local
+      midnight), `addMonths(iso, n)` (calendar months, clamps day 31), `daysBetween(a, b)`, `monthKey(iso)`,
+      `isWithinDays(iso, n, today)`.
+- [ ] **P1-A3** Replace every `toISOString()` default and every `new Date('YYYY-MM-DD')` parse (14 call sites in
+      11 files: `LogFillupModal`, `AddVehicleModal`, `LogServiceModal`, `LogPolicyModal`, `vehicleStats`,
+      `exportCsv`, `Documents`, `Trends`, `FuelLog`, `Settings`, `Dashboard`). `grep -rn "new Date(" app/src` must
+      only show `new Date()` for "now" inside `dates.js`.
+- [ ] **P1-A4** Replace `interval.months * 30` in `getDueSoonItems` with `addMonths` so due dates land on real
+      calendar dates.
+
+Acceptance
+- Forms default to the local date at 11 pm Pacific (test covers it by mocking the clock).
+- Trends' cost-per-mile caption shows `SEP 1` for a `2026-09-01` fill-up.
+- A 12-month interval last done Jan 31 is due Jan 31 of the next year, not Jan 26.
+
+### P1-B · Odometer integrity
+Branch `fix/p1b-odometer`. Depends on P1-A.
+
+- [ ] **P1-B1** Make the server testable: `db.js` reads `DB_PATH` (default `server/data/odometer.db`, `:memory:`
+      in tests); split `index.js` into `app.js` (exports the Express app) and `index.js` (listens). Add
+      `node --test` as `npm test` in `server/`.
+- [ ] **P1-B2** Add `recomputeOdometer(vehicleId)` in the server, called after every fill-up and service
+      insert, update and delete (D9). Responses for those routes include the updated `vehicle`.
+- [ ] **P1-B3** Validate fill-up odometers on POST and PATCH: the reading must be greater than the closest
+      earlier fill-up (by date) and less than the closest later one. Return `422 { error, field: 'odometer' }`
+      with a message that names the conflicting fill-up.
+- [ ] **P1-B4** Client: `RecordsContext` mutations merge the returned `vehicle` into `VehicleContext`, so the
+      header and due-soon math update immediately.
+- [ ] **P1-B5** Fill-up and service forms stop prefilling the odometer. Show `Last: 84,210 on Aug 28` as the
+      hint and render server validation errors inline under the field.
+- [ ] **P1-B6** Route tests: odometer recompute on add, edit and delete; rejection of lower and equal readings;
+      backdated fill-up between two existing ones is accepted.
+- [ ] **P1-B7** Reset the dev DB (removes the 0 mpg fill-up #25).
+
+Acceptance
+- Logging a fill-up at 84,700 changes the header to 84,700 without a reload.
+- A second fill-up at 84,600 is rejected with an inline message.
+- Deleting the newest fill-up brings the odometer back down.
+- Dashboard shows no 0 mpg bar; the average is ~31.4.
+
+### P1-C · Service interval matching
+Branch `fix/p1c-intervals`. Depends on P1-A.
+
+- [ ] **P1-C1** Add `services: string[]` to each interval (D10). Defaults: Oil + filter → `['Oil + filter change']`,
+      Tire rotation → `['Tire rotation']`, Brake fluid → `['Brake fluid']`, Cabin air filter → `['Cabin air filter']`.
+      Update `DEFAULT_INTERVALS` in both `server/seed.js` and `VehicleContext.jsx` (then remove the client copy;
+      the server owns defaults and exposes them via `GET /api/defaults/intervals`).
+- [ ] **P1-C2** `getDueSoonItems` matches `record.services` against `interval.services`. Intervals with an
+      empty list fall back to "any service in `interval.categoryId`".
+- [ ] **P1-C3** Add `progress` (0 to 1+, for bars) and `dueDate` / `dueOdometer` to each due item.
+- [ ] **P1-C4** Edit vehicle › Service intervals: editable name, a multi-select of which services satisfy the
+      interval, and a delete button per row. "+ Add interval" starts with an empty service list and focuses the name.
+- [ ] **P1-C5** Record `categoryId` becomes derived: set it to the category of the first service on save and
+      stop reading it for matching anywhere. Activity and history icons already derive categories from services.
+- [ ] **P1-C6** Tests: brake pads don't reset Brake fluid; a record with Brake pads + Tire rotation resets
+      Tire rotation; Air filter doesn't reset Cabin air filter; empty-list fallback works.
+- [ ] **P1-C7** Reset and reseed the dev DB with the new interval shape.
+
+Acceptance
+- Logging "Brake pads" leaves Brake fluid's status unchanged.
+- Logging one record with brakes and a tire rotation clears the Tire rotation overdue state.
+
+### P1-D · Fuel logging and honest stats
+Branch `fix/p1d-fuel-stats`. Depends on P1-B.
+
+- [ ] **P1-D1** Full / Partial toggle in `LogFillupModal` and the Fuel page panel. The MPG preview respects it
+      and shows "Partial fills aren't averaged until the next full tank" when partial is selected.
+- [ ] **P1-D2** Tank-size warning in both forms (currently only the modal has it).
+- [ ] **P1-D3** `getFuelStats`: compare month-to-date spend with the same number of days last month. Return
+      `null` delta when last month has no data; the tile then shows no delta instead of "−100%".
+- [ ] **P1-D4** Trends "price paid" card: plot price per fill-up over time for the last 12 fill-ups, colored
+      relative to the vehicle's own average (±3%). Delete `getPricePaidBuckets` and the hard-coded $3.55 / $3.32.
+- [ ] **P1-D5** Trends footer stats: "Spend / month" becomes the average monthly fuel spend over the last
+      6 months; "Gal / month" uses real gallons, not miles ÷ MPG.
+- [ ] **P1-D6** Trends "Looking ahead": list every interval from `getDueSoonItems` instead of hard-coded oil,
+      tires and brakes.
+- [ ] **P1-D7** Tests for the new stat functions.
+
+Acceptance
+- On the 3rd of a month with one fill-up, the spend tile compares against the 1st to 3rd of last month.
+- The price chart's bars are in date order and change color only relative to your average.
+
+### P1-E · Safe writes and server validation
+Branch `fix/p1e-safe-writes`. Depends on P1-B.
+
+- [ ] **P1-E1** Every modal awaits its mutation, disables Save while pending, stays open on failure and shows the
+      server's message inline. No unhandled promise rejections.
+- [ ] **P1-E2** Server validation helper for all POST/PATCH routes: required fields, numeric types, positive
+      amounts, valid `YYYY-MM-DD`. Return `400 { error, field }`.
+- [ ] **P1-E3** Turn on `PRAGMA foreign_keys = ON` and recreate tables with `ON DELETE CASCADE` for fill-ups,
+      services and policy records (D2 allows the reset). Remove the manual deletes in `routes/vehicles.js`.
+- [ ] **P1-E4** Replace `alert()` in `AddVehicleModal` with inline field errors.
+- [ ] **P1-E5** Zero-vehicle safety: `Header`, `Sidebar` and pages render without a vehicle (temporary
+      "Add your first vehicle" panel until P4-G builds the real first run). The server stops blocking deletion
+      of the last vehicle.
+- [ ] **P1-E6** Route tests for validation errors and cascade delete.
+
+Acceptance
+- Stopping the server and saving a fill-up shows an error in the modal; restarting and saving again works.
+- Deleting a vehicle removes its payments.
+- Deleting the last vehicle leaves a usable app.
+
+### P1-F · Visual bugs, placeholders and tracking toggles
+Branch `fix/p1f-visual`. Depends on nothing (can run in parallel with P1-B to P1-E).
+
+- [ ] **P1-F1** Extend `theme.extend.opacity` in `tailwind.config.js` with every off-scale value in use:
+      `2.5 3 4 4.5 6 8 9 12 14 16 18 24 42 52 62`. Add a comment explaining why. Verify the sidebar active
+      state, modal backdrop and the Trends cost-per-mile `<select>` (make it dark with light text).
+- [ ] **P1-F2** Remove the hard-coded 70% bars from the dashboard stat tiles. Drive the "Coming up" bars from
+      `progress` (P1-C3), colored by status.
+- [ ] **P1-F3** Replace the static "SAVED LOCALLY" badge with a connection indicator that pings `/api/health`
+      every 30 s: "Connected" (green) or "Can't reach server" (red).
+- [ ] **P1-F4** Add Wipers subcategories: Front wiper blades, Rear wiper blade, Washer fluid.
+- [ ] **P1-F5** Hide placeholders until their feature exists: receipt drop zone (P4-C), Mobile nav item (P4-A),
+      Reminders row (P4-D). Units and Currency render as read-only info, not controls. "Mark done" on due cards
+      is removed until P3-D implements it; "Log now" stays.
+- [ ] **P1-F6** Honor `tracksFuel` / `tracksService` per the design handoff: hide Fuel and Trends (or
+      Maintenance) nav items, header buttons, stat tiles and activity filters; redirect to Dashboard if the
+      current page gets hidden; show the "Fuel tracking is off" panel on the dashboard.
+- [ ] **P1-F7** Small fixes: header odometer uses `toLocaleString()`; `index.html` title "Odometer"; the main
+      scroll container resets to top on page change; replace the 🔧 emoji in Edit vehicle with `WrenchIcon`.
+
+Acceptance
+- The current page is highlighted in the sidebar; modals dim the page behind them.
+- A vehicle with fuel tracking off shows no fuel UI anywhere.
+- No control in the app does nothing when clicked.
+
+---
+
+## Phase 2 · Foundations
+
+Goal: one consistent component system, feedback on every action, real URLs, and a build that is ready
+to hold real data on the NAS.
+
+### P2-A · Design tokens and UI primitives
+Branch `feat/p2a-primitives`. Depends on Phase 1.
+
+- [ ] **P2-A1** Move colors to CSS variables in `index.css` as RGB channels and reference them from Tailwind
+      (`ink: 'rgb(var(--ink) / <alpha-value>)'`), so any opacity works and dark mode (P2-G) is a token swap.
+- [ ] **P2-A2** Build `app/src/components/ui/`: `Button` (primary, secondary, ghost, danger; sm, md; `loading`),
+      `IconButton` (requires `aria-label`), `Field` (label, hint, error), `Input`, `NumberInput` (unit suffix,
+      tabular numerals, `inputMode="decimal"`), `Select`, `Segmented`, `Switch`, `Badge` / `StatusChip`, `Card`,
+      `EmptyState`, `StatTile`, `Modal` and `Drawer` (shared base: Esc and backdrop close, focus trap, returns
+      focus, sticky header and footer, sizes sm 440 / md 600 / lg 760, `aria-modal`).
+- [ ] **P2-A3** Dev-only gallery at `/dev/ui` showing every primitive in every state.
+- [ ] **P2-A4** Document the primitives and the rule "no one-off styles" in `CLAUDE.md`.
+
+Acceptance
+- Gallery renders all components; keyboard-only use of Modal and Drawer works (Tab cycles inside, Esc closes).
+
+### P2-B · Migrate screens onto primitives
+Branch `refactor/p2b-migrate-ui`. Depends on P2-A.
+
+- [ ] **P2-B1** Migrate all six modals. Modal widths collapse to the three sizes.
+- [ ] **P2-B2** Migrate all pages. Unify the segmented controls (Dashboard, Documents, Trends, fuel price mode,
+      Shop/DIY, Insurance/Registration) onto `Segmented`.
+- [ ] **P2-B3** `PageHeader` component (eyebrow, title, primary action slot) on every page; Maintenance gets
+      "Log service", Documents "Log payment", Fuel "Log fill-up", Garage "Add vehicle".
+- [ ] **P2-B4** Delete dead classes and duplicated form code (the Fuel page panel and the modal share one form
+      component until P3-C replaces both).
+
+Acceptance
+- `grep -rn "rounded-lg text-sm focus:outline-none" app/src` returns nothing outside `components/ui`.
+
+### P2-C · Routing
+Branch `feat/p2c-routing`. Depends on P2-B.
+
+- [ ] **P2-C1** Add `react-router` with the URL scheme in D6. The sidebar uses `NavLink`.
+- [ ] **P2-C2** Active vehicle comes from the URL; switching vehicles keeps the current section.
+- [ ] **P2-C3** Scroll restoration per route, 404 page, redirect away from sections the vehicle doesn't track.
+- [ ] **P2-C4** Vite dev server and the production server both fall back to `index.html` for client routes.
+
+Acceptance
+- Refreshing `/v/2/trends` stays on The Truck's Trends; back and forward work.
+
+### P2-D · Feedback: toasts, undo, loading
+Branch `feat/p2d-feedback`. Depends on P2-A.
+
+- [ ] **P2-D1** `ToastProvider` with success, error and undo variants; max three stacked; bottom-right.
+- [ ] **P2-D2** Undo delete for fill-ups, services and payments: hide optimistically, send DELETE after 5 s,
+      restore on Undo or on server error.
+- [ ] **P2-D3** Success toasts with a useful detail ("Fill-up saved · 32.2 mpg").
+- [ ] **P2-D4** Load vehicles and records in parallel (one bootstrap request or `Promise.all` across providers).
+      Replace the full-screen "Loading…" with skeletons. Add a top-level error boundary with a retry button.
+
+Acceptance
+- Deleting then clicking Undo leaves the record intact on the server.
+- Only one loading state appears on a cold load.
+
+### P2-E · Formatting and accessibility
+Branch `feat/p2e-format-a11y`. Depends on P2-B.
+
+- [ ] **P2-E1** `app/src/lib/format.js` with tests: `formatDate` ("Sep 1, 2026"), `formatShortDate` ("Sep 1"),
+      `formatRelative` ("3 days ago"), `formatMiles`, `formatMoney`, `formatMpg`, `formatPerMile`. Replace every
+      raw ISO date and unformatted number in the UI.
+- [ ] **P2-E2** Tabular numerals on all numeric columns; currency right-aligned.
+- [ ] **P2-E3** Raise muted label contrast to at least 4.5:1 (ink ≥ 60% on white); visible `focus-visible`
+      rings on every interactive element; `aria-label` on every icon-only button.
+- [ ] **P2-E4** Keyboard shortcuts registry: `F` log fill-up, `S` log service, `?` shortcuts dialog,
+      `G` then `D/F/M/T/G/S` to navigate. Ignored while typing in inputs.
+
+Acceptance
+- No `YYYY-MM-DD` string is visible anywhere in the UI.
+- The whole log-fill-up flow can be done with the keyboard alone.
+
+### P2-F · Ready for real data (deployment)
+Branch `feat/p2f-deploy`. Depends on P1-E. **After this merges, D2 flips: no more DB resets.**
+
+- [ ] **P2-F1** `DATA_DIR` env (default `server/data`) for the DB and future uploads.
+- [ ] **P2-F2** Migration runner: `schema_migrations` table and numbered files in `server/migrations/`, run on
+      start. Migration `001` is the full current schema. Remove the ad hoc `ALTER TABLE` in `db.js`.
+- [ ] **P2-F3** Seed only when `SEED_DEMO=1`; otherwise start empty (first-run panel from P1-E5).
+- [ ] **P2-F4** Full JSON export and import (all tables) in Settings, alongside the existing CSV export.
+- [ ] **P2-F5** Production serving: Express serves the built `app/dist` with SPA fallback.
+- [ ] **P2-F6** Multi-stage `Dockerfile`, `docker-compose.yml`, and an unraid template; `/data` volume; health check.
+- [ ] **P2-F7** Self-host fonts with `@fontsource/archivo` and `@fontsource/ibm-plex-mono`; remove the Google
+      Fonts `@import`.
+- [ ] **P2-F8** README: deploy, backup and upgrade instructions.
+
+Acceptance
+- `docker compose up` on a clean machine serves the app on one port with an empty DB and no internet.
+- Upgrading the image keeps existing data.
+
+### P2-G · Dark mode
+Branch `feat/p2g-dark-mode`. Depends on P2-A.
+
+- [ ] **P2-G1** Dark token set (slate surfaces, brighter accent, adjusted status colors) that passes contrast.
+- [ ] **P2-G2** Settings: Appearance (System / Light / Dark), stored in localStorage, applied before first paint
+      in `index.html` (same approach as the text-size script).
+
+Acceptance
+- Every page and modal is legible in both themes; no hard-coded light-only colors remain.
+
+---
+
+## Phase 3 · Signature flows
+
+Goal: the wireframed features in [`roadmap.html`](roadmap.html) sections 3A to 3D, plus a Trends rebuild.
+
+### P3-A · Chart kit
+Branch `feat/p3a-charts`. Depends on P2-A.
+
+- [ ] **P3-A1** `components/charts/`: `Sparkline`, `LineChart` (y-axis ticks from a nice-number scale, average line,
+      hollow markers for partial fills, hover tooltip), `BarChart` (stacked option), `ProgressTrack` (last-done
+      marker, due tick, "now" marker, overdue overflow). Colors from tokens only.
+- [ ] **P3-A2** Scale and tick helpers in `lib/chartScale.js` with tests.
+- [ ] **P3-A3** Add the chart kit to the `/dev/ui` gallery.
+
+### P3-B · Dashboard 2.0
+Branch `feat/p3b-dashboard`. Depends on P3-A, P2-C, P2-D. Wireframe: roadmap 3A.
+
+- [ ] **P3-B1** Vehicle switcher moves to the top of the sidebar; header holds search trigger, connection status,
+      Log service and Log fill-up.
+- [ ] **P3-B2** Attention banner: the single most urgent item across overdue services and renewals, with its
+      action and "Snooze 2 wks" (stored per item). Hidden when nothing is due.
+- [ ] **P3-B3** Stat tiles with sparklines: Avg MPG (last 5 vs previous 5 full tanks), Cost per mile all-in for
+      the selected range, Spent this month (vs same days last month, split fuel / service), Driving pace (mi/mo).
+- [ ] **P3-B4** Range selector (90 days / 1 year / All time) drives the tiles and chart.
+- [ ] **P3-B5** MPG line chart with average and partial markers.
+- [ ] **P3-B6** Up next: top three intervals with `ProgressTrack`, status color and projected date.
+- [ ] **P3-B7** Activity timeline grouped by month, including documents, with Edit and More on hover.
+
+### P3-C · Smart fill-up drawer
+Branch `feat/p3c-fillup-drawer`. Depends on P2-D, P2-E. Wireframe: roadmap 3B.
+
+- [ ] **P3-C1** Schema: add `station TEXT` and `notes TEXT` to `fill_ups` (migration). `GET /api/stations?vehicleId=`
+      returns recent distinct stations.
+- [ ] **P3-C2** One `FillUpDrawer` opened from the header, the Fuel page, `F`, and ⌘K; also used for editing
+      (row click on the Fuel table). Delete the old modal and the Fuel page side panel.
+- [ ] **P3-C3** Odometer first with last-reading hint and live "+490 mi" delta.
+- [ ] **P3-C4** Any two of gallons, price per gallon and total; the third is calculated and marked "auto".
+      Pure function `solveFillUp()` with tests.
+- [ ] **P3-C5** Full / Partial, date (defaults to today), station with suggestions.
+- [ ] **P3-C6** Live validation: lower odometer (blocks), likely missed fill-up when the distance exceeds
+      1.5 × tank size × average MPG (warns, offers "Add missed fill-up"), gallons over tank size (warns).
+- [ ] **P3-C7** Result card: MPG vs your average, cost per mile this tank, estimated range.
+- [ ] **P3-C8** Enter saves; "Save & add another" keeps the drawer open and clears the amounts.
+
+### P3-D · Maintenance schedule
+Branch `feat/p3d-maintenance`. Depends on P3-A, P1-C, P2-D. Wireframe: roadmap 3C.
+
+- [ ] **P3-D1** `lib/projections.js`: driving pace (mi/day over the last 6 months of readings) and
+      `projectDueDate(interval, lastService, pace)`, with tests.
+- [ ] **P3-D2** Schedule rows with `ProgressTrack`, rule text, status chip, projected date.
+- [ ] **P3-D3** Status summary chips that filter the schedule.
+- [ ] **P3-D4** One-click "Mark done": creates a record with the interval's first service at the current odometer
+      and today's date, then an undo toast.
+- [ ] **P3-D5** "Set last done" for intervals with no history: stores a baseline date and odometer on the
+      interval, used until a real record exists.
+- [ ] **P3-D6** History with search (services, shop, parts, notes), category chips, and a yearly spend card by
+      category.
+- [ ] **P3-D7** Log service modal rebuilt on primitives; keeps the category and subcategory chips.
+
+### P3-E · Command palette
+Branch `feat/p3e-command-palette`. Depends on P2-C, P2-E. Wireframe: roadmap 3D.
+
+- [ ] **P3-E1** ⌘K / Ctrl+K palette with `cmdk` (D12): groups for Vehicles, Go to, Actions, Records.
+- [ ] **P3-E2** Fuzzy search across navigation, actions, vehicles and all records (services, shops, notes, dates).
+- [ ] **P3-E3** Each action shows its shortcut from the P2-E4 registry.
+
+### P3-F · Trends rebuild
+Branch `feat/p3f-trends`. Depends on P3-A, P1-D.
+
+- [ ] **P3-F1** MPG over time as a `LineChart` with the range control.
+- [ ] **P3-F2** Monthly spend as stacked bars for 12 months (fuel, service, insurance, registration).
+- [ ] **P3-F3** Cost per mile card keeps the window selector and caption, now all-in.
+- [ ] **P3-F4** Station insights: average price per station, cheapest station.
+- [ ] **P3-F5** Records card and Looking ahead card on the new components.
+
+### P3-G · Garage and Documents polish
+Branch `feat/p3g-garage-docs`. Depends on P2-B.
+
+- [ ] **P3-G1** Garage cards: tracking labels, due-count badge, whole card clickable (opens the vehicle's
+      overview until P4-F adds a profile page).
+- [ ] **P3-G2** Documents: renewal cards with countdown and status, payment history on primitives, renewals feed
+      the dashboard attention banner.
+
+---
+
+## Phase 4 · Reach
+
+Scoped epics. Expand each into tasks before starting it.
+
+- **P4-A · Responsive layout.** Breakpoints: ≥1240 desktop; 900 to 1240 compact (2-up tiles, stacked rows,
+  scrolling tables); <900 bottom tab bar with center + button and the M1 to M7 screens from the design handoff.
+- **P4-B · PWA and offline.** `vite-plugin-pwa`, manifest and icons, IndexedDB outbox for writes, sync on
+  reconnect, last-write-wins.
+- **P4-C · Receipts and documents.** Uploads to `DATA_DIR/receipts` (multer), `receipts` table, thumbnails on
+  service and policy records, viewer, size and type limits.
+- **P4-D · Reminders.** Notification settings (ntfy, Pushover, SMTP email), a daily server check, a weekly
+  digest, and default warn-at values in Settings.
+- **P4-E · CSV import.** Upload, column mapping, preview, duplicate detection; presets for Fuelly and Drivvo.
+- **P4-F · Vehicle profile and cost of ownership.** Vehicle page with specs, photo, and all-in cost per mile
+  including insurance and registration; optional purchase price.
+- **P4-G · First-run onboarding.** Zero-vehicle screen from the design handoff, 3-step strip, Import CSV entry,
+  opt-in demo data.
+- **P4-H · VIN decode.** Server calls NHTSA vPIC to fill year, make, model and trim; fails gracefully offline.
+- **P4-I · Year in review.** Annual summary and PDF export.
+
+Backlog (not scheduled): units and currency settings (L/100 km, km, liters), household accounts (see D1).
+
+---
+
+## Progress log
+
+Newest first. One line per merged PR: date, group, PR link, one-sentence summary.
+
+- 2026-09-24 · Plan · Added this plan, `roadmap.html` and `CLAUDE.md`.

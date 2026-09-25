@@ -1,0 +1,1201 @@
+<!doctype html>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Odometer Polish Roadmap</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap">
+<style>
+:root{
+  --bg:#f1f1ef; --surface:#ffffff; --ink:#121212;
+  --ink-2:rgba(18,18,18,.68); --ink-3:rgba(18,18,18,.54);
+  --line:rgba(18,18,18,.11); --line-2:rgba(18,18,18,.055);
+  --accent:oklch(.56 .19 258); --accent-ink:oklch(.48 .19 258); --accent-tint:oklch(.56 .19 258 / .10); --accent-on-dark:oklch(.76 .14 258);
+  --teal:oklch(.56 .13 195); --amber:oklch(.62 .14 68); --green:oklch(.5 .14 150); --red:oklch(.55 .17 28);
+  --red-tint:oklch(.55 .17 28 / .10); --amber-tint:oklch(.66 .14 68 / .15); --teal-tint:oklch(.56 .13 195 / .12); --green-tint:oklch(.5 .14 150 / .11);
+  --wf-canvas:#f7f7f5; --wf-panel:#ffffff; --wf-line:rgba(18,18,18,.13); --wf-fill:rgba(18,18,18,.065); --wf-fill-2:rgba(18,18,18,.13);
+  --wf-ink:#24272d; --wf-dim:rgba(18,18,18,.52); --wf-side:#1b1e24; --wf-dark:#1b1e24; --wf-scrim:rgba(18,18,18,.34);
+  --mono:'IBM Plex Mono',ui-monospace,SFMono-Regular,Menlo,monospace;
+  --sans:'Archivo',system-ui,-apple-system,'Segoe UI',sans-serif;
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    color-scheme:dark;
+    --bg:#101216; --surface:#181b20; --ink:#ececea;
+    --ink-2:rgba(236,236,234,.72); --ink-3:rgba(236,236,234,.54);
+    --line:rgba(236,236,234,.12); --line-2:rgba(236,236,234,.06);
+    --accent:oklch(.68 .16 258); --accent-ink:oklch(.78 .13 258); --accent-tint:oklch(.68 .16 258 / .17);
+    --teal:oklch(.72 .12 195); --amber:oklch(.78 .14 72); --green:oklch(.74 .15 150); --red:oklch(.7 .16 28);
+    --red-tint:oklch(.7 .16 28 / .15); --amber-tint:oklch(.78 .14 72 / .15); --teal-tint:oklch(.72 .12 195 / .15); --green-tint:oklch(.74 .15 150 / .14);
+    --wf-canvas:#14161a; --wf-panel:#1c1f25; --wf-line:rgba(236,236,234,.13); --wf-fill:rgba(236,236,234,.075); --wf-fill-2:rgba(236,236,234,.14);
+    --wf-ink:#deded9; --wf-dim:rgba(236,236,234,.52); --wf-side:#0c0d10; --wf-dark:#2a2e36; --wf-scrim:rgba(0,0,0,.5);
+  }
+}
+:root[data-theme="dark"]{
+  color-scheme:dark;
+  --bg:#101216; --surface:#181b20; --ink:#ececea;
+  --ink-2:rgba(236,236,234,.72); --ink-3:rgba(236,236,234,.54);
+  --line:rgba(236,236,234,.12); --line-2:rgba(236,236,234,.06);
+  --accent:oklch(.68 .16 258); --accent-ink:oklch(.78 .13 258); --accent-tint:oklch(.68 .16 258 / .17);
+  --teal:oklch(.72 .12 195); --amber:oklch(.78 .14 72); --green:oklch(.74 .15 150); --red:oklch(.7 .16 28);
+  --red-tint:oklch(.7 .16 28 / .15); --amber-tint:oklch(.78 .14 72 / .15); --teal-tint:oklch(.72 .12 195 / .15); --green-tint:oklch(.74 .15 150 / .14);
+  --wf-canvas:#14161a; --wf-panel:#1c1f25; --wf-line:rgba(236,236,234,.13); --wf-fill:rgba(236,236,234,.075); --wf-fill-2:rgba(236,236,234,.14);
+  --wf-ink:#deded9; --wf-dim:rgba(236,236,234,.52); --wf-side:#0c0d10; --wf-dark:#2a2e36; --wf-scrim:rgba(0,0,0,.5);
+}
+
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--ink);font-family:var(--sans);font-size:15px;line-height:1.6;-webkit-font-smoothing:antialiased}
+.page{max-width:1120px;margin:0 auto;padding-inline:24px;padding-block:48px 96px}
+@media (max-width:520px){.page{padding-inline:16px;padding-block:28px 64px}}
+p{margin:0}
+h1,h2,h3,h4{margin:0;text-wrap:balance}
+h1{font-size:clamp(34px,5.2vw,50px);font-weight:600;letter-spacing:-.035em;line-height:1.04}
+h2{font-size:clamp(26px,3.4vw,32px);font-weight:600;letter-spacing:-.03em;line-height:1.1}
+h3{font-size:21px;font-weight:600;letter-spacing:-.02em;line-height:1.2}
+code{font-family:var(--mono);font-size:.84em}
+a{color:var(--accent-ink)}
+a:focus-visible,.phase:focus-visible{outline:2px solid var(--accent);outline-offset:3px}
+.eyebrow{font-family:var(--mono);font-size:11px;font-weight:500;letter-spacing:.13em;text-transform:uppercase;color:var(--ink-3)}
+
+/* hero */
+.hero{display:flex;flex-direction:column;gap:18px}
+.brand{display:flex;align-items:center;gap:10px;font-weight:600;letter-spacing:-.02em;font-size:15px}
+.logo{position:relative;width:24px;height:24px;border-radius:6px;background:var(--accent);flex:none}
+.logo::before{content:"";position:absolute;left:6px;right:6px;top:6px;height:4px;border-radius:3px;background:#1b1e24}
+.logo::after{content:"";position:absolute;left:6px;bottom:5px;width:7px;height:7px;border-radius:50%;background:#1b1e24}
+.lede{font-size:18px;line-height:1.55;color:var(--ink-2);max-width:64ch}
+.meta{display:flex;flex-wrap:wrap;gap:6px 18px;font-family:var(--mono);font-size:12px;color:var(--ink-3)}
+
+/* phase nav */
+.phases{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-top:36px}
+.phase{display:flex;flex-direction:column;gap:6px;padding:16px 18px 18px;background:var(--surface);border:1px solid var(--line);border-radius:10px;text-decoration:none;color:inherit;transition:border-color .15s}
+.phase:hover{border-color:var(--accent)}
+.phase .n{font-family:var(--mono);font-size:11px;letter-spacing:.13em;text-transform:uppercase;color:var(--accent-ink)}
+.phase b{font-size:17px;font-weight:600;letter-spacing:-.015em}
+.phase span{font-size:13.5px;color:var(--ink-2);line-height:1.45}
+@media (max-width:900px){.phases{grid-template-columns:repeat(2,1fr)}}
+@media (max-width:520px){.phases{grid-template-columns:1fr}}
+
+section{margin-top:80px;display:flex;flex-direction:column;gap:26px}
+.sec-head{display:flex;flex-direction:column;gap:10px;max-width:72ch}
+.sec-head p{color:var(--ink-2)}
+
+/* standing */
+.standing{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.col{background:var(--surface);border:1px solid var(--line);border-radius:10px;padding:20px 22px 22px;display:flex;flex-direction:column;gap:14px}
+.col ul{margin:0;padding:0;list-style:none;display:flex;flex-direction:column;gap:11px}
+.col li{display:grid;grid-template-columns:12px 1fr;gap:10px;font-size:14.5px;line-height:1.5;color:var(--ink-2)}
+.col li::before{content:"";width:7px;height:7px;border-radius:50%;margin-top:8px;background:var(--green)}
+.col.hold li::before{background:var(--amber)}
+.col li b{color:var(--ink);font-weight:600}
+@media (max-width:760px){.standing{grid-template-columns:1fr}}
+
+/* bug list */
+.bugs{background:var(--surface);border:1px solid var(--line);border-radius:10px;overflow:hidden}
+.bug-group{display:flex;align-items:center;gap:10px;padding:12px 22px;background:var(--line-2);font-family:var(--mono);font-size:11px;font-weight:500;letter-spacing:.13em;text-transform:uppercase;color:var(--ink-2)}
+.bug-group:not(:first-child){border-top:1px solid var(--line)}
+.sev{width:8px;height:8px;border-radius:50%;flex:none}
+.sev.red{background:var(--red)} .sev.amber{background:var(--amber)} .sev.grey{background:var(--ink-3)}
+.bug{display:grid;grid-template-columns:minmax(0,1.1fr) minmax(0,1fr);gap:28px;padding:18px 22px 20px;border-top:1px solid var(--line-2)}
+.bug h4{font-size:15.5px;font-weight:600;letter-spacing:-.01em;margin-bottom:5px}
+.bug p{font-size:14px;color:var(--ink-2);line-height:1.58}
+.fix{display:flex;flex-direction:column;gap:8px}
+.fix .lbl{font-family:var(--mono);font-size:10.5px;letter-spacing:.13em;text-transform:uppercase;color:var(--accent-ink)}
+.fix p{color:var(--ink)}
+.where{display:flex;flex-wrap:wrap;gap:6px}
+.where code{font-size:11.5px;padding:2px 7px;border-radius:5px;background:var(--line-2);border:1px solid var(--line);color:var(--ink-2)}
+@media (max-width:760px){.bug{grid-template-columns:1fr;gap:12px}}
+
+/* foundations */
+.found{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.fcard{background:var(--surface);border:1px solid var(--line);border-radius:10px;padding:20px 22px 22px;display:flex;flex-direction:column;gap:9px}
+.fcard.lead{grid-column:1 / -1;border-color:color-mix(in oklab,var(--accent) 45%,var(--line))}
+.fcard h3{font-size:18px}
+.fcard p{font-size:14.5px;color:var(--ink-2);line-height:1.58}
+.fcard .today{font-family:var(--mono);font-size:12px;color:var(--ink-3);line-height:1.55}
+.prims{display:flex;flex-wrap:wrap;gap:6px;margin-top:4px}
+.prims span{font-family:var(--mono);font-size:11.5px;padding:3px 9px;border-radius:999px;background:var(--accent-tint);color:var(--accent-ink)}
+@media (max-width:760px){.found{grid-template-columns:1fr}}
+
+/* idea blocks */
+.idea{display:flex;flex-direction:column;gap:20px;padding-top:34px;border-top:1px solid var(--line)}
+.idea-head{display:flex;flex-direction:column;gap:10px;max-width:74ch}
+.idea-title{display:flex;flex-wrap:wrap;align-items:center;gap:10px 14px}
+.idea-title .id{font-family:var(--mono);font-size:12px;letter-spacing:.08em;color:var(--accent-ink)}
+.idea-head p{color:var(--ink-2)}
+.size{font-family:var(--mono);font-size:10.5px;letter-spacing:.08em;text-transform:uppercase;padding:2px 8px;border-radius:999px;border:1px solid var(--line);color:var(--ink-3);white-space:nowrap}
+.notes{list-style:none;margin:0;padding:0;columns:2;column-gap:36px;counter-reset:n}
+.notes li{break-inside:avoid;display:grid;grid-template-columns:22px 1fr;gap:10px;font-size:14px;line-height:1.55;color:var(--ink-2);margin-bottom:12px}
+.notes li::before{counter-increment:n;content:counter(n);width:20px;height:20px;border-radius:50%;background:var(--accent);color:#fff;font-family:var(--mono);font-size:10.5px;font-weight:600;display:grid;place-items:center;margin-top:1px}
+.notes li b{color:var(--ink);font-weight:600}
+@media (max-width:760px){.notes{columns:1}}
+.scroll-hint{display:none;font-family:var(--mono);font-size:11px;color:var(--ink-3)}
+@media (max-width:1000px){.scroll-hint{display:block}}
+
+/* ===== wireframe kit ===== */
+.wf-scroll{overflow-x:auto;border-radius:12px;-webkit-overflow-scrolling:touch}
+.wf-frame{position:relative;min-width:980px;background:var(--wf-canvas);border:1px solid var(--line);border-radius:12px;overflow:hidden;color:var(--wf-ink);font-size:12px;line-height:1.4;font-family:var(--sans)}
+.wf-chrome{display:flex;align-items:center;gap:6px;height:30px;padding:0 12px;border-bottom:1px solid var(--wf-line);background:var(--wf-panel)}
+.wf-chrome i{width:9px;height:9px;border-radius:50%;background:var(--wf-fill-2)}
+.wf-url{margin-left:14px;font-family:var(--mono);font-size:10.5px;color:var(--wf-dim);background:var(--wf-fill);padding:2px 10px;border-radius:6px}
+.wf-app{display:grid;grid-template-columns:176px minmax(0,1fr)}
+.wf-side{background:var(--wf-side);color:#e9e9e6;padding:14px 12px;display:flex;flex-direction:column;gap:16px}
+.wf-veh{position:relative;display:flex;align-items:center;gap:8px;padding:8px;border-radius:8px;background:rgba(255,255,255,.07);border:1px solid rgba(255,255,255,.1)}
+.wf-veh .car{width:24px;height:24px;border-radius:6px;background:oklch(.56 .19 258);flex:none;display:grid;place-items:center;color:#fff}
+.wf-veh .car svg{width:14px;height:14px}
+.wf-veh > div{min-width:0}
+.wf-veh b{display:block;font-size:12px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.wf-veh small{display:block;font-family:var(--mono);font-size:9.5px;color:rgba(233,233,230,.55);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.wf-veh .chev{margin-left:auto;color:rgba(233,233,230,.5);font-size:11px}
+.wf-nav{display:flex;flex-direction:column;gap:2px}
+.wf-nav span{display:flex;align-items:center;gap:8px;padding:6px 8px;border-radius:6px;font-size:11.5px;color:rgba(233,233,230,.62)}
+.wf-nav span::before{content:"";width:11px;height:11px;border-radius:3px;background:rgba(233,233,230,.22);flex:none}
+.wf-nav span.on{background:rgba(255,255,255,.13);color:#fff}
+.wf-nav span.on::before{background:oklch(.7 .15 258)}
+.wf-nav em{margin-left:auto;font-style:normal;font-family:var(--mono);font-size:9.5px;opacity:.6}
+.wf-nav em.alert{opacity:1;color:#fff;background:oklch(.55 .17 28);border-radius:8px;padding:0 5px}
+.wf-nav hr{border:0;border-top:1px solid rgba(255,255,255,.1);margin:6px 0;width:100%}
+.wf-side-foot{margin-top:auto;font-family:var(--mono);font-size:9.5px;color:rgba(233,233,230,.45);display:flex;align-items:center;gap:6px}
+.wf-side-foot kbd{background:rgba(255,255,255,.08);border-color:rgba(255,255,255,.15);color:rgba(233,233,230,.6)}
+.wf-main{padding:14px 20px 20px;display:flex;flex-direction:column;gap:14px;min-width:0}
+.wf-top{display:flex;align-items:center;gap:10px}
+.wf-search{position:relative;flex:1;max-width:330px;display:flex;align-items:center;gap:8px;padding:7px 10px;border:1px solid var(--wf-line);border-radius:8px;background:var(--wf-panel);color:var(--wf-dim)}
+.wf-search kbd{margin-left:auto}
+kbd{font-family:var(--mono);font-size:9.5px;line-height:1.4;padding:0 5px;border:1px solid var(--wf-line);border-radius:4px;background:var(--wf-fill);color:var(--wf-dim)}
+.wf-sync{position:relative;margin-left:auto;display:flex;align-items:center;gap:6px;font-family:var(--mono);font-size:10px;color:var(--wf-dim)}
+.dot{width:7px;height:7px;border-radius:50%;background:var(--green);display:inline-block;flex:none}
+.wf-btn{display:inline-flex;align-items:center;gap:6px;padding:7px 12px;border-radius:8px;border:1px solid var(--wf-line);background:var(--wf-panel);font-weight:600;font-size:11.5px;white-space:nowrap;color:var(--wf-ink)}
+.wf-btn.primary{background:var(--wf-ink);color:var(--wf-canvas);border-color:transparent}
+.wf-btn.accent{background:var(--accent);color:#fff;border-color:transparent}
+.wf-btn.sm{padding:4px 9px;font-size:10.5px;border-radius:6px}
+.wf-btn.ghost{background:transparent;border-color:transparent;color:var(--wf-dim)}
+.wf-btn kbd{background:rgba(255,255,255,.14);border-color:rgba(255,255,255,.2);color:inherit;opacity:.8}
+.wf-card{position:relative;background:var(--wf-panel);border:1px solid var(--wf-line);border-radius:9px;padding:12px 14px}
+.wf-card-h{display:flex;align-items:center;gap:10px;margin-bottom:10px}
+.wf-card-h b{font-size:13px;font-weight:600;letter-spacing:-.01em}
+.wf-card-h .sp{margin-left:auto}
+.wf-eyebrow{font-family:var(--mono);font-size:9px;letter-spacing:.13em;text-transform:uppercase;color:var(--wf-dim)}
+.wf-h{font-size:21px;font-weight:600;letter-spacing:-.03em;line-height:1.1;margin-top:3px}
+.wf-headrow{position:relative;display:flex;align-items:flex-end;gap:10px}
+.wf-headrow .sp{margin-left:auto;display:flex;gap:8px;align-items:center}
+.wf-seg{display:inline-flex;padding:2px;border-radius:7px;background:var(--wf-fill);gap:2px}
+.wf-seg span{padding:3px 9px;border-radius:5px;font-family:var(--mono);font-size:9.5px;color:var(--wf-dim)}
+.wf-seg span.on{background:var(--wf-panel);color:var(--wf-ink);box-shadow:0 1px 2px rgba(0,0,0,.1)}
+.mk.rt{left:auto;right:-10px}
+.mk.inl{position:relative;top:0;left:0;box-shadow:none;display:inline-grid;vertical-align:middle}
+.mk{position:absolute;z-index:5;top:-8px;left:-8px;width:19px;height:19px;border-radius:50%;background:var(--accent);color:#fff;font-family:var(--mono);font-size:10px;font-weight:600;display:grid;place-items:center;box-shadow:0 0 0 3px var(--wf-canvas)}
+.i{width:14px;height:14px;fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round;stroke-linejoin:round;flex:none}
+.ico{width:26px;height:26px;border-radius:7px;display:grid;place-items:center;flex:none}
+.ico.red{background:var(--red-tint);color:var(--red)} .ico.amber{background:var(--amber-tint);color:var(--amber)}
+.ico.teal{background:var(--teal-tint);color:var(--teal)} .ico.blue{background:var(--accent-tint);color:var(--accent)}
+.ico.slate{background:var(--wf-fill);color:var(--wf-ink)}
+.chip{display:inline-flex;align-items:center;gap:5px;padding:2px 7px;border-radius:5px;font-family:var(--mono);font-size:9px;font-weight:600;letter-spacing:.06em;text-transform:uppercase;white-space:nowrap}
+.chip.red{background:var(--red-tint);color:var(--red)} .chip.amber{background:var(--amber-tint);color:var(--amber)}
+.chip.teal{background:var(--teal-tint);color:var(--teal)} .chip.grey{background:var(--wf-fill);color:var(--wf-dim)}
+.t-red{color:var(--red)} .t-amber{color:var(--amber)} .t-teal{color:var(--teal)} .t-green{color:var(--green)}
+.bg-red{background:var(--red)} .bg-amber{background:var(--amber)} .bg-teal{background:var(--teal)}
+.track{position:relative;height:5px;border-radius:3px;background:var(--wf-fill)}
+.track > i{position:absolute;left:0;top:0;bottom:0;border-radius:3px}
+.num{font-variant-numeric:tabular-nums}
+
+/* dashboard wf */
+.wf-alert{position:relative;display:flex;align-items:center;gap:10px;padding:8px 10px;border-radius:9px;background:var(--red-tint);border:1px solid color-mix(in oklab,var(--red) 28%,transparent)}
+.wf-alert .txt{flex:1;font-size:11.5px}
+.wf-alert b{font-weight:600}
+.wf-tiles{display:grid;grid-template-columns:repeat(4,1fr);gap:10px}
+.tile{display:flex;flex-direction:column;gap:6px}
+.tile .v{font-size:23px;font-weight:600;letter-spacing:-.03em;line-height:1}
+.tile .v small{font-family:var(--mono);font-size:9.5px;font-weight:400;letter-spacing:0;color:var(--wf-dim);margin-left:3px}
+.tile .d{font-family:var(--mono);font-size:9.5px;color:var(--wf-dim)}
+.spark{width:100%;height:26px;display:block}
+.spark .ln{fill:none;stroke:var(--accent);stroke-width:1.6}
+.spark .ar{fill:var(--accent-tint);stroke:none}
+.spark .bar{fill:var(--wf-fill-2)} .spark .bar.hi{fill:var(--accent)}
+.wf-row{display:grid;grid-template-columns:1.55fr 1fr;gap:10px}
+.chart{width:100%;height:auto;display:block}
+.chart .grid{stroke:var(--wf-line);stroke-width:1}
+.chart .axis{fill:var(--wf-dim);font-family:var(--mono);font-size:9px}
+.chart .avg{stroke:var(--wf-dim);stroke-width:1;stroke-dasharray:4 3;fill:none}
+.chart .area{fill:var(--accent);fill-opacity:.08}
+.chart .line{fill:none;stroke:var(--accent);stroke-width:2;stroke-linejoin:round;stroke-linecap:round}
+.chart .pt{fill:var(--wf-panel);stroke:var(--accent);stroke-width:1.8}
+.chart .pt.last{fill:var(--accent)}
+.chart .partial{fill:var(--wf-panel);stroke:var(--wf-dim);stroke-width:1.4}
+.legend{display:flex;gap:12px;font-family:var(--mono);font-size:9px;color:var(--wf-dim);align-items:center}
+.legend i{display:inline-block;vertical-align:middle;margin-right:4px}
+.lg-line{width:14px;height:2px;background:var(--accent)}
+.lg-avg{width:14px;border-top:1px dashed var(--wf-dim)}
+.lg-part{width:7px;height:7px;border:1.4px solid var(--wf-dim);transform:rotate(45deg)}
+.un-row{display:flex;gap:10px;align-items:flex-start;padding:9px 0;border-top:1px solid var(--wf-line)}
+.un-row:first-of-type{border-top:0;padding-top:2px}
+.un-body{flex:1;display:flex;flex-direction:column;gap:5px}
+.un-top{display:flex;justify-content:space-between;gap:8px}
+.un-top b{font-weight:600;font-size:11.5px}
+.un-top span{font-family:var(--mono);font-size:10px;font-weight:600}
+.un-body small{font-family:var(--mono);font-size:9.5px;color:var(--wf-dim)}
+.wf-link{font-weight:600;font-size:11px;color:var(--accent);padding-top:8px;border-top:1px solid var(--wf-line)}
+.tl-month{font-family:var(--mono);font-size:9px;letter-spacing:.13em;text-transform:uppercase;color:var(--wf-dim);padding:8px 0 5px}
+.tl-row{display:grid;grid-template-columns:46px 26px minmax(0,1fr) 72px 80px;gap:10px;align-items:center;padding:7px 8px;margin:0 -8px;border-top:1px solid var(--wf-line)}
+.tl-date{font-family:var(--mono);font-size:9.5px;color:var(--wf-dim)}
+.tl-row b{font-weight:600;font-size:11.5px;display:flex;align-items:center;gap:6px}
+.tl-row small{font-family:var(--mono);font-size:9.5px;color:var(--wf-dim)}
+.tl-amt{font-weight:600;text-align:right;font-variant-numeric:tabular-nums}
+.tl-acts{display:flex;gap:4px;justify-content:flex-end}
+.tl-row.hover{background:var(--wf-fill);border-radius:6px;border-top-color:transparent}
+
+/* drawer wf */
+.ft-row{display:grid;grid-template-columns:1.1fr 1fr .8fr .8fr .9fr .8fr;padding:8px 14px;border-top:1px solid var(--wf-line);font-family:var(--mono);font-size:10.5px;color:var(--wf-dim)}
+.ft-row.h{border-top:0;font-size:9px;letter-spacing:.13em;text-transform:uppercase;background:var(--wf-fill)}
+.wf-scrim{position:absolute;left:0;right:0;top:30px;bottom:0;background:var(--wf-scrim)}
+.wf-drawer{position:absolute;top:30px;right:0;bottom:0;width:388px;background:var(--wf-panel);border-left:1px solid var(--wf-line);display:flex;flex-direction:column;box-shadow:-24px 0 48px -24px rgba(0,0,0,.35)}
+.dr-h{position:relative;display:flex;justify-content:space-between;align-items:flex-start;padding:15px 18px;border-bottom:1px solid var(--wf-line)}
+.dr-h b{display:block;font-size:15px;font-weight:600;letter-spacing:-.02em}
+.dr-h small{font-family:var(--mono);font-size:9.5px;color:var(--wf-dim)}
+.dr-x{width:24px;height:24px;border-radius:6px;display:grid;place-items:center;color:var(--wf-dim);border:1px solid var(--wf-line)}
+.dr-body{flex:1;padding:16px 18px;display:flex;flex-direction:column;gap:13px}
+.fld{position:relative;display:flex;flex-direction:column;gap:5px}
+.fld label{font-family:var(--mono);font-size:9px;letter-spacing:.13em;text-transform:uppercase;color:var(--wf-dim)}
+.inp{display:flex;align-items:center;justify-content:space-between;gap:6px;padding:8px 10px;border:1px solid var(--wf-line);border-radius:7px;background:var(--wf-canvas);font-size:13px;font-weight:500;font-variant-numeric:tabular-nums;min-height:34px}
+.inp.focus{border-color:var(--accent);box-shadow:0 0 0 3px var(--accent-tint)}
+.inp.auto{background:var(--wf-fill);color:var(--wf-dim)}
+.inp .u{font-family:var(--mono);font-size:10px;color:var(--wf-dim);font-weight:400}
+.tag{font-family:var(--mono);font-size:8.5px;letter-spacing:.08em;text-transform:uppercase;padding:1px 5px;border-radius:4px;background:var(--accent-tint);color:var(--accent)}
+.hint{font-family:var(--mono);font-size:9.5px;color:var(--wf-dim)}
+.hint b{color:var(--wf-ink);font-weight:600}
+.trio{position:relative;display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px}
+.two{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.seg2{position:relative;display:grid;grid-template-columns:1fr 1fr;gap:6px}
+.seg2 span{padding:7px;border-radius:7px;border:1px solid var(--wf-line);text-align:center;font-weight:600;font-size:11.5px}
+.seg2 span.on{background:var(--wf-ink);color:var(--wf-canvas);border-color:transparent}
+.sugg{display:flex;gap:5px;flex-wrap:wrap}
+.sugg span{padding:2px 8px;border-radius:999px;border:1px solid var(--wf-line);font-size:10px;color:var(--wf-dim)}
+.result{position:relative;background:var(--wf-dark);color:#f1f1ef;border-radius:9px;padding:12px 14px;display:grid;grid-template-columns:1fr auto;gap:6px 14px;align-items:end}
+.result .big{font-size:28px;font-weight:600;letter-spacing:-.03em;color:oklch(.78 .13 258);line-height:1}
+.result .big small{font-size:11px;color:rgba(241,241,239,.6);font-weight:500;letter-spacing:0;margin-left:3px}
+.result .cmp{font-family:var(--mono);font-size:9.5px;color:oklch(.82 .15 150)}
+.result .side{text-align:right;font-family:var(--mono);font-size:9.5px;color:rgba(241,241,239,.62);line-height:1.6}
+.result .side b{color:#f1f1ef;font-weight:600}
+.dr-f{position:relative;display:flex;gap:8px;padding:12px 18px;border-top:1px solid var(--wf-line)}
+.dr-f .wf-btn{flex:1;justify-content:center;padding:9px 12px}
+.states{display:grid;grid-template-columns:repeat(3,1fr);gap:10px}
+.state{border-radius:10px;padding:13px 15px;font-size:13.5px;line-height:1.5;border:1px solid;color:var(--ink-2)}
+.state b{display:block;margin-bottom:3px;color:var(--ink);font-weight:600}
+.state.red{background:var(--red-tint);border-color:color-mix(in oklab,var(--red) 30%,transparent)}
+.state.amber{background:var(--amber-tint);border-color:color-mix(in oklab,var(--amber) 35%,transparent)}
+.state .acts{display:flex;gap:6px;margin-top:9px;flex-wrap:wrap}
+.pbtn{font-family:var(--sans);font-size:12px;font-weight:600;padding:4px 10px;border-radius:7px;border:1px solid var(--line);background:var(--surface);color:var(--ink)}
+.pbtn.dark{background:var(--ink);color:var(--bg);border-color:transparent}
+.state-cap{font-family:var(--mono);font-size:11px;letter-spacing:.13em;text-transform:uppercase;color:var(--ink-3)}
+@media (max-width:760px){.states{grid-template-columns:1fr}}
+
+/* maintenance wf */
+.sum-chips{position:relative;display:flex;gap:6px;flex-wrap:wrap}
+.sc{display:inline-flex;align-items:center;gap:6px;padding:4px 10px;border-radius:999px;border:1px solid var(--wf-line);background:var(--wf-panel);font-size:11px;font-weight:500}
+.sc.on{background:var(--wf-ink);color:var(--wf-canvas);border-color:transparent}
+.sc i{width:7px;height:7px;border-radius:50%;display:inline-block}
+.sc i.dash{border:1.4px dashed var(--wf-dim)}
+.sch-head,.sch-row{display:grid;grid-template-columns:26px 178px minmax(0,1fr) 150px 104px;gap:16px;align-items:center}
+.sch-head{padding:8px 0 6px;font-family:var(--mono);font-size:9px;letter-spacing:.13em;text-transform:uppercase;color:var(--wf-dim)}
+.sch-row{position:relative;padding:10px 0;border-top:1px solid var(--wf-line)}
+.sch-name b{display:block;font-weight:600;font-size:12px}
+.sch-name small{font-family:var(--mono);font-size:9.5px;color:var(--wf-dim)}
+.sch-track{position:relative;padding:15px 0 16px}
+.sch-track .track{height:6px}
+.sch-lbl{position:absolute;top:0;font-family:var(--mono);font-size:9px;color:var(--wf-dim);white-space:nowrap}
+.sch-lbl.r{right:0} .sch-lbl.l{left:0}
+.due-tick{position:absolute;top:12px;width:1px;height:12px;background:var(--wf-dim)}
+.now{position:absolute;top:11px;width:2px;height:14px;background:var(--wf-ink);border-radius:1px;margin-left:-1px}
+.now::after{content:"now";position:absolute;top:15px;left:50%;transform:translateX(-50%);font-family:var(--mono);font-size:8.5px;color:var(--wf-ink)}
+.over{position:absolute;top:0;bottom:0;background:repeating-linear-gradient(135deg,var(--red) 0 3px,transparent 3px 6px);border-radius:0 3px 3px 0;opacity:.8}
+.empty-track{height:6px;border-radius:3px;border:1.4px dashed var(--wf-fill-2)}
+.sch-status{display:flex;flex-direction:column;gap:4px;align-items:flex-start}
+.sch-status small{font-family:var(--mono);font-size:9.5px;color:var(--wf-dim)}
+.wf-row2{display:grid;grid-template-columns:1.7fr 1fr;gap:10px}
+.hist-tools{display:flex;gap:8px;align-items:center;margin-bottom:6px}
+.mini-search{display:flex;align-items:center;gap:6px;padding:5px 9px;border:1px solid var(--wf-line);border-radius:7px;color:var(--wf-dim);font-size:10.5px;width:170px}
+.fchips{display:flex;gap:4px}
+.fchips span{padding:2px 8px;border-radius:999px;background:var(--wf-fill);font-size:10px;color:var(--wf-dim)}
+.fchips span.on{background:var(--wf-ink);color:var(--wf-canvas)}
+.hist-row{display:grid;grid-template-columns:58px minmax(0,1fr) 84px 58px 64px 26px;gap:10px;align-items:center;padding:7px 0;border-top:1px solid var(--wf-line)}
+.hist-row .d{font-family:var(--mono);font-size:9.5px;color:var(--wf-dim)}
+.hist-row b{font-weight:600;font-size:11.5px}
+.hist-row .m{font-family:var(--mono);font-size:9.5px;color:var(--wf-dim)}
+.hist-row .c{font-weight:600;text-align:right;font-variant-numeric:tabular-nums}
+.thumb{width:22px;height:28px;border-radius:4px;background:repeating-linear-gradient(135deg,var(--wf-fill) 0 4px,var(--wf-fill-2) 4px 8px);border:1px solid var(--wf-line)}
+.spend-big{font-size:24px;font-weight:600;letter-spacing:-.03em;line-height:1}
+.cat-row{display:grid;grid-template-columns:62px 1fr 44px;gap:8px;align-items:center;padding:5px 0;font-size:11px}
+.cat-row span:last-child{text-align:right;font-family:var(--mono);font-size:10px;color:var(--wf-dim)}
+
+/* palette wf */
+.bg-skel{display:flex;flex-direction:column;gap:12px;opacity:.9}
+.sk{background:var(--wf-panel);border:1px solid var(--wf-line);border-radius:9px}
+.skl{height:7px;border-radius:4px;background:var(--wf-fill)}
+.pal{position:absolute;left:50%;top:78px;transform:translateX(-50%);width:520px;background:var(--wf-panel);border:1px solid var(--wf-line);border-radius:12px;box-shadow:0 30px 70px -20px rgba(0,0,0,.45);z-index:3}
+.pal-in{position:relative;display:flex;align-items:center;gap:10px;padding:13px 14px;border-bottom:1px solid var(--wf-line);font-size:15px}
+.pal-in .i{width:16px;height:16px;color:var(--wf-dim)}
+.caret{width:1.5px;height:17px;background:var(--accent);display:inline-block;margin-left:1px}
+.pal-in .esc{margin-left:auto}
+.pal-g{padding:4px 6px}
+.pal-g + .pal-g{border-top:1px solid var(--wf-line)}
+.pal-lbl{font-family:var(--mono);font-size:9px;letter-spacing:.13em;text-transform:uppercase;color:var(--wf-dim);padding:7px 8px 4px}
+.pal-i{position:relative;display:flex;align-items:center;gap:10px;padding:7px 8px;border-radius:7px;font-size:12px}
+.pal-i.sel{background:var(--accent-tint)}
+.pal-i small{font-family:var(--mono);font-size:9.5px;color:var(--wf-dim)}
+.pal-i .r{margin-left:auto;display:flex;gap:3px;align-items:center}
+.pal-f{display:flex;gap:16px;padding:8px 14px;border-top:1px solid var(--wf-line);font-family:var(--mono);font-size:9.5px;color:var(--wf-dim)}
+.pal mark{background:none;color:var(--accent);font-weight:700}
+.toasts{position:absolute;right:18px;bottom:18px;display:flex;flex-direction:column;gap:8px;width:318px;z-index:3}
+.toast{position:relative;display:flex;align-items:center;gap:10px;padding:10px 12px;border-radius:10px;background:var(--wf-dark);color:#f1f1ef;box-shadow:0 18px 40px -16px rgba(0,0,0,.5);font-size:11.5px}
+.toast .ok{width:18px;height:18px;border-radius:50%;background:oklch(.5 .14 150);display:grid;place-items:center;flex:none}
+.toast .ok .i{width:11px;height:11px;stroke-width:3}
+.toast small{display:block;font-family:var(--mono);font-size:9.5px;color:rgba(241,241,239,.6)}
+.toast .act{margin-left:auto;font-weight:600;color:oklch(.78 .13 258);white-space:nowrap}
+.toast .timer{position:absolute;left:10px;right:10px;bottom:4px;height:2px;border-radius:1px;background:rgba(241,241,239,.15);overflow:hidden}
+.toast .timer i{display:block;height:100%;width:62%;background:oklch(.78 .13 258)}
+
+/* phones */
+.mobile-wrap{display:grid;grid-template-columns:auto minmax(0,1fr);gap:36px;align-items:start}
+.phones{display:flex;gap:24px;flex-wrap:wrap}
+.phone{position:relative;width:268px;border-radius:38px;padding:8px;background:#1b1e24;box-shadow:0 26px 60px -32px rgba(18,18,18,.55)}
+.screen{border-radius:31px;overflow:hidden;background:var(--wf-canvas);height:556px;display:flex;flex-direction:column;position:relative;color:var(--wf-ink);font-size:12px;line-height:1.4}
+.sbar{height:30px;display:flex;justify-content:space-between;align-items:center;padding:0 22px;font-family:var(--mono);font-size:10px;font-weight:600;flex:none}
+.ph-body{flex:1;padding:4px 14px 12px;display:flex;flex-direction:column;gap:10px;min-height:0}
+.ph-top{display:flex;align-items:center;justify-content:space-between}
+.pill{display:inline-flex;align-items:center;gap:7px;padding:5px 10px 5px 5px;border-radius:999px;background:var(--wf-panel);border:1px solid var(--wf-line);font-weight:600;font-size:11.5px}
+.pill .car{width:20px;height:20px;border-radius:50%;background:oklch(.56 .19 258);display:grid;place-items:center;color:#fff}
+.pill .car svg{width:11px;height:11px}
+.ph-card{position:relative;background:var(--wf-panel);border:1px solid var(--wf-line);border-radius:14px;padding:12px 13px}
+.ph-big{font-size:34px;font-weight:600;letter-spacing:-.035em;line-height:1}
+.ph-alert{position:relative;display:flex;gap:10px;align-items:center;padding:11px 12px;border-radius:14px;background:var(--red-tint);border:1px solid color-mix(in oklab,var(--red) 28%,transparent)}
+.ph-alert b{display:block;font-size:12px}
+.ph-alert small{font-family:var(--mono);font-size:9.5px;color:var(--red)}
+.ph-list-row{display:flex;align-items:center;gap:9px;padding:7px 0;border-top:1px solid var(--wf-line)}
+.ph-list-row:first-child{border-top:0}
+.ph-list-row b{display:block;font-size:11.5px;font-weight:600}
+.ph-list-row small{font-family:var(--mono);font-size:9px;color:var(--wf-dim)}
+.ph-list-row .c{margin-left:auto;font-weight:600;font-variant-numeric:tabular-nums}
+.tabbar{position:relative;display:grid;grid-template-columns:repeat(5,1fr);align-items:end;padding:8px 6px 16px;border-top:1px solid var(--wf-line);background:var(--wf-panel);flex:none}
+.tabbar span{font-family:var(--mono);font-size:8px;letter-spacing:.08em;text-align:center;color:var(--wf-dim);display:flex;flex-direction:column;align-items:center;gap:4px}
+.tabbar span::before{content:"";width:16px;height:16px;border-radius:4px;background:var(--wf-fill-2)}
+.tabbar span.on{color:var(--accent)}
+.tabbar span.on::before{background:var(--accent)}
+.tabbar span.fab-slot::before{display:none}
+.fab{width:46px;height:46px;border-radius:50%;background:var(--accent);color:#fff;display:grid;place-items:center;font-size:24px;font-weight:400;margin:-30px auto 0;box-shadow:0 12px 24px -12px rgba(47,107,216,.8);font-family:var(--sans);letter-spacing:0}
+.ph-head{display:flex;align-items:center;justify-content:space-between;padding:2px 0 4px}
+.ph-head b{font-size:14px;font-weight:600;letter-spacing:-.02em}
+.big-in{position:relative;padding:10px 13px;border-radius:13px;border:1px solid var(--wf-line);background:var(--wf-panel);display:flex;flex-direction:column;gap:2px}
+.big-in.focus{border-color:var(--accent);box-shadow:0 0 0 3px var(--accent-tint)}
+.big-in label{font-family:var(--mono);font-size:8.5px;letter-spacing:.13em;text-transform:uppercase;color:var(--wf-dim)}
+.big-in .val{font-size:25px;font-weight:600;letter-spacing:-.03em;line-height:1.1;font-variant-numeric:tabular-nums}
+.big-in .val small{font-size:11px;color:var(--wf-dim);font-weight:500;letter-spacing:0;margin-left:3px}
+.big-in .h{font-family:var(--mono);font-size:9px;color:var(--wf-dim)}
+.ph-save{padding:12px;border-radius:13px;background:var(--accent);color:#fff;text-align:center;font-weight:600;font-size:13px}
+.ph-cap{position:relative;text-align:center;font-family:var(--mono);font-size:9px;color:var(--wf-dim)}
+@media (max-width:900px){.mobile-wrap{grid-template-columns:1fr}.phones{justify-content:center}}
+
+/* other ideas */
+.others{display:grid;grid-template-columns:repeat(2,1fr);gap:12px}
+.ocard{background:var(--surface);border:1px solid var(--line);border-radius:10px;padding:18px 20px 20px;display:flex;flex-direction:column;gap:8px}
+.ocard .t{display:flex;align-items:center;gap:10px;justify-content:space-between}
+.ocard h3{font-size:17px}
+.ocard p{font-size:14px;color:var(--ink-2);line-height:1.58}
+@media (max-width:760px){.others{grid-template-columns:1fr}}
+
+.start{background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:26px 28px;display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1.3fr);gap:28px;align-items:start}
+.start ol{margin:0;padding:0;list-style:none;display:flex;flex-direction:column;gap:12px;counter-reset:s}
+.start li{display:grid;grid-template-columns:28px 1fr;gap:10px;font-size:14.5px;line-height:1.5;color:var(--ink-2)}
+.start li::before{counter-increment:s;content:counter(s);font-family:var(--mono);font-size:12px;font-weight:600;color:var(--accent-ink);border:1px solid color-mix(in oklab,var(--accent) 40%,transparent);border-radius:50%;width:24px;height:24px;display:grid;place-items:center}
+.start li b{color:var(--ink)}
+@media (max-width:760px){.start{grid-template-columns:1fr;padding:22px}}
+@media (prefers-reduced-motion:reduce){*{transition:none!important}}
+</style>
+
+<svg width="0" height="0" style="position:absolute" aria-hidden="true">
+  <defs>
+    <symbol id="i-fuel" viewBox="0 0 24 24"><path d="M4 21V5a1 1 0 0 1 1-1h7a1 1 0 0 1 1 1v16M3 21h11M4 10h9M13 8h2a2 2 0 0 1 2 2v6a1.5 1.5 0 0 0 3 0V9l-3-3"/></symbol>
+    <symbol id="i-wrench" viewBox="0 0 24 24"><path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76z"/></symbol>
+    <symbol id="i-drop" viewBox="0 0 24 24"><path d="M12 3s6 6.5 6 11a6 6 0 0 1-12 0c0-4.5 6-11 6-11z"/></symbol>
+    <symbol id="i-tire" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><circle cx="12" cy="12" r="4"/><path d="M12 3v5M12 16v5M3 12h5M16 12h5"/></symbol>
+    <symbol id="i-filter" viewBox="0 0 24 24"><path d="M4 5h16l-6 8v6l-4-2v-4z"/></symbol>
+    <symbol id="i-brake" viewBox="0 0 24 24"><circle cx="12" cy="12" r="8"/><path d="M12 8v4M12 16h.01"/></symbol>
+    <symbol id="i-search" viewBox="0 0 24 24"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></symbol>
+    <symbol id="i-alert" viewBox="0 0 24 24"><path d="M10.3 3.9 1.8 18a2 2 0 0 0 1.7 3h17a2 2 0 0 0 1.7-3L13.7 3.9a2 2 0 0 0-3.4 0zM12 9v4M12 17h.01"/></symbol>
+    <symbol id="i-check" viewBox="0 0 24 24"><path d="M20 6 9 17l-5-5"/></symbol>
+    <symbol id="i-car" viewBox="0 0 24 24"><path d="M5 17h14M5 17a2 2 0 0 1-2-2v-3l2-5h14l2 5v3a2 2 0 0 1-2 2M7 17v2M17 17v2M3 12h18"/></symbol>
+    <symbol id="i-arrow" viewBox="0 0 24 24"><path d="M5 12h14M13 6l6 6-6 6"/></symbol>
+    <symbol id="i-edit" viewBox="0 0 24 24"><path d="M4 20h4L19 9l-4-4L4 16z"/></symbol>
+    <symbol id="i-more" viewBox="0 0 24 24"><path d="M5 12h.01M12 12h.01M19 12h.01"/></symbol>
+    <symbol id="i-plus" viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></symbol>
+    <symbol id="i-doc" viewBox="0 0 24 24"><path d="M6 3h9l4 4v14H6zM9 12h6M9 16h6"/></symbol>
+  </defs>
+</svg>
+
+<div class="page">
+
+<header class="hero">
+  <div class="brand"><span class="logo" aria-hidden="true"></span>Odometer</div>
+  <p class="eyebrow">Product audit · Sep 24, 2026</p>
+  <h1>Odometer polish roadmap</h1>
+  <p class="lede">I read every screen, modal and API route, then used the app with your seed data in a browser. The foundation is solid. Three things separate it from a product people would pay for: numbers you can trust, one consistent set of components, and a few signature flows that feel fast. Everything below is sequenced, and the larger changes have wireframes.</p>
+  <div class="meta"><span>main @ 27b1882</span><span>7 screens · 6 modals · 4 API routes</span><span>React 19 · Vite · Tailwind 3.4 · node:sqlite</span></div>
+</header>
+
+<nav class="phases" aria-label="Phases">
+  <a class="phase" href="#p1"><span class="n">Phase 1</span><b>Trust the numbers</b><span>14 fixes. Bugs that show wrong data or break a flow. Mostly small and contained.</span></a>
+  <a class="phase" href="#p2"><span class="n">Phase 2</span><b>Foundations</b><span>Shared components, feedback on every action, real URLs, human formatting.</span></a>
+  <a class="phase" href="#p3"><span class="n">Phase 3</span><b>Signature flows</b><span>Dashboard 2.0, a smart fill-up drawer, a maintenance schedule, ⌘K.</span></a>
+  <a class="phase" href="#p4"><span class="n">Phase 4</span><b>Reach</b><span>Phone layout and PWA, receipts, reminders, import, cost of ownership.</span></a>
+</nav>
+
+<section id="standing" aria-labelledby="standing-h">
+  <div class="sec-head">
+    <p class="eyebrow">Where it stands</p>
+    <h2 id="standing-h">A strong core with rough edges</h2>
+  </div>
+  <div class="standing">
+    <div class="col">
+      <p class="eyebrow">Keep</p>
+      <ul>
+        <li><span><b>A real backend.</b> Express with node:sqlite and clean REST routes. It will containerize easily for the NAS.</span></li>
+        <li><span><b>Correct MPG math.</b> Partial fills accumulate gallons until the next full tank, which is the right model.</span></li>
+        <li><span><b>Flexible intervals.</b> Per-vehicle rules by miles, months or both, each with its own warn-at threshold.</span></li>
+        <li><span><b>A distinctive look.</b> Archivo with IBM Plex Mono, slate panels, one blue accent and custom category icons. Keep this language and apply it consistently.</span></li>
+      </ul>
+    </div>
+    <div class="col hold">
+      <p class="eyebrow">Holds it back</p>
+      <ul>
+        <li><span><b>Some numbers are wrong,</b> including one on your dashboard right now: a 0 mpg fill-up drags the average and shows a −20.4% trend.</span></li>
+        <li><span><b>Every screen restyles its own buttons, inputs and modals,</b> so small inconsistencies pile up.</span></li>
+        <li><span><b>Actions give no feedback.</b> No toasts, no undo, and no error when a save fails.</span></li>
+        <li><span><b>Desktop only.</b> Below about 1100 px the fixed sidebar squeezes content into slivers.</span></li>
+        <li><span><b>Several controls are placeholders</b> that look real: receipt upload, Mark done, Reminders, the Mobile nav item.</span></li>
+      </ul>
+    </div>
+  </div>
+</section>
+
+<section id="p1" aria-labelledby="p1-h">
+  <div class="sec-head">
+    <p class="eyebrow">Phase 1 · Trust the numbers</p>
+    <h2 id="p1-h">Fix these before adding anything</h2>
+    <p>A tracker is only useful if its numbers are right. These are grouped by impact. Each one names the file to change.</p>
+  </div>
+
+  <div class="bugs">
+    <div class="bug-group"><span class="sev red"></span>Shows wrong numbers</div>
+
+    <div class="bug">
+      <div>
+        <h4>The odometer never moves forward</h4>
+        <p>Logging a fill-up or service doesn't update the vehicle's odometer, so the next form prefills the old reading. Your Sep 1 fill-up was saved at 84,210, the same as Aug 28. That produced the 0 mpg bar, the 27.9 average, the −20.4% trend and "Worst fill: 0 mpg" on Trends. Every due-soon calculation is also stuck at 84,210.</p>
+      </div>
+      <div class="fix">
+        <span class="lbl">Fix</span>
+        <p>On every fill-up and service write, set the vehicle's odometer to the highest reading on record. Reject a fill-up at or below the previous one unless the user marks an odometer reset.</p>
+        <div class="where"><code>server/routes/fillUps.js</code><code>LogFillupModal.jsx:12</code></div>
+      </div>
+    </div>
+
+    <div class="bug">
+      <div>
+        <h4>A service only counts toward one category</h4>
+        <p>A record's category comes from the first service you pick, and intervals match on category. A record with brakes and a tire rotation only resets brakes. Matching by category is also too broad: brake pads reset the brake fluid clock, an engine air filter resets the cabin air filter, and an oil top-off resets the oil change.</p>
+      </div>
+      <div class="fix">
+        <span class="lbl">Fix</span>
+        <p>Give each interval the specific services that satisfy it, for example <code>services: ['Tire rotation']</code>, and match those against <code>record.services</code>.</p>
+        <div class="where"><code>LogServiceModal.jsx:43</code><code>vehicleStats.js:62</code></div>
+      </div>
+    </div>
+
+    <div class="bug">
+      <div>
+        <h4>Dates shift by a day</h4>
+        <p><code>toISOString()</code> returns the UTC date, so in the evening in US time zones every form defaults to tomorrow. Tonight they showed Sep 25. In the other direction, <code>new Date('2026-09-01')</code> parses as UTC midnight, so Trends labels your Sep 1 fill-up "Aug 31".</p>
+      </div>
+      <div class="fix">
+        <span class="lbl">Fix</span>
+        <p>Add one <code>lib/dates.js</code> with <code>todayLocal()</code> and <code>parseLocalDate()</code> and use it in all six places.</p>
+        <div class="where"><code>LogFillupModal.jsx:10</code><code>Trends.jsx:20</code><code>+4 more</code></div>
+      </div>
+    </div>
+
+    <div class="bug">
+      <div>
+        <h4>Comparisons that mislead</h4>
+        <p>"Fuel spend −100%" shows in green because nothing has been logged yet this month; it compares a partial month with all of last month. The chart titled "Last 12 fill-ups" is actually a histogram sorted by price, colored by thresholds hard-coded at $3.55 and $3.32. "Spend / month" shows only the current month's fuel.</p>
+      </div>
+      <div class="fix">
+        <span class="lbl">Fix</span>
+        <p>Compare month-to-date with the same days last month. Plot price per fill-up over time and color it against your own average.</p>
+        <div class="where"><code>vehicleStats.js getFuelStats</code><code>Trends.jsx:270</code></div>
+      </div>
+    </div>
+
+    <div class="bug">
+      <div>
+        <h4>Deleting a vehicle leaves its payments behind</h4>
+        <p>The delete transaction removes fill-ups and service records but not insurance and registration payments, which become orphaned rows.</p>
+      </div>
+      <div class="fix">
+        <span class="lbl">Fix</span>
+        <p>Delete policy records in the same transaction, or add <code>ON DELETE CASCADE</code> and turn on <code>PRAGMA foreign_keys</code>.</p>
+        <div class="where"><code>server/routes/vehicles.js:61</code></div>
+      </div>
+    </div>
+
+    <div class="bug-group"><span class="sev amber"></span>Broken or missing behavior</div>
+
+    <div class="bug">
+      <div>
+        <h4>Partial fills can't be logged</h4>
+        <p>Both fill-up forms hard-code <code>isFull: true</code>. The partial-fill math in <code>computeFillMpg</code> works, but nothing in the UI can reach it.</p>
+      </div>
+      <div class="fix">
+        <span class="lbl">Fix</span>
+        <p>Add the Full / Partial toggle from the design handoff. See the fill-up drawer in 3B.</p>
+        <div class="where"><code>LogFillupModal.jsx:46</code><code>FuelLog.jsx:67</code></div>
+      </div>
+    </div>
+
+    <div class="bug">
+      <div>
+        <h4>Failed saves disappear silently</h4>
+        <p>Modals call <code>addFillUp()</code> without awaiting it and close right away. If the server rejects the request, the entry vanishes and the only trace is an unhandled promise rejection in the console.</p>
+      </div>
+      <div class="fix">
+        <span class="lbl">Fix</span>
+        <p>Await the request. On failure keep the modal open with an inline error; on success close it and show a toast.</p>
+        <div class="where"><code>LogFillupModal.jsx:51</code><code>every modal</code></div>
+      </div>
+    </div>
+
+    <div class="bug">
+      <div>
+        <h4>Deletes are instant and permanent</h4>
+        <p>DEL on fill-ups, services and payments deletes on the first click, with no confirmation and no undo. The buttons sit right next to EDIT.</p>
+      </div>
+      <div class="fix">
+        <span class="lbl">Fix</span>
+        <p>Hide the row, show an Undo toast, and send the delete after 5 seconds. That's faster than a confirm dialog and just as safe.</p>
+        <div class="where"><code>FuelLog.jsx:61</code><code>Maintenance.jsx:133</code><code>Documents.jsx:154</code></div>
+      </div>
+    </div>
+
+    <div class="bug">
+      <div>
+        <h4>Tracking toggles don't do anything</h4>
+        <p>"What to track on this vehicle" saves <code>tracksFuel</code> and <code>tracksService</code>, but only the two vehicle modals ever reference them. A vehicle with fuel tracking off still shows Fuel log, Trends and the Log fill-up button.</p>
+      </div>
+      <div class="fix">
+        <span class="lbl">Fix</span>
+        <p>Gate the nav items, header actions, stat tiles and activity filters per vehicle, as described in the design handoff.</p>
+        <div class="where"><code>Sidebar.jsx</code><code>Header.jsx</code><code>Dashboard.jsx</code></div>
+      </div>
+    </div>
+
+    <div class="bug">
+      <div>
+        <h4>Wipers opens an empty list</h4>
+        <p>The Wipers category chip exists, but there are no subcategories for it, so the picker is blank and nothing can be selected.</p>
+      </div>
+      <div class="fix">
+        <span class="lbl">Fix</span>
+        <p>Add entries such as front wiper blades, rear wiper blade and washer fluid.</p>
+        <div class="where"><code>serviceCategories.js:34</code></div>
+      </div>
+    </div>
+
+    <div class="bug-group"><span class="sev grey"></span>Visual and small</div>
+
+    <div class="bug">
+      <div>
+        <h4>Opacity classes that render nothing</h4>
+        <p>Tailwind 3.4 only generates <code>/NN</code> opacity modifiers in steps of 5. <code>bg-ink/42</code> (modal backdrop), <code>bg-white/16</code> (active nav item), <code>text-page/62</code>, <code>border-ink/12</code>, <code>/14</code>, <code>/18</code>, <code>/8</code>, <code>/3</code> and <code>bg-white/24</code> produce no CSS. That's why the sidebar never highlights the current page, modals have no backdrop, and the Cost per mile dropdown is white text on white.</p>
+      </div>
+      <div class="fix">
+        <span class="lbl">Fix</span>
+        <p>Extend <code>theme.opacity</code> with the values you use, or move colors to CSS variables. This is one config change that fixes about a dozen visual bugs.</p>
+        <div class="where"><code>tailwind.config.js</code><code>Trends.jsx:156</code></div>
+      </div>
+    </div>
+
+    <div class="bug">
+      <div>
+        <h4>Indicators that aren't wired to data</h4>
+        <p>Every stat card's progress bar is hard-coded to 70%. The "Coming up" bars are solid no matter how close the service is. "SAVED LOCALLY" is static text.</p>
+      </div>
+      <div class="fix">
+        <span class="lbl">Fix</span>
+        <p>Drive each one from data or remove it. Dashboard 2.0 in 3A shows sparklines, real progress and a live sync status.</p>
+        <div class="where"><code>Dashboard.jsx:122</code><code>Header.jsx:66</code></div>
+      </div>
+    </div>
+
+    <div class="bug">
+      <div>
+        <h4>Placeholders that look real</h4>
+        <p>The receipt drop zone doesn't accept files. Mark done and Log now open the same modal. Units and Currency look like settings but can't be changed, Reminders says SOON, and the Mobile nav item is permanently disabled.</p>
+      </div>
+      <div class="fix">
+        <span class="lbl">Fix</span>
+        <p>Build them or hide them. A polished product never shows controls that don't work.</p>
+        <div class="where"><code>LogServiceModal.jsx</code><code>Maintenance.jsx</code><code>Settings.jsx</code><code>Sidebar.jsx:28</code></div>
+      </div>
+    </div>
+
+    <div class="bug">
+      <div>
+        <h4>Small stuff</h4>
+        <p>The header shows "84210 mi" without a separator. The browser tab is titled "app". Each page opens at the previous page's scroll position. Escape and backdrop clicks don't close modals. Add vehicle validates with <code>alert()</code>. Dates display as raw 2026-09-01 everywhere.</p>
+      </div>
+      <div class="fix">
+        <span class="lbl">Fix</span>
+        <p>Each is a few lines. Most disappear once the Phase 2 primitives and formatters exist.</p>
+        <div class="where"><code>Header.jsx:18</code><code>index.html:7</code><code>App.jsx</code><code>AddVehicleModal.jsx:34</code></div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section id="p2" aria-labelledby="p2-h">
+  <div class="sec-head">
+    <p class="eyebrow">Phase 2 · Foundations</p>
+    <h2 id="p2-h">What makes it feel like a product</h2>
+    <p>Most of the "SaaS feel" comes from consistency and feedback. None of these are features a user would list, but they notice right away when they're missing.</p>
+  </div>
+  <div class="found">
+    <div class="fcard lead">
+      <h3>A small component library</h3>
+      <p>Today each screen restyles buttons, inputs and modals inline with long class strings. Build about ten primitives once, migrate screens onto them, and every later change gets faster and more consistent. This single change does the most for how polished the app feels.</p>
+      <p class="today">Today: at least four segmented-control styles · six modals in five widths (420 to 1000 px) · a text "×" as the close button · two fill-up forms that have already drifted apart</p>
+      <div class="prims"><span>Button</span><span>Field</span><span>Select</span><span>Segmented</span><span>Modal</span><span>Drawer</span><span>Badge</span><span>StatTile</span><span>EmptyState</span><span>Toast</span></div>
+    </div>
+    <div class="fcard">
+      <h3>Feedback on every action</h3>
+      <p>Toasts that confirm saves with a useful detail, undo on delete, loading states on buttons, inline field errors, and skeletons in place of the full-screen "Loading…".</p>
+      <p class="today">Today the two data providers load one after the other, so "Loading…" appears twice and the second request waits on the first.</p>
+    </div>
+    <div class="fcard">
+      <h3>Real URLs</h3>
+      <p>The current page lives in React state, so a refresh always lands on Dashboard and the back button leaves the app. Add react-router with URLs like <code>/wagon/fuel</code> for deep links, back and forward, and scroll reset per page.</p>
+    </div>
+    <div class="fcard">
+      <h3>One page-header pattern</h3>
+      <p>Only Dashboard has a title. Give every page the same eyebrow, title and primary action in the same spot, so Maintenance has Log service and Documents has Log payment exactly where you expect them.</p>
+    </div>
+    <div class="fcard">
+      <h3>Human formatting</h3>
+      <p>"Sep 1, 2026" or "3 days ago" instead of 2026-09-01, thousands separators everywhere, tabular numerals in tables, right-aligned currency. One <code>lib/format.js</code> handles all of it.</p>
+    </div>
+    <div class="fcard">
+      <h3>Keyboard and accessibility</h3>
+      <p>Escape and backdrop to close, focus trapping in modals, visible focus rings, labels on icon-only buttons, and single-key shortcuts.</p>
+      <p class="today">Labels at 45% ink measure about 3:1 against white. Small text needs 4.5:1, which means about 60% or darker.</p>
+    </div>
+    <div class="fcard">
+      <h3>Dark mode and offline fonts</h3>
+      <p>The palette is already built around slate, so moving colors into CSS variables makes dark mode mostly free. Self-host Archivo and Plex Mono so the NAS build works without internet, as the handoff asks.</p>
+    </div>
+  </div>
+</section>
+
+<section id="p3" aria-labelledby="p3-h">
+  <div class="sec-head">
+    <p class="eyebrow">Phase 3 · Signature flows</p>
+    <h2 id="p3-h">Four changes worth wireframing</h2>
+    <p>These wireframes use the app's existing type, color and layout language. The data is illustrative, based on The Wagon. Numbered markers match the notes under each frame.</p>
+  </div>
+
+  <!-- ============ 3A DASHBOARD ============ -->
+  <article class="idea" id="dash">
+    <div class="idea-head">
+      <div class="idea-title"><span class="id">3A</span><h3>Dashboard 2.0</h3><span class="size">Size · M</span></div>
+      <p>The dashboard should answer "is anything wrong, and how am I doing?" in one glance. It leads with the single most urgent item, uses tiles that carry real trends, and draws a chart with a readable scale.</p>
+      <p class="scroll-hint">Scroll sideways to see the full frame.</p>
+    </div>
+    <div class="wf-scroll">
+      <div class="wf-frame" role="img" aria-label="Wireframe of the redesigned dashboard">
+        <div class="wf-chrome"><i></i><i></i><i></i><span class="wf-url">odometer.local/wagon</span></div>
+        <div class="wf-app">
+          <aside class="wf-side">
+            <div class="wf-veh"><span class="car"><svg class="i"><use href="#i-car"/></svg></span><div><b>The Wagon</b><small>2019 Volvo V60</small></div><span class="chev">▾</span><span class="mk" style="left:auto;right:-8px">1</span></div>
+            <nav class="wf-nav">
+              <span class="on">Overview</span>
+              <span>Fuel<em>12</em></span>
+              <span>Maintenance<em class="alert">1</em></span>
+              <span>Documents</span>
+              <span>Trends</span>
+              <hr>
+              <span>Garage<em>2</em></span>
+              <span>Settings</span>
+            </nav>
+            <div class="wf-side-foot">Shortcuts <kbd>?</kbd></div>
+          </aside>
+          <div class="wf-main">
+            <div class="wf-top">
+              <div class="wf-search"><svg class="i"><use href="#i-search"/></svg>Search or jump to…<kbd>⌘K</kbd><span class="mk">2</span></div>
+              <div class="wf-sync"><span class="dot"></span>Synced · just now<span class="mk">3</span></div>
+              <span class="wf-btn">Log service</span>
+              <span class="wf-btn primary">+ Log fill-up</span>
+            </div>
+            <div class="wf-headrow">
+              <div><div class="wf-eyebrow">The Wagon · 2019 Volvo V60 T5 · 84,210 mi</div><div class="wf-h">Overview</div></div>
+              <div class="sp"><div class="wf-seg"><span class="on">90 days</span><span>1 year</span><span>All time</span></div></div>
+            </div>
+            <div class="wf-alert">
+              <span class="ico red"><svg class="i"><use href="#i-alert"/></svg></span>
+              <div class="txt"><b>Tire rotation is 2,410 mi overdue.</b> Last done Feb 1 at Costco, 76,800 mi.</div>
+              <span class="wf-btn sm">Log it</span><span class="wf-btn sm ghost">Snooze 2 wks</span>
+              <span class="mk">4</span>
+            </div>
+            <div class="wf-tiles">
+              <div class="wf-card tile">
+                <span class="mk">5</span>
+                <div class="wf-eyebrow">Avg MPG</div>
+                <div class="v">31.4<small>mpg</small></div>
+                <svg class="spark" viewBox="0 0 120 30" preserveAspectRatio="none" aria-hidden="true"><path class="ar" d="M0 14 L15 14 L30 15 L45 12 L60 17 L75 26 L90 17 L105 10 L120 6 L120 30 L0 30 Z"/><polyline class="ln" vector-effect="non-scaling-stroke" points="0,14 15,14 30,15 45,12 60,17 75,26 90,17 105,10 120,6"/></svg>
+                <div class="d"><span class="t-green">▲ 2.1%</span> vs previous 5 tanks</div>
+              </div>
+              <div class="wf-card tile">
+                <div class="wf-eyebrow">Cost / mile</div>
+                <div class="v">$0.19<small>all-in</small></div>
+                <svg class="spark" viewBox="0 0 120 30" preserveAspectRatio="none" aria-hidden="true"><path class="ar" d="M0 8 L15 11 L30 9 L45 13 L60 12 L75 16 L90 14 L105 18 L120 19 L120 30 L0 30 Z"/><polyline class="ln" vector-effect="non-scaling-stroke" points="0,8 15,11 30,9 45,13 60,12 75,16 90,14 105,18 120,19"/></svg>
+                <div class="d">fuel $0.11 · service $0.08</div>
+              </div>
+              <div class="wf-card tile">
+                <div class="wf-eyebrow">Spent in Sep</div>
+                <div class="v">$595</div>
+                <svg class="spark" viewBox="0 0 120 30" preserveAspectRatio="none" aria-hidden="true"><rect class="bar" x="0" y="22" width="24" height="8" rx="2"/><rect class="bar" x="32" y="23" width="24" height="7" rx="2"/><rect class="bar" x="64" y="22" width="24" height="8" rx="2"/><rect class="bar hi" x="96" y="2" width="24" height="28" rx="2"/></svg>
+                <div class="d">fuel $51 · service $545</div>
+              </div>
+              <div class="wf-card tile">
+                <div class="wf-eyebrow">Driving</div>
+                <div class="v">1,038<small>mi / mo</small></div>
+                <svg class="spark" viewBox="0 0 120 30" preserveAspectRatio="none" aria-hidden="true"><path class="ar" d="M0 15 L15 13 L30 16 L45 14 L60 15 L75 12 L90 14 L105 13 L120 14 L120 30 L0 30 Z"/><polyline class="ln" vector-effect="non-scaling-stroke" points="0,15 15,13 30,16 45,14 60,15 75,12 90,14 105,13 120,14"/></svg>
+                <div class="d">12,456 mi / yr pace</div>
+              </div>
+            </div>
+            <div class="wf-row">
+              <div class="wf-card">
+                <span class="mk">6</span>
+                <div class="wf-card-h"><b>Fuel economy</b><span class="wf-eyebrow">last 10 full tanks</span>
+                  <div class="legend sp"><span><i class="lg-line"></i>mpg</span><span><i class="lg-avg"></i>avg 31.4</span><span><i class="lg-part"></i>partial</span></div>
+                </div>
+                <svg class="chart" viewBox="0 0 520 176" aria-hidden="true">
+                  <line class="grid" x1="40" y1="20" x2="510" y2="20"/>
+                  <line class="grid" x1="40" y1="52.5" x2="510" y2="52.5"/>
+                  <line class="grid" x1="40" y1="85" x2="510" y2="85"/>
+                  <line class="grid" x1="40" y1="117.5" x2="510" y2="117.5"/>
+                  <line class="grid" x1="40" y1="150" x2="510" y2="150"/>
+                  <text class="axis" x="30" y="23" text-anchor="end">33</text>
+                  <text class="axis" x="30" y="88" text-anchor="end">31</text>
+                  <text class="axis" x="30" y="153" text-anchor="end">29</text>
+                  <path class="area" d="M50 72 L100 72 L150 72 L200 75.25 L250 65.5 L300 81.75 L350 111 L400 81.75 L450 59 L500 46 L500 150 L50 150 Z"/>
+                  <line class="avg" x1="40" y1="72" x2="510" y2="72"/>
+                  <polyline class="line" points="50,72 100,72 150,72 200,75.25 250,65.5 300,81.75 350,111 400,81.75 450,59 500,46"/>
+                  <circle class="pt" cx="50" cy="72" r="3"/><circle class="pt" cx="100" cy="72" r="3"/><circle class="pt" cx="150" cy="72" r="3"/><circle class="pt" cx="200" cy="75.25" r="3"/><circle class="pt" cx="250" cy="65.5" r="3"/><circle class="pt" cx="300" cy="81.75" r="3"/><circle class="pt" cx="350" cy="111" r="3"/><circle class="pt" cx="400" cy="81.75" r="3"/><circle class="pt" cx="450" cy="59" r="3"/><circle class="pt last" cx="500" cy="46" r="4.5"/>
+                  <rect class="partial" x="171" y="146" width="7" height="7" transform="rotate(45 174.5 149.5)"/>
+                  <rect class="partial" x="421" y="146" width="7" height="7" transform="rotate(45 424.5 149.5)"/>
+                  <text class="axis" x="50" y="170" text-anchor="middle">APR 24</text>
+                  <text class="axis" x="275" y="170" text-anchor="middle">JUL 5</text>
+                  <text class="axis" x="500" y="170" text-anchor="middle">SEP 24</text>
+                  <text class="axis" x="500" y="36" text-anchor="middle" style="fill:var(--accent);font-weight:600">32.2</text>
+                </svg>
+              </div>
+              <div class="wf-card">
+                <span class="mk">7</span>
+                <div class="wf-card-h"><b>Up next</b><span class="chip red sp">1 overdue</span></div>
+                <div class="un-row">
+                  <span class="ico red"><svg class="i"><use href="#i-tire"/></svg></span>
+                  <div class="un-body"><div class="un-top"><b>Tire rotation</b><span class="t-red">2,410 mi over</span></div><div class="track"><i class="bg-red" style="width:100%"></i></div><small>every 5,000 mi · last Feb 1</small></div>
+                </div>
+                <div class="un-row">
+                  <span class="ico amber"><svg class="i"><use href="#i-drop"/></svg></span>
+                  <div class="un-body"><div class="un-top"><b>Oil + filter</b><span class="t-amber">420 mi · ~Oct 6</span></div><div class="track"><i class="bg-amber" style="width:92%"></i></div><small>every 5,000 mi or 12 mo</small></div>
+                </div>
+                <div class="un-row">
+                  <span class="ico teal"><svg class="i"><use href="#i-filter"/></svg></span>
+                  <div class="un-body"><div class="un-top"><b>Cabin air filter</b><span class="t-teal">19 mo</span></div><div class="track"><i class="bg-teal" style="width:21%"></i></div><small>every 24 mo · last May 1</small></div>
+                </div>
+                <div class="wf-link">View schedule →</div>
+              </div>
+            </div>
+            <div class="wf-card">
+              <span class="mk">8</span>
+              <div class="wf-card-h"><b>Activity</b><div class="wf-seg"><span class="on">All</span><span>Fuel</span><span>Service</span><span>Documents</span></div><span class="wf-btn sm ghost sp">Export</span></div>
+              <div class="tl-month">September</div>
+              <div class="tl-row"><span class="tl-date">SEP 7</span><span class="ico slate"><svg class="i"><use href="#i-wrench"/></svg></span><div><b>Brake pads, brake rotors +5</b><small>abc shop · 84,210 mi</small></div><span></span><span class="tl-amt">$500.00</span></div>
+              <div class="tl-row hover"><span class="tl-date">SEP 1</span><span class="ico amber"><svg class="i"><use href="#i-drop"/></svg></span><div><b>Oil + filter change</b><small>abc · 84,210 mi</small></div><span class="tl-acts"><span class="wf-btn sm"><svg class="i" style="width:11px;height:11px"><use href="#i-edit"/></svg>Edit</span><span class="wf-btn sm"><svg class="i" style="width:11px;height:11px"><use href="#i-more"/></svg></span></span><span class="tl-amt">$45.00</span></div>
+              <div class="tl-month">August</div>
+              <div class="tl-row"><span class="tl-date">AUG 28</span><span class="ico blue"><svg class="i"><use href="#i-fuel"/></svg></span><div><b>Fill-up · 31.1 mpg</b><small>15.9 gal · $3.46/gal · Costco</small></div><span></span><span class="tl-amt">$55.01</span></div>
+              <div class="tl-row"><span class="tl-date">AUG 10</span><span class="ico blue"><svg class="i"><use href="#i-fuel"/></svg></span><div><b>Partial fill-up <span class="chip amber">Partial</span></b><small>8.2 gal · $3.38/gal</small></div><span></span><span class="tl-amt">$27.72</span></div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <ol class="notes">
+      <li><span><b>Vehicle switcher moves into the sidebar,</b> like a workspace switcher in Linear or Notion. The header is freed up for search and actions.</span></li>
+      <li><span><b>⌘K search and commands</b> replace hunting through pages. See 3D.</span></li>
+      <li><span><b>A live sync status</b> replaces the static "SAVED LOCALLY" badge. It turns amber while a save is pending and red when the server can't be reached.</span></li>
+      <li><span><b>One attention banner</b> for the single most urgent item, with its action right there. It disappears when nothing is due.</span></li>
+      <li><span><b>Tiles with sparklines and honest comparisons,</b> such as "vs previous 5 tanks". Cost per mile includes service, so it matches what the car actually costs.</span></li>
+      <li><span><b>MPG as a line on a real axis,</b> with your average dashed and partial fills marked. Bars that start at zero made 31.1 and 31.6 look identical.</span></li>
+      <li><span><b>Progress bars show how far through each interval you are,</b> colored by status, with a projected date next to the mileage.</span></li>
+      <li><span><b>Activity grouped by month,</b> with documents included and edit actions revealed on hover.</span></li>
+    </ol>
+  </article>
+
+  <!-- ============ 3B DRAWER ============ -->
+  <article class="idea" id="drawer">
+    <div class="idea-head">
+      <div class="idea-title"><span class="id">3B</span><h3>Smart fill-up drawer</h3><span class="size">Size · M</span></div>
+      <p>Logging a fill-up is the action people repeat most, so it should be the best-designed flow in the app. One drawer replaces the header modal and the Fuel page side panel, validates as you type, and rewards you with the result.</p>
+      <p class="scroll-hint">Scroll sideways to see the full frame.</p>
+    </div>
+    <div class="wf-scroll">
+      <div class="wf-frame" style="min-height:640px" role="img" aria-label="Wireframe of the fill-up drawer over the fuel log">
+        <div class="wf-chrome"><i></i><i></i><i></i><span class="wf-url">odometer.local/wagon/fuel</span></div>
+        <div class="wf-app" style="min-height:610px">
+          <aside class="wf-side">
+            <div class="wf-veh"><span class="car"><svg class="i"><use href="#i-car"/></svg></span><div><b>The Wagon</b><small>2019 Volvo V60</small></div><span class="chev">▾</span></div>
+            <nav class="wf-nav"><span>Overview</span><span class="on">Fuel<em>12</em></span><span>Maintenance<em class="alert">1</em></span><span>Documents</span><span>Trends</span><hr><span>Garage<em>2</em></span><span>Settings</span></nav>
+          </aside>
+          <div class="wf-main">
+            <div class="wf-top"><div class="wf-search"><svg class="i"><use href="#i-search"/></svg>Search or jump to…<kbd>⌘K</kbd></div><div class="wf-sync"><span class="dot"></span>Synced</div><span class="wf-btn primary">+ Log fill-up</span></div>
+            <div class="wf-headrow"><div><div class="wf-eyebrow">The Wagon · 12 fill-ups</div><div class="wf-h">Fuel</div></div></div>
+            <div class="wf-card" style="padding:0;overflow:hidden">
+              <div class="ft-row h"><span>Date</span><span>Odometer</span><span>Gallons</span><span>$/gal</span><span>Total</span><span>MPG</span></div>
+              <div class="ft-row"><span>Aug 28</span><span>84,210</span><span>15.9</span><span>$3.46</span><span>$55.01</span><span>31.1</span></div>
+              <div class="ft-row"><span>Aug 10</span><span>83,710</span><span>8.2</span><span>$3.38</span><span>$27.72</span><span>partial</span></div>
+              <div class="ft-row"><span>Jul 29</span><span>83,460</span><span>16.1</span><span>$3.41</span><span>$54.90</span><span>31.1</span></div>
+              <div class="ft-row"><span>Jul 17</span><span>82,960</span><span>15.8</span><span>$3.46</span><span>$54.67</span><span>31.6</span></div>
+              <div class="ft-row"><span>Jul 5</span><span>82,460</span><span>16.0</span><span>$3.44</span><span>$55.04</span><span>31.3</span></div>
+              <div class="ft-row"><span>Jun 23</span><span>81,960</span><span>15.9</span><span>$3.39</span><span>$53.90</span><span>31.4</span></div>
+              <div class="ft-row"><span>Jun 11</span><span>81,460</span><span>15.9</span><span>$3.42</span><span>$54.38</span><span>31.4</span></div>
+              <div class="ft-row"><span>May 30</span><span>80,960</span><span>8.0</span><span>$3.30</span><span>$26.40</span><span>partial</span></div>
+            </div>
+          </div>
+        </div>
+        <div class="wf-scrim"></div>
+        <div class="wf-drawer">
+          <div class="dr-h"><span class="mk">1</span><div><b>Log fill-up</b><small>The Wagon · 2019 Volvo V60</small></div><span class="dr-x">×</span></div>
+          <div class="dr-body">
+            <div class="fld"><span class="mk rt">2</span>
+              <label>Odometer</label>
+              <div class="inp focus"><span>84,700</span><span class="u">mi</span></div>
+              <span class="hint">Last fill-up 84,210 on Aug 28 · <b>+490 mi</b></span>
+            </div>
+            <div class="fld">
+              <div class="trio"><span class="mk rt">3</span>
+                <div class="fld"><label>Gallons</label><div class="inp">15.2</div></div>
+                <div class="fld"><label>Price / gal</label><div class="inp">$3.39</div></div>
+                <div class="fld"><label>Total</label><div class="inp auto">$51.53<span class="tag">auto</span></div></div>
+              </div>
+              <span class="hint">Enter any two. The third fills in.</span>
+            </div>
+            <div class="fld"><label>Tank</label>
+              <div class="seg2"><span class="mk rt">4</span><span class="on">Filled to full</span><span>Partial</span></div>
+            </div>
+            <div class="two">
+              <div class="fld"><label>Date</label><div class="inp"><span>Today · Sep 24</span><span class="u">▾</span></div></div>
+              <div class="fld"><span class="mk rt">5</span><label>Station</label><div class="inp"><span>Costco · 3rd St</span></div></div>
+            </div>
+            <div class="sugg"><span>Costco · 3rd St</span><span>Shell · Main St</span><span>Arco · 5th Ave</span></div>
+            <div class="result"><span class="mk rt">6</span>
+              <div><div class="big">32.2<small>mpg</small></div><div class="cmp">▲ 2.5% vs your 31.4 average</div></div>
+              <div class="side"><b>$0.105</b> / mi this tank<br>range ≈ <b>512 mi</b></div>
+            </div>
+          </div>
+          <div class="dr-f"><span class="mk rt" style="top:4px">7</span><span class="wf-btn primary">Save fill-up <kbd>↵</kbd></span><span class="wf-btn">Save &amp; add another</span></div>
+        </div>
+      </div>
+    </div>
+    <div class="state-cap">Validation as you type</div>
+    <div class="states">
+      <div class="state red"><b>Lower than your last reading</b>84,110 is below your Aug 28 fill-up at 84,210. Check the number, or mark an odometer reset if the cluster was replaced.</div>
+      <div class="state amber"><b>Did you miss a fill-up?</b>980 mi since your last fill-up is about two tanks for The Wagon.<div class="acts"><span class="pbtn dark">Add missed fill-up</span><span class="pbtn">It's correct</span></div></div>
+      <div class="state amber"><b>More than the tank holds</b>16.4 gal is more than The Wagon's 15.9 gal tank. Save anyway if the receipt says so.</div>
+    </div>
+    <ol class="notes">
+      <li><span><b>One drawer, opened from anywhere:</b> the header, ⌘K, the F key, or the Fuel page. It slides over the page instead of hiding it, so the table stays visible for reference.</span></li>
+      <li><span><b>Odometer gets focus first</b> and shows the last reading with the distance since. It never prefills a stale number.</span></li>
+      <li><span><b>Enter any two of gallons, price and total.</b> The third is calculated and marked "auto", which covers both "I have the receipt" and "I remember the pump price".</span></li>
+      <li><span><b>Full or partial,</b> which finally makes the partial-fill math reachable.</span></li>
+      <li><span><b>Station with recent suggestions.</b> A new column that unlocks "cheapest station" insights on Trends.</span></li>
+      <li><span><b>The result compares this tank with your own average,</b> so logging feels rewarding instead of like data entry.</span></li>
+      <li><span><b>Enter saves.</b> "Save &amp; add another" keeps the drawer open for catching up on a stack of receipts.</span></li>
+    </ol>
+  </article>
+
+  <!-- ============ 3C MAINTENANCE ============ -->
+  <article class="idea" id="maint">
+    <div class="idea-head">
+      <div class="idea-title"><span class="id">3C</span><h3>Maintenance schedule</h3><span class="size">Size · M</span></div>
+      <p>Turn the due cards into a schedule you can read at a glance. Each interval becomes a small timeline from the last service to the due point, with today marked and a projected date based on how much you drive.</p>
+      <p class="scroll-hint">Scroll sideways to see the full frame.</p>
+    </div>
+    <div class="wf-scroll">
+      <div class="wf-frame" role="img" aria-label="Wireframe of the maintenance schedule page">
+        <div class="wf-chrome"><i></i><i></i><i></i><span class="wf-url">odometer.local/wagon/maintenance</span></div>
+        <div class="wf-app">
+          <aside class="wf-side">
+            <div class="wf-veh"><span class="car"><svg class="i"><use href="#i-car"/></svg></span><div><b>The Wagon</b><small>2019 Volvo V60</small></div><span class="chev">▾</span></div>
+            <nav class="wf-nav"><span>Overview</span><span>Fuel<em>12</em></span><span class="on">Maintenance<em class="alert">1</em></span><span>Documents</span><span>Trends</span><hr><span>Garage<em>2</em></span><span>Settings</span></nav>
+          </aside>
+          <div class="wf-main">
+            <div class="wf-top"><div class="wf-search"><svg class="i"><use href="#i-search"/></svg>Search or jump to…<kbd>⌘K</kbd></div><div class="wf-sync"><span class="dot"></span>Synced</div><span class="wf-btn primary">+ Log fill-up</span></div>
+            <div class="wf-headrow">
+              <div style="position:relative"><span class="mk" style="left:auto;right:-28px;top:-5px">1</span><div class="wf-eyebrow">The Wagon · 84,210 mi · driving 1,038 mi / mo</div><div class="wf-h">Maintenance</div></div>
+              <div class="sp"><span class="wf-btn">Edit intervals</span><span class="wf-btn primary">+ Log service</span></div>
+            </div>
+            <div class="sum-chips">
+              <span class="sc on">All 4</span>
+              <span class="sc"><i class="bg-red"></i>1 overdue</span>
+              <span class="sc"><i class="bg-amber"></i>1 due soon</span>
+              <span class="sc"><i class="bg-teal"></i>1 on track</span>
+              <span class="sc"><i class="dash"></i>1 needs a date</span>
+              <span class="mk inl" style="margin-left:4px;margin-top:3px">2</span>
+            </div>
+            <div class="wf-card" style="padding:4px 16px 6px">
+              <div class="sch-head"><span></span><span>Interval</span><span>Progress</span><span>Status</span><span></span></div>
+
+              <div class="sch-row">
+                <span class="ico red"><svg class="i"><use href="#i-tire"/></svg></span>
+                <div class="sch-name"><b>Tire rotation</b><small>every 5,000 mi</small></div>
+                <div class="sch-track"><span class="mk" style="left:83%;top:-3px">3</span>
+                  <span class="sch-lbl l">Feb 1 · 76,800</span><span class="sch-lbl" style="left:67%;transform:translateX(-50%)">due 81,800</span>
+                  <div class="track"><i class="bg-red" style="width:67%"></i><span class="over" style="left:67%;right:0"></span></div>
+                  <span class="due-tick" style="left:67%"></span><span class="now" style="left:99.4%"></span>
+                </div>
+                <div class="sch-status"><span class="chip red">Overdue</span><small>2,410 mi past due</small></div>
+                <span class="wf-btn sm accent" style="justify-self:end">Mark done</span>
+              </div>
+
+              <div class="sch-row">
+                <span class="ico amber"><svg class="i"><use href="#i-drop"/></svg></span>
+                <div class="sch-name"><b>Oil + filter</b><small>every 5,000 mi or 12 mo</small></div>
+                <div class="sch-track">
+                  <span class="sch-lbl l">Apr 22 · 79,630</span><span class="sch-lbl r">due 84,630</span>
+                  <div class="track"><i class="bg-amber" style="width:92%"></i></div>
+                  <span class="now" style="left:92%"></span>
+                </div>
+                <div class="sch-status" style="position:relative"><span class="mk" style="left:auto;right:18px;top:-4px">4</span><span class="chip amber">Due soon</span><small>420 mi · ~Oct 6</small></div>
+                <span class="wf-btn sm" style="justify-self:end;position:relative"><span class="mk" style="left:auto;right:-8px">5</span>Mark done</span>
+              </div>
+
+              <div class="sch-row">
+                <span class="ico teal"><svg class="i"><use href="#i-filter"/></svg></span>
+                <div class="sch-name"><b>Cabin air filter</b><small>every 24 mo</small></div>
+                <div class="sch-track">
+                  <span class="sch-lbl l">May 1, 2026</span><span class="sch-lbl r">due May 2028</span>
+                  <div class="track"><i class="bg-teal" style="width:21%"></i></div>
+                  <span class="now" style="left:21%"></span>
+                </div>
+                <div class="sch-status"><span class="chip teal">On track</span><small>19 months left</small></div>
+                <span class="wf-btn sm" style="justify-self:end">Mark done</span>
+              </div>
+
+              <div class="sch-row">
+                <span class="ico slate"><svg class="i"><use href="#i-brake"/></svg></span>
+                <div class="sch-name"><b>Brake fluid</b><small>every 30,000 mi or 36 mo</small></div>
+                <div class="sch-track"><span class="mk" style="left:92px;top:-4px">6</span>
+                  <span class="sch-lbl l">No record yet</span>
+                  <div class="empty-track"></div>
+                </div>
+                <div class="sch-status"><span class="chip grey">Needs a date</span><small>When was it last done?</small></div>
+                <span class="wf-btn sm" style="justify-self:end">Set last done</span>
+              </div>
+            </div>
+
+            <div class="wf-row2">
+              <div class="wf-card"><span class="mk">7</span>
+                <div class="wf-card-h"><b>History</b>
+                  <div class="hist-tools sp" style="margin:0"><div class="mini-search"><svg class="i" style="width:12px;height:12px"><use href="#i-search"/></svg>Search services, shops, parts</div></div>
+                </div>
+                <div class="fchips" style="margin-bottom:6px"><span class="on">All</span><span>Oil</span><span>Brakes</span><span>Tires</span><span>Filters</span><span>With receipt</span></div>
+                <div class="hist-row"><span class="d">SEP 7</span><div><b>Brake pads, rotors +5</b></div><span class="m">abc shop</span><span class="m">84,210</span><span class="c">$500.00</span><span class="thumb"></span></div>
+                <div class="hist-row"><span class="d">JUN 10</span><div><b>Brake pads</b></div><span class="m">Ridge Auto</span><span class="m">81,890</span><span class="c">$285.00</span><span class="thumb"></span></div>
+                <div class="hist-row"><span class="d">MAY 1</span><div><b>Air filter</b></div><span class="m">DIY</span><span class="m">80,105</span><span class="c">$28.50</span><span></span></div>
+                <div class="hist-row"><span class="d">APR 22</span><div><b>Oil + filter change</b></div><span class="m">Ridge Auto</span><span class="m">79,630</span><span class="c">$58.00</span><span class="thumb"></span></div>
+              </div>
+              <div class="wf-card">
+                <div class="wf-card-h"><b>2026 service spend</b></div>
+                <div class="spend-big">$917</div>
+                <div class="hint" style="margin:4px 0 10px">6 services · $0.12 / mi</div>
+                <div class="cat-row"><span>Brakes</span><div class="track"><i class="bg-red" style="width:86%"></i></div><span>$785</span></div>
+                <div class="cat-row"><span>Oil</span><div class="track"><i class="bg-amber" style="width:11%"></i></div><span>$103</span></div>
+                <div class="cat-row"><span>Filters</span><div class="track"><i class="bg-teal" style="width:4%"></i></div><span>$29</span></div>
+                <div class="cat-row"><span>Tires</span><div class="track"><i class="bg-teal" style="width:0%"></i></div><span>$0</span></div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <ol class="notes">
+      <li><span><b>Your driving pace sits in the header,</b> because it drives every date estimate on the page.</span></li>
+      <li><span><b>Status counts double as filters.</b> Click "1 overdue" to see only what needs doing.</span></li>
+      <li><span><b>Each interval is a timeline</b> from the last service to the due point, with today marked. Overdue spills past the due tick in a striped red.</span></li>
+      <li><span><b>Dates are projected from your pace,</b> so "420 mi" also reads as "~Oct 6".</span></li>
+      <li><span><b>Mark done logs the service at today's odometer in one click,</b> then shows an Undo toast. Today it opens the same modal as Log now.</span></li>
+      <li><span><b>Intervals with no history ask when the job was last done</b> instead of silently counting from the purchase date. This matters when you start tracking a used car.</span></li>
+      <li><span><b>History gets search, category filters and receipt thumbnails,</b> plus yearly spend by category alongside.</span></li>
+    </ol>
+  </article>
+
+  <!-- ============ 3D PALETTE ============ -->
+  <article class="idea" id="palette">
+    <div class="idea-head">
+      <div class="idea-title"><span class="id">3D</span><h3>Command palette and toasts</h3><span class="size">Size · S</span></div>
+      <p>Two small pieces that read as "modern app" more than anything else on this list. ⌘K gives one place to go anywhere and do anything. Toasts close the loop on every action.</p>
+      <p class="scroll-hint">Scroll sideways to see the full frame.</p>
+    </div>
+    <div class="wf-scroll">
+      <div class="wf-frame" style="min-height:520px" role="img" aria-label="Wireframe of the command palette and toast notifications">
+        <div class="wf-chrome"><i></i><i></i><i></i><span class="wf-url">odometer.local/wagon</span></div>
+        <div class="wf-app" style="min-height:490px">
+          <aside class="wf-side">
+            <div class="wf-veh"><span class="car"><svg class="i"><use href="#i-car"/></svg></span><div><b>The Wagon</b><small>2019 Volvo V60</small></div><span class="chev">▾</span></div>
+            <nav class="wf-nav"><span class="on">Overview</span><span>Fuel<em>12</em></span><span>Maintenance<em class="alert">1</em></span><span>Documents</span><span>Trends</span><hr><span>Garage<em>2</em></span><span>Settings</span></nav>
+          </aside>
+          <div class="wf-main bg-skel">
+            <div class="wf-top"><div class="wf-search"><svg class="i"><use href="#i-search"/></svg>Search or jump to…<kbd>⌘K</kbd></div><div class="wf-sync"><span class="dot"></span>Synced</div><span class="wf-btn primary">+ Log fill-up</span></div>
+            <div class="skl" style="width:180px;height:14px"></div>
+            <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:10px"><div class="sk" style="height:84px"></div><div class="sk" style="height:84px"></div><div class="sk" style="height:84px"></div><div class="sk" style="height:84px"></div></div>
+            <div style="display:grid;grid-template-columns:1.55fr 1fr;gap:10px"><div class="sk" style="height:200px"></div><div class="sk" style="height:200px"></div></div>
+          </div>
+        </div>
+        <div class="wf-scrim"></div>
+        <div class="pal">
+          <div class="pal-in"><span class="mk">1</span><svg class="i"><use href="#i-search"/></svg><span>tr<span class="caret"></span></span><kbd class="esc">esc</kbd></div>
+          <div class="pal-g">
+            <div class="pal-lbl">Vehicles</div>
+            <div class="pal-i sel"><span class="ico slate"><svg class="i"><use href="#i-car"/></svg></span><span>Switch to The <mark>Tr</mark>uck <small>· 2021 Ford F-150 · 47,850 mi</small></span><span class="r"><kbd>↵</kbd></span></div>
+          </div>
+          <div class="pal-g">
+            <div class="pal-lbl">Go to</div>
+            <div class="pal-i"><span class="ico slate"><svg class="i"><use href="#i-arrow"/></svg></span><span><mark>Tr</mark>ends</span><span class="r"><span class="mk" style="position:relative;top:0;left:0;margin-right:6px;box-shadow:none">2</span><kbd>G</kbd><kbd>T</kbd></span></div>
+          </div>
+          <div class="pal-g">
+            <div class="pal-lbl">Actions</div>
+            <div class="pal-i"><span class="ico red"><svg class="i"><use href="#i-tire"/></svg></span><span>Log <mark>t</mark>i<mark>r</mark>e rotation <span class="chip red">Overdue</span></span><span class="r"><kbd>S</kbd></span></div>
+          </div>
+          <div class="pal-g" style="position:relative">
+            <span class="mk" style="top:6px;left:-8px">3</span>
+            <div class="pal-lbl">Records</div>
+            <div class="pal-i"><span class="ico teal"><svg class="i"><use href="#i-tire"/></svg></span><span><mark>T</mark>i<mark>r</mark>e rotation <small>· Feb 1, 2026 · Costco · 76,800 mi</small></span></div>
+          </div>
+          <div class="pal-f"><span>↑↓ move</span><span>↵ open</span><span>esc close</span></div>
+        </div>
+        <div class="toasts">
+          <div class="toast"><span class="mk">4</span><span class="ok"><svg class="i"><use href="#i-check"/></svg></span><span><b>Fill-up saved</b><small>32.2 mpg, your best in 6 weeks</small></span><span class="act">View</span></div>
+          <div class="toast"><span class="mk">5</span><span><b>Service record deleted</b><small>Oil + filter change · Sep 1</small></span><span class="act">Undo</span><span class="timer"><i></i></span></div>
+        </div>
+      </div>
+    </div>
+    <ol class="notes">
+      <li><span><b>One box finds pages, actions, vehicles and past records.</b> Matching is fuzzy, so "tr" finds The Truck, Trends and Tire rotation.</span></li>
+      <li><span><b>Every action shows its keyboard shortcut,</b> which is how people learn them without reading a help page.</span></li>
+      <li><span><b>Records are searchable.</b> "Where did I get the brakes done?" becomes a two-second answer.</span></li>
+      <li><span><b>Toasts confirm saves with a useful detail,</b> like the MPG you just got.</span></li>
+      <li><span><b>Deletes wait out a 5-second undo window,</b> which removes the need for confirm dialogs on routine records.</span></li>
+    </ol>
+  </article>
+</section>
+
+<section id="p4" aria-labelledby="p4-h">
+  <div class="sec-head">
+    <p class="eyebrow">Phase 4 · Reach</p>
+    <h2 id="p4-h">Take it to the pump, and beyond</h2>
+    <p>Once the core is trustworthy and consistent, these extend where and how the app is useful.</p>
+  </div>
+
+  <article class="idea" id="mobile" style="border-top:0;padding-top:0">
+    <div class="idea-head">
+      <div class="idea-title"><span class="id">4A</span><h3>Phone layout and installable app</h3><span class="size">Size · L</span></div>
+      <p>You log fill-ups standing at the pump, on your phone. Today the layout breaks below about 1100 px. The design handoff already specifies seven mobile screens; these two are the ones that matter most.</p>
+    </div>
+    <div class="mobile-wrap">
+      <div class="phones">
+        <div class="phone" role="img" aria-label="Wireframe of the mobile home screen">
+          <div class="screen">
+            <div class="sbar"><span>9:41</span><span>5G ▮▮▮</span></div>
+            <div class="ph-body">
+              <div class="ph-top"><span class="pill"><span class="car"><svg class="i"><use href="#i-car"/></svg></span>The Wagon ▾</span><span class="hint">84,210 mi</span></div>
+              <div class="ph-alert"><span class="mk">2</span><span class="ico red"><svg class="i"><use href="#i-alert"/></svg></span><div><b>Tire rotation overdue</b><small>2,410 mi past due · Log it →</small></div></div>
+              <div class="ph-card">
+                <div class="wf-eyebrow">Avg MPG · last 10 tanks</div>
+                <div style="display:flex;align-items:baseline;gap:8px;margin:6px 0 8px"><span class="ph-big">31.4</span><span class="hint t-green">▲ 2.1%</span></div>
+                <svg class="spark" viewBox="0 0 120 30" preserveAspectRatio="none" aria-hidden="true"><path class="ar" d="M0 14 L15 14 L30 15 L45 12 L60 17 L75 26 L90 17 L105 10 L120 6 L120 30 L0 30 Z"/><polyline class="ln" vector-effect="non-scaling-stroke" points="0,14 15,14 30,15 45,12 60,17 75,26 90,17 105,10 120,6"/></svg>
+              </div>
+              <div class="ph-card" style="padding:6px 13px">
+                <div class="ph-list-row"><span class="ico slate"><svg class="i"><use href="#i-wrench"/></svg></span><div><b>Brakes +5</b><small>Sep 7 · abc shop</small></div><span class="c">$500</span></div>
+                <div class="ph-list-row"><span class="ico amber"><svg class="i"><use href="#i-drop"/></svg></span><div><b>Oil + filter</b><small>Sep 1 · abc</small></div><span class="c">$45</span></div>
+                <div class="ph-list-row"><span class="ico blue"><svg class="i"><use href="#i-fuel"/></svg></span><div><b>Fill-up · 31.1</b><small>Aug 28 · Costco</small></div><span class="c">$55</span></div>
+              </div>
+            </div>
+            <div class="tabbar"><span class="mk" style="top:-10px;left:8px">1</span><span class="on">HOME</span><span>FUEL</span><span class="fab-slot"><span class="fab"><svg class="i" style="width:20px;height:20px;stroke-width:2.5"><use href="#i-plus"/></svg></span></span><span>SERVICE</span><span>MORE</span></div>
+          </div>
+        </div>
+        <div class="phone" role="img" aria-label="Wireframe of the mobile quick-add fill-up screen">
+          <div class="screen">
+            <div class="sbar"><span>9:41</span><span>5G ▮▮▮</span></div>
+            <div class="ph-body">
+              <div class="ph-head"><span class="hint" style="font-size:16px">×</span><b>Log fill-up</b><span class="hint">Wagon</span></div>
+              <div class="big-in focus"><span class="mk rt">3</span><label>Odometer</label><span class="val">84,700<small>mi</small></span><span class="h">+490 since Aug 28</span></div>
+              <div class="two">
+                <div class="big-in"><label>Gallons</label><span class="val">15.2</span></div>
+                <div class="big-in"><label>Total paid</label><span class="val">$51.53</span></div>
+              </div>
+              <span class="hint" style="text-align:center">$3.39 / gal, calculated</span>
+              <div class="seg2"><span class="on">Full</span><span>Partial</span></div>
+              <div class="result" style="padding:10px 12px"><div><div class="big" style="font-size:22px">32.2<small>mpg</small></div><div class="cmp">▲ vs 31.4 avg</div></div><div class="side"><b>$0.105</b>/mi</div></div>
+              <div style="margin-top:auto;display:flex;flex-direction:column;gap:8px">
+                <div class="ph-save">Save fill-up</div>
+                <div class="ph-cap"><span class="mk" style="top:-4px;left:-10px">4</span>Saved on this phone · syncs when you're home</div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+      <ol class="notes" style="columns:1">
+        <li><span><b>Bottom tabs with a center + button.</b> Below 900 px the sidebar collapses into this, following screens M1 to M7 in the design handoff.</span></li>
+        <li><span><b>Home leads with what needs attention,</b> then your trend, then recent entries.</span></li>
+        <li><span><b>Quick add is built for one thumb:</b> large fields, the decimal keypad, and only gallons plus total. Price per gallon is calculated.</span></li>
+        <li><span><b>An installable PWA that works offline.</b> Entries queue in IndexedDB and sync when the phone is back on your home network, which is exactly the NAS scenario.</span></li>
+      </ol>
+    </div>
+  </article>
+
+  <div class="others">
+    <div class="ocard"><div class="t"><h3>Receipts and documents</h3><span class="size">M</span></div><p>Real uploads stored under <code>/data/receipts</code>, thumbnails on records, and insurance cards or registration PDFs on the Documents page. The drop zone in Log service is a placeholder today.</p></div>
+    <div class="ocard"><div class="t"><h3>Reminders</h3><span class="size">M</span></div><p>Service and renewal reminders pushed through ntfy, Pushover or email, all of which suit a self-hosted setup. Add a weekly digest. The Reminders row in Settings currently says SOON.</p></div>
+    <div class="ocard"><div class="t"><h3>CSV import</h3><span class="size">M</span></div><p>Import from Fuelly, Drivvo or a spreadsheet with a column-mapping step. It makes switching painless and gives the first-run screen its Import button.</p></div>
+    <div class="ocard"><div class="t"><h3>Vehicle profile and cost of ownership</h3><span class="size">M</span></div><p>Click a Garage card to open a vehicle page that adds fuel, service, insurance and registration into one all-in cost per mile. Insurance and registration are left out of every cost figure today.</p></div>
+    <div class="ocard"><div class="t"><h3>First-run onboarding</h3><span class="size">S</span></div><p>With zero vehicles the app crashes, because the header reads <code>vehicle.nickname</code> unguarded. The server's demo seed hides this. Build the first-run screen from the handoff and make demo data opt-in.</p></div>
+    <div class="ocard"><div class="t"><h3>VIN decode</h3><span class="size">S</span></div><p>Paste a VIN and fill in year, make, model and trim from NHTSA's free vPIC API. A small touch that makes adding a car feel effortless.</p></div>
+    <div class="ocard"><div class="t"><h3>Year in review</h3><span class="size">S</span></div><p>An annual summary with miles driven, fuel cost, best tank and spend by category, exportable as a PDF. Useful at tax time if a car is used for business.</p></div>
+    <div class="ocard"><div class="t"><h3>Household accounts</h3><span class="size">L</span></div><p>Sign-in, roles and shared vehicles. Only needed if it's ever hosted beyond your LAN, but it's the line between a personal tool and real SaaS.</p></div>
+  </div>
+</section>
+
+<section id="start" aria-labelledby="start-h">
+  <div class="start">
+    <div class="sec-head">
+      <p class="eyebrow">Where I'd start</p>
+      <h2 id="start-h">One focused week</h2>
+      <p>This order fixes what users would notice first and builds the pieces everything else depends on.</p>
+    </div>
+    <ol>
+      <li><span><b>Fix the odometer and interval matching.</b> These two make the dashboard and Maintenance numbers correct.</span></li>
+      <li><span><b>Add the opacity scale and the date helpers.</b> One config change and one small file clear about a dozen visual and date bugs.</span></li>
+      <li><span><b>Build Button, Field, Segmented, Modal, Drawer and Toast,</b> then move the fill-up and service forms onto them.</span></li>
+      <li><span><b>Ship the fill-up drawer from 3B</b> with partial fills, validation and undo. It's the flow you use most, and it proves out the new components.</span></li>
+    </ol>
+  </div>
+</section>
+
+</div>
