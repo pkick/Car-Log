@@ -3,14 +3,24 @@ import { VehicleContext } from './VehicleContext'
 
 export const RecordsContext = createContext()
 
+const UNREACHABLE = "Can't reach the server. Check that it's running and try again."
+// A proxy in front of the API (Vite in dev, or one on the NAS) answers these when the API is down.
+const GATEWAY_STATUSES = [502, 503, 504]
+
 async function api(path, options) {
-  const res = await fetch(path, {
-    headers: { 'Content-Type': 'application/json' },
-    ...options,
-  })
+  let res
+  try {
+    res = await fetch(path, {
+      headers: { 'Content-Type': 'application/json' },
+      ...options,
+    })
+  } catch (err) {
+    throw new Error(UNREACHABLE, { cause: err })
+  }
   if (!res.ok) {
     const body = await res.json().catch(() => ({}))
-    throw Object.assign(new Error(body.error || `Request failed: ${res.status}`), { field: body.field, status: res.status })
+    const message = body.error || (GATEWAY_STATUSES.includes(res.status) ? UNREACHABLE : `Request failed: ${res.status}`)
+    throw Object.assign(new Error(message), { field: body.field, status: res.status })
   }
   return res.status === 204 ? null : res.json()
 }
@@ -95,6 +105,13 @@ export function RecordsProvider({ children }) {
     setPolicyRecords((ps) => ps.filter((p) => p.id !== id))
   }
 
+  // The server cascades a vehicle's delete to its records; call this after deleteVehicle resolves.
+  const removeVehicleRecords = (vehicleId) => {
+    setFillUps((fs) => fs.filter((f) => f.vehicleId !== vehicleId))
+    setServiceRecords((rs) => rs.filter((r) => r.vehicleId !== vehicleId))
+    setPolicyRecords((ps) => ps.filter((p) => p.vehicleId !== vehicleId))
+  }
+
   if (loading) {
     return <div className="flex items-center justify-center h-screen text-sm text-ink/50">Loading…</div>
   }
@@ -126,6 +143,7 @@ export function RecordsProvider({ children }) {
         addPolicyRecord,
         updatePolicyRecord,
         deletePolicyRecord,
+        removeVehicleRecords,
       }}
     >
       {children}

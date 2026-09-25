@@ -2,7 +2,13 @@ import { useState, useContext } from 'react'
 import { VehicleContext } from '../context/VehicleContext'
 import { currentYear } from '../lib/dates'
 
-export default function AddVehicleModal({ onClose }) {
+// Fields with an error line under their input. Errors for any other field show above the buttons.
+const FORM_FIELDS = [
+  'nickname', 'year', 'make', 'model',
+  'purchaseDate', 'purchaseOdometer', 'registrationRenewal', 'insuranceRenewal', 'tankSize',
+]
+
+export default function AddVehicleModal({ onClose, onAdded }) {
   const { addVehicle } = useContext(VehicleContext)
 
   const [formData, setFormData] = useState({
@@ -24,29 +30,51 @@ export default function AddVehicleModal({ onClose }) {
     fuel: true,
     service: true,
   })
+  const [saving, setSaving] = useState(false)
+  const [fieldErrors, setFieldErrors] = useState({})
+  const [saveError, setSaveError] = useState(null)
 
   const handleChange = (e) => {
     const { name, value } = e.target
     setFormData({ ...formData, [name]: value })
+    setFieldErrors({ ...fieldErrors, [name]: null })
   }
 
-  const handleSave = () => {
-    if (!formData.nickname || !formData.make || !formData.model) {
-      alert('Please fill in nickname, make, and model')
+  const fieldError = (name) => fieldErrors[name] && <p className="text-xs text-red mt-1.5">{fieldErrors[name]}</p>
+
+  const handleSave = async () => {
+    if (saving) return
+    const missing = {
+      nickname: !formData.nickname.trim() && 'Enter a nickname.',
+      make: !formData.make.trim() && 'Enter the make.',
+      model: !formData.model.trim() && 'Enter the model.',
+    }
+    if (missing.nickname || missing.make || missing.model) {
+      setFieldErrors(missing)
       return
     }
 
     const purchaseOdometer = parseInt(formData.purchaseOdometer, 10) || 0
-    addVehicle({
-      ...formData,
-      year: parseInt(formData.year, 10),
-      purchaseOdometer,
-      tankSize: parseFloat(formData.tankSize),
-      tracksFuel: trackMode.fuel,
-      tracksService: trackMode.service,
-      odometer: purchaseOdometer,
-    })
-    onClose()
+    setSaving(true)
+    setFieldErrors({})
+    setSaveError(null)
+    try {
+      await addVehicle({
+        ...formData,
+        year: parseInt(formData.year, 10),
+        purchaseOdometer,
+        tankSize: parseFloat(formData.tankSize),
+        tracksFuel: trackMode.fuel,
+        tracksService: trackMode.service,
+        odometer: purchaseOdometer,
+      })
+      onAdded?.()
+      onClose()
+    } catch (err) {
+      if (FORM_FIELDS.includes(err.field)) setFieldErrors({ [err.field]: err.message })
+      else setSaveError(err.message)
+      setSaving(false)
+    }
   }
 
   return (
@@ -72,6 +100,7 @@ export default function AddVehicleModal({ onClose }) {
                 placeholder="e.g., The Wagon"
                 className="w-full px-3 py-2.5 border border-ink/12 rounded-lg text-sm focus:outline-none focus:border-accent"
               />
+              {fieldError('nickname')}
             </div>
             <div>
               <label className="text-xs font-mono font-semibold tracking-widest uppercase text-ink/45 block mb-2">Year *</label>
@@ -82,6 +111,7 @@ export default function AddVehicleModal({ onClose }) {
                 onChange={handleChange}
                 className="w-full px-3 py-2.5 border border-ink/12 rounded-lg text-sm focus:outline-none focus:border-accent"
               />
+              {fieldError('year')}
             </div>
           </div>
 
@@ -97,6 +127,7 @@ export default function AddVehicleModal({ onClose }) {
                 placeholder="e.g., Volvo"
                 className="w-full px-3 py-2.5 border border-ink/12 rounded-lg text-sm focus:outline-none focus:border-accent"
               />
+              {fieldError('make')}
             </div>
             <div>
               <label className="text-xs font-mono font-semibold tracking-widest uppercase text-ink/45 block mb-2">Model *</label>
@@ -108,6 +139,7 @@ export default function AddVehicleModal({ onClose }) {
                 placeholder="e.g., V60"
                 className="w-full px-3 py-2.5 border border-ink/12 rounded-lg text-sm focus:outline-none focus:border-accent"
               />
+              {fieldError('model')}
             </div>
             <div>
               <label className="text-xs font-mono font-semibold tracking-widest uppercase text-ink/45 block mb-2">Trim</label>
@@ -156,6 +188,7 @@ export default function AddVehicleModal({ onClose }) {
                 onChange={handleChange}
                 className="w-full px-3 py-2.5 border border-ink/12 rounded-lg text-sm focus:outline-none focus:border-accent"
               />
+              {fieldError('purchaseDate')}
             </div>
             <div>
               <label className="text-xs font-mono font-semibold tracking-widest uppercase text-ink/45 block mb-2">Odometer at Purchase</label>
@@ -166,6 +199,7 @@ export default function AddVehicleModal({ onClose }) {
                 onChange={handleChange}
                 className="w-full px-3 py-2.5 border border-ink/12 rounded-lg text-sm focus:outline-none focus:border-accent"
               />
+              {fieldError('purchaseOdometer')}
             </div>
           </div>
 
@@ -180,6 +214,7 @@ export default function AddVehicleModal({ onClose }) {
                 onChange={handleChange}
                 className="w-full px-3 py-2.5 border border-ink/12 rounded-lg text-sm focus:outline-none focus:border-accent"
               />
+              {fieldError('registrationRenewal')}
             </div>
             <div>
               <label className="text-xs font-mono font-semibold tracking-widest uppercase text-ink/45 block mb-2">Insurance Renewal</label>
@@ -190,6 +225,7 @@ export default function AddVehicleModal({ onClose }) {
                 onChange={handleChange}
                 className="w-full px-3 py-2.5 border border-ink/12 rounded-lg text-sm focus:outline-none focus:border-accent"
               />
+              {fieldError('insuranceRenewal')}
             </div>
           </div>
 
@@ -204,6 +240,7 @@ export default function AddVehicleModal({ onClose }) {
               onChange={handleChange}
               className="w-full px-3 py-2.5 border border-ink/12 rounded-lg text-sm focus:outline-none focus:border-accent"
             />
+            {fieldError('tankSize')}
           </div>
 
           {/* What to Track */}
@@ -233,19 +270,23 @@ export default function AddVehicleModal({ onClose }) {
         </div>
 
         {/* Footer */}
-        <div className="border-t border-ink/8 px-6 py-4 flex gap-3">
-          <button
-            onClick={handleSave}
-            className="flex-1 py-3 bg-slate text-white font-semibold rounded-lg hover:bg-slate/90 transition-colors"
-          >
-            Add vehicle
-          </button>
-          <button
-            onClick={onClose}
-            className="flex-1 py-3 border border-ink/12 text-ink font-semibold rounded-lg hover:bg-ink/3 transition-colors"
-          >
-            Cancel
-          </button>
+        <div className="border-t border-ink/8 px-6 py-4">
+          {saveError && <p className="text-xs text-red mb-2">{saveError}</p>}
+          <div className="flex gap-3">
+            <button
+              onClick={handleSave}
+              disabled={saving}
+              className="flex-1 py-3 bg-slate text-white font-semibold rounded-lg hover:bg-slate/90 transition-colors disabled:opacity-40 disabled:cursor-default"
+            >
+              Add vehicle
+            </button>
+            <button
+              onClick={onClose}
+              className="flex-1 py-3 border border-ink/12 text-ink font-semibold rounded-lg hover:bg-ink/3 transition-colors"
+            >
+              Cancel
+            </button>
+          </div>
         </div>
       </div>
     </div>

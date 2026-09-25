@@ -20,6 +20,8 @@ export default function FuelLog({ vehicle }) {
   const [saving, setSaving] = useState(false)
   const [odometerError, setOdometerError] = useState(null)
   const [saveError, setSaveError] = useState(null)
+  const [deletingId, setDeletingId] = useState(null)
+  const [deleteError, setDeleteError] = useState(null)
 
   const fillsAsc = [...getFillUpsForVehicle(vehicle.id)].sort((a, b) => a.odometer - b.odometer)
   const fillsWithMpg = computeFillMpg(fillsAsc)
@@ -80,9 +82,16 @@ export default function FuelLog({ vehicle }) {
     })
   }
 
-  const handleDelete = (id) => {
-    deleteFillUp(id)
-    if (editingFillId === id) resetForm()
+  const handleDelete = async (id) => {
+    setDeletingId(id)
+    try {
+      await deleteFillUp(id)
+      setDeleteError(null)
+      if (editingFillId === id) resetForm()
+    } catch (err) {
+      setDeleteError(`Couldn't delete: ${err.message}`)
+    }
+    setDeletingId(null)
   }
 
   const handleSave = async () => {
@@ -101,6 +110,7 @@ export default function FuelLog({ vehicle }) {
         await addFillUp(payload)
       }
       resetForm()
+      setDeleteError(null)
     } catch (err) {
       if (err.field === 'odometer') setOdometerError(err.message)
       else setSaveError(err.message)
@@ -113,6 +123,7 @@ export default function FuelLog({ vehicle }) {
       <div className="grid gap-5.5" style={{ gridTemplateColumns: '1fr 320px' }}>
         {/* Fuel Log Table */}
         <div className="bg-white rounded-2.5 border border-ink/10 overflow-hidden">
+          {deleteError && <p className="px-6 py-3 text-xs text-red border-b border-ink/8">{deleteError}</p>}
           <div className="overflow-x-auto">
             <table className="w-full">
               <thead>
@@ -153,7 +164,7 @@ export default function FuelLog({ vehicle }) {
                     <td className="px-6 py-4 text-sm font-mono">
                       <button onClick={() => handleEdit(fill)} className="text-xs font-semibold text-accent hover:text-[oklch(0.56_0.19_258/80%)]">EDIT</button>
                       <span className="mx-2 text-ink/20">·</span>
-                      <button onClick={() => handleDelete(fill.id)} className="text-xs font-semibold text-red hover:text-[oklch(0.55_0.17_28/80%)]">DEL</button>
+                      <button onClick={() => handleDelete(fill.id)} disabled={deletingId === fill.id} className="text-xs font-semibold text-red hover:text-[oklch(0.55_0.17_28/80%)]">DEL</button>
                     </td>
                   </tr>
                 ))}

@@ -4,14 +4,24 @@ export const VehicleContext = createContext()
 
 const ACTIVE_VEHICLE_KEY = 'odometer:active-vehicle-id'
 
+const UNREACHABLE = "Can't reach the server. Check that it's running and try again."
+// A proxy in front of the API (Vite in dev, or one on the NAS) answers these when the API is down.
+const GATEWAY_STATUSES = [502, 503, 504]
+
 async function api(path, options) {
-  const res = await fetch(path, {
-    headers: { 'Content-Type': 'application/json' },
-    ...options,
-  })
+  let res
+  try {
+    res = await fetch(path, {
+      headers: { 'Content-Type': 'application/json' },
+      ...options,
+    })
+  } catch (err) {
+    throw new Error(UNREACHABLE, { cause: err })
+  }
   if (!res.ok) {
     const body = await res.json().catch(() => ({}))
-    throw new Error(body.error || `Request failed: ${res.status}`)
+    const message = body.error || (GATEWAY_STATUSES.includes(res.status) ? UNREACHABLE : `Request failed: ${res.status}`)
+    throw Object.assign(new Error(message), { field: body.field, status: res.status })
   }
   return res.status === 204 ? null : res.json()
 }
@@ -40,7 +50,8 @@ export function VehicleProvider({ children }) {
 
   const setActiveVehicleId = (id) => {
     setActiveVehicleIdState(id)
-    localStorage.setItem(ACTIVE_VEHICLE_KEY, String(id))
+    if (id == null) localStorage.removeItem(ACTIVE_VEHICLE_KEY)
+    else localStorage.setItem(ACTIVE_VEHICLE_KEY, String(id))
   }
 
   const getActiveVehicle = () => vehicles.find((v) => v.id === activeVehicleId)
@@ -63,13 +74,9 @@ export function VehicleProvider({ children }) {
   const getDefaultIntervals = () => api('/api/defaults/intervals')
 
   const deleteVehicle = async (id) => {
-    if (vehicles.length <= 1) return
     await api(`/api/vehicles/${id}`, { method: 'DELETE' })
-    setVehicles((vs) => {
-      const next = vs.filter((v) => v.id !== id)
-      if (activeVehicleId === id) setActiveVehicleId(next[0]?.id)
-      return next
-    })
+    setVehicles((vs) => vs.filter((v) => v.id !== id))
+    if (activeVehicleId === id) setActiveVehicleId(vehicles.find((v) => v.id !== id)?.id ?? null)
   }
 
   if (loading) {

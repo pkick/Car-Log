@@ -37,8 +37,8 @@ function ConnectionStatus() {
 
 export default function Header({ vehicle, vehicles = [], activeVehicleId, onSelectVehicle, onEditVehicle, onAddVehicle, onLogService, onLogFillup }) {
   const [menuOpen, setMenuOpen] = useState(false)
-  const tracksFuel = vehicle.tracksFuel ?? true
-  const tracksService = vehicle.tracksService ?? true
+  const tracksFuel = vehicle && vehicle.tracksFuel !== false
+  const tracksService = vehicle && vehicle.tracksService !== false
 
   return (
     <header className="flex flex-col gap-[22px] px-10 py-[34px] border-b border-ink/12 bg-page">
@@ -50,8 +50,17 @@ export default function Header({ vehicle, vehicles = [], activeVehicleId, onSele
             className="flex items-center gap-3 p-2.5 border border-ink/14 rounded-lg bg-white/55 hover:border-ink/30 transition-colors"
           >
             <div className="flex flex-col gap-0.5 items-start whitespace-nowrap">
-              <span className="font-semibold text-sm tracking-tighter">{vehicle.nickname}</span>
-              <span className="text-xs font-mono text-ink/50">{vehicle.year} {vehicle.make} {vehicle.model} · {vehicle.odometer.toLocaleString()} mi</span>
+              {vehicle ? (
+                <>
+                  <span className="font-semibold text-sm tracking-tighter">{vehicle.nickname}</span>
+                  <span className="text-xs font-mono text-ink/50">{vehicle.year} {vehicle.make} {vehicle.model} · {vehicle.odometer.toLocaleString()} mi</span>
+                </>
+              ) : (
+                <>
+                  <span className="font-semibold text-sm tracking-tighter">No vehicles yet</span>
+                  <span className="text-xs font-mono text-ink/50">Add one to start tracking</span>
+                </>
+              )}
             </div>
             <span className="text-xs font-mono text-ink/40">▼</span>
           </button>

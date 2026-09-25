@@ -13,9 +13,12 @@ import AddVehicleModal from './components/AddVehicleModal'
 import LogServiceModal from './components/LogServiceModal'
 import LogFillupModal from './components/LogFillupModal'
 import DeleteVehicleModal from './components/DeleteVehicleModal'
+import FirstVehiclePanel from './components/FirstVehiclePanel'
 import { VehicleContext, VehicleProvider } from './context/VehicleContext'
 import { UIPrefsProvider } from './context/UIPrefsContext'
 import { RecordsProvider } from './context/RecordsContext'
+
+const VEHICLE_SCREENS = ['fuel-log', 'maintenance', 'documents', 'trends']
 
 function AppContent() {
   const [screen, setScreen] = useState('dashboard')
@@ -30,6 +33,7 @@ function AppContent() {
   const scrollRef = useRef(null)
 
   const hiddenScreens = [
+    ...(!activeVehicle ? VEHICLE_SCREENS : []),
     ...(activeVehicle?.tracksFuel === false ? ['fuel-log', 'trends'] : []),
     ...(activeVehicle?.tracksService === false ? ['maintenance'] : []),
   ]
@@ -40,6 +44,9 @@ function AppContent() {
   }, [screen])
 
   const renderPage = () => {
+    if (!activeVehicle && screen !== 'garage' && screen !== 'settings') {
+      return <FirstVehiclePanel onAddVehicle={() => setShowAddVehicle(true)} />
+    }
     switch (screen) {
       case 'dashboard':
         return (
@@ -119,7 +126,12 @@ function AppContent() {
       )}
 
       {showAddVehicle && (
-        <AddVehicleModal onClose={() => setShowAddVehicle(false)} />
+        <AddVehicleModal
+          onClose={() => setShowAddVehicle(false)}
+          onAdded={() => {
+            if (!activeVehicle) setScreen('dashboard')
+          }}
+        />
       )}
 
       {showLogService && (

@@ -1,8 +1,11 @@
-import { useState, useContext } from 'react'
+import { useState, useContext, useRef } from 'react'
 import { CalendarIcon } from './icons'
 import { useRecords } from '../context/RecordsContext'
 import { VehicleContext } from '../context/VehicleContext'
 import { todayISO } from '../lib/dates'
+
+// Fields with an error line under their input. Errors for any other field show above the buttons.
+const FORM_FIELDS = ['date', 'cost', 'renewalDate']
 
 export default function LogPolicyModal({ vehicle, onClose, editingRecord = null, defaultType = 'insurance' }) {
   const { addPolicyRecord, updatePolicyRecord } = useRecords()
@@ -16,16 +19,24 @@ export default function LogPolicyModal({ vehicle, onClose, editingRecord = null,
     provider: editingRecord?.provider || '',
     notes: editingRecord?.notes || '',
   })
+  const [saving, setSaving] = useState(false)
+  const [fieldErrors, setFieldErrors] = useState({})
+  const [saveError, setSaveError] = useState(null)
+  // Set once the record exists, so retrying after the renewal-date update failed doesn't add it twice.
+  const savedRecordId = useRef(editingRecord?.id ?? null)
 
   const handleChange = (e) => {
     const { name, value } = e.target
     setFormData({ ...formData, [name]: value })
+    setFieldErrors({ ...fieldErrors, [name]: null })
   }
+
+  const fieldError = (name) => fieldErrors[name] && <p className="text-xs text-red mt-1.5">{fieldErrors[name]}</p>
 
   const cost = parseFloat(formData.cost) || 0
 
-  const handleSave = () => {
-    if (!vehicle || cost <= 0 || !formData.date) return
+  const handleSave = async () => {
+    if (!vehicle || cost <= 0 || !formData.date || saving) return
     const payload = {
       vehicleId: vehicle.id,
       type: formData.type,
@@ -35,16 +46,25 @@ export default function LogPolicyModal({ vehicle, onClose, editingRecord = null,
       provider: formData.provider,
       notes: formData.notes,
     }
-    if (editingRecord) {
-      updatePolicyRecord(editingRecord.id, payload)
-    } else {
-      addPolicyRecord(payload)
+    setSaving(true)
+    setFieldErrors({})
+    setSaveError(null)
+    try {
+      if (savedRecordId.current) {
+        await updatePolicyRecord(savedRecordId.current, payload)
+      } else {
+        savedRecordId.current = await addPolicyRecord(payload)
+      }
+      if (formData.renewalDate) {
+        const field = formData.type === 'insurance' ? 'insuranceRenewal' : 'registrationRenewal'
+        await updateVehicle(vehicle.id, { [field]: formData.renewalDate })
+      }
+      onClose()
+    } catch (err) {
+      if (FORM_FIELDS.includes(err.field)) setFieldErrors({ [err.field]: err.message })
+      else setSaveError(err.message)
+      setSaving(false)
     }
-    if (formData.renewalDate) {
-      const field = formData.type === 'insurance' ? 'insuranceRenewal' : 'registrationRenewal'
-      updateVehicle(vehicle.id, { [field]: formData.renewalDate })
-    }
-    onClose()
   }
 
   return (
@@ -100,6 +120,7 @@ export default function LogPolicyModal({ vehicle, onClose, editingRecord = null,
                 onChange={handleChange}
                 className="w-full px-3 py-2.5 border border-ink/12 rounded-lg text-base focus:outline-none focus:border-accent"
               />
+              {fieldError('date')}
             </div>
             <div>
               <label className="text-xs font-mono font-semibold tracking-widest uppercase text-ink/45 block mb-2">Cost</label>
@@ -112,6 +133,7 @@ export default function LogPolicyModal({ vehicle, onClose, editingRecord = null,
                 placeholder="0.00"
                 className="w-full px-3 py-2.5 border border-ink/12 rounded-lg text-base focus:outline-none focus:border-accent"
               />
+              {fieldError('cost')}
             </div>
           </div>
 
@@ -129,6 +151,7 @@ export default function LogPolicyModal({ vehicle, onClose, editingRecord = null,
                 onChange={handleChange}
                 className="w-full px-3 py-2.5 border border-ink/12 rounded-lg text-base focus:outline-none focus:border-accent"
               />
+              {fieldError('renewalDate')}
             </div>
             <div>
               <label className="text-xs font-mono font-semibold tracking-widest uppercase text-ink/45 block mb-2">
@@ -159,20 +182,23 @@ export default function LogPolicyModal({ vehicle, onClose, editingRecord = null,
         </div>
 
         {/* Footer */}
-        <div className="border-t border-ink/8 px-6 py-3 flex gap-3 sticky bottom-0 bg-page">
-          <button
-            onClick={handleSave}
-            disabled={cost <= 0 || !formData.date}
-            className="flex-1 py-2.5 bg-slate text-white font-semibold rounded-lg hover:bg-slate/90 transition-colors text-sm disabled:opacity-40 disabled:cursor-default"
-          >
-            {editingRecord ? 'Save changes' : 'Save payment'}
-          </button>
-          <button
-            onClick={onClose}
-            className="flex-1 py-2.5 border border-ink/12 text-ink font-semibold rounded-lg hover:bg-ink/3 transition-colors text-sm"
-          >
-            Cancel
-          </button>
+        <div className="border-t border-ink/8 px-6 py-3 sticky bottom-0 bg-page">
+          {saveError && <p className="text-xs text-red mb-2">{saveError}</p>}
+          <div className="flex gap-3">
+            <button
+              onClick={handleSave}
+              disabled={cost <= 0 || !formData.date || saving}
+              className="flex-1 py-2.5 bg-slate text-white font-semibold rounded-lg hover:bg-slate/90 transition-colors text-sm disabled:opacity-40 disabled:cursor-default"
+            >
+              {editingRecord ? 'Save changes' : 'Save payment'}
+            </button>
+            <button
+              onClick={onClose}
+              className="flex-1 py-2.5 border border-ink/12 text-ink font-semibold rounded-lg hover:bg-ink/3 transition-colors text-sm"
+            >
+              Cancel
+            </button>
+          </div>
         </div>
       </div>
     </div>

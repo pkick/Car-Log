@@ -9,9 +9,21 @@ export default function Garage({ vehicles, activeVehicleId, onSetActive, onEditV
   const { getFillUpsForVehicle } = useRecords()
   const { updateVehicle } = useContext(VehicleContext)
   const [colorPickerId, setColorPickerId] = useState(null)
+  const [colorError, setColorError] = useState(null)
+
+  const handleColorChange = async (vehicleId, color) => {
+    setColorPickerId(null)
+    try {
+      await updateVehicle(vehicleId, { color })
+      setColorError(null)
+    } catch (err) {
+      setColorError(`Couldn't change the color: ${err.message}`)
+    }
+  }
 
   return (
     <main className="px-10 py-8 max-w-[1180px] w-full">
+      {colorError && <p className="text-xs text-red mb-3">{colorError}</p>}
       <div className="grid grid-cols-2 gap-[22px]">
         {vehicles.map((vehicle) => {
           const isActive = vehicle.id === activeVehicleId
@@ -29,10 +41,7 @@ export default function Garage({ vehicles, activeVehicleId, onSetActive, onEditV
                   {VEHICLE_COLORS.map((c) => (
                     <button
                       key={c}
-                      onClick={() => {
-                        updateVehicle(vehicle.id, { color: c })
-                        setColorPickerId(null)
-                      }}
+                      onClick={() => handleColorChange(vehicle.id, c)}
                       aria-label={c}
                       className={`w-8 h-8 rounded-full flex-none hover:scale-110 transition-transform ${VEHICLE_COLOR_SWATCH_CLASS[c]} ${
                         c === color ? 'ring-2 ring-offset-2 ring-ink' : ''

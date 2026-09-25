@@ -21,6 +21,9 @@ function formatServicesSummary(services) {
 // Number inputs hold strings; the API only accepts JSON numbers (or null when cleared).
 const toNumberOrNull = (value) => (value === '' || value == null ? null : Number(value))
 
+// Fields with an error line under their input. Errors for any other field show above the buttons.
+const FORM_FIELDS = ['nickname', 'year', 'purchaseDate', 'purchaseOdometer', 'registrationRenewal', 'insuranceRenewal']
+
 export default function EditVehicleModal({ vehicleId, onClose }) {
   const { vehicles, updateVehicle, getDefaultIntervals } = useContext(VehicleContext)
   const vehicle = vehicles.find(v => v.id === vehicleId)
@@ -36,6 +39,9 @@ export default function EditVehicleModal({ vehicleId, onClose }) {
   )
   const [expandedIntervalId, setExpandedIntervalId] = useState(null)
   const [defaultsError, setDefaultsError] = useState(null)
+  const [saving, setSaving] = useState(false)
+  const [fieldErrors, setFieldErrors] = useState({})
+  const [saveError, setSaveError] = useState(null)
   const focusIntervalId = useRef(null)
 
   if (!vehicle) return null
@@ -43,7 +49,10 @@ export default function EditVehicleModal({ vehicleId, onClose }) {
   const handleChange = (e) => {
     const { name, value } = e.target
     setFormData({ ...formData, [name]: value })
+    setFieldErrors({ ...fieldErrors, [name]: null })
   }
+
+  const fieldError = (name) => fieldErrors[name] && <p className="text-xs text-red mt-1.5">{fieldErrors[name]}</p>
 
   const updateInterval = (id, field, value) => {
     setIntervals(intervals.map((iv) => (iv.id === id ? { ...iv, [field]: value } : iv)))
@@ -79,16 +88,26 @@ export default function EditVehicleModal({ vehicleId, onClose }) {
     }
   }
 
-  const handleSave = () => {
-    updateVehicle(vehicleId, {
-      ...formData,
-      year: toNumberOrNull(formData.year),
-      purchaseOdometer: toNumberOrNull(formData.purchaseOdometer),
-      tracksFuel: trackMode.fuel,
-      tracksService: trackMode.service,
-      intervals,
-    })
-    onClose()
+  const handleSave = async () => {
+    if (saving) return
+    setSaving(true)
+    setFieldErrors({})
+    setSaveError(null)
+    try {
+      await updateVehicle(vehicleId, {
+        ...formData,
+        year: toNumberOrNull(formData.year),
+        purchaseOdometer: toNumberOrNull(formData.purchaseOdometer),
+        tracksFuel: trackMode.fuel,
+        tracksService: trackMode.service,
+        intervals,
+      })
+      onClose()
+    } catch (err) {
+      if (FORM_FIELDS.includes(err.field)) setFieldErrors({ [err.field]: err.message })
+      else setSaveError(err.message)
+      setSaving(false)
+    }
   }
 
   return (
@@ -113,6 +132,7 @@ export default function EditVehicleModal({ vehicleId, onClose }) {
                 onChange={handleChange}
                 className="w-full px-4 py-3 border border-ink/12 rounded-lg text-base focus:outline-none focus:border-accent"
               />
+              {fieldError('nickname')}
             </div>
             <div>
               <label className="text-xs font-mono font-semibold tracking-widest uppercase text-ink/45 block mb-3">Year</label>
@@ -123,6 +143,7 @@ export default function EditVehicleModal({ vehicleId, onClose }) {
                 onChange={handleChange}
                 className="w-full px-4 py-3 border border-ink/12 rounded-lg text-base focus:outline-none focus:border-accent"
               />
+              {fieldError('year')}
             </div>
           </div>
 
@@ -195,6 +216,7 @@ export default function EditVehicleModal({ vehicleId, onClose }) {
                 onChange={handleChange}
                 className="w-full px-4 py-3 border border-ink/12 rounded-lg text-base focus:outline-none focus:border-accent"
               />
+              {fieldError('purchaseDate')}
             </div>
             <div>
               <label className="text-xs font-mono font-semibold tracking-widest uppercase text-ink/45 block mb-3">Odometer at Purchase</label>
@@ -205,6 +227,7 @@ export default function EditVehicleModal({ vehicleId, onClose }) {
                 onChange={handleChange}
                 className="w-full px-4 py-3 border border-ink/12 rounded-lg text-base focus:outline-none focus:border-accent"
               />
+              {fieldError('purchaseOdometer')}
             </div>
           </div>
 
@@ -219,6 +242,7 @@ export default function EditVehicleModal({ vehicleId, onClose }) {
                 onChange={handleChange}
                 className="w-full px-4 py-3 border border-ink/12 rounded-lg text-base focus:outline-none focus:border-accent"
               />
+              {fieldError('registrationRenewal')}
             </div>
             <div>
               <label className="text-xs font-mono font-semibold tracking-widest uppercase text-ink/45 block mb-3">Insurance Renewal</label>
@@ -229,6 +253,7 @@ export default function EditVehicleModal({ vehicleId, onClose }) {
                 onChange={handleChange}
                 className="w-full px-4 py-3 border border-ink/12 rounded-lg text-base focus:outline-none focus:border-accent"
               />
+              {fieldError('insuranceRenewal')}
             </div>
           </div>
 
@@ -465,19 +490,23 @@ export default function EditVehicleModal({ vehicleId, onClose }) {
         </div>
 
         {/* Footer */}
-        <div className="border-t border-ink/8 px-6 py-4 flex gap-3 sticky bottom-0 bg-page">
-          <button
-            onClick={handleSave}
-            className="flex-1 py-3 bg-slate text-white font-semibold rounded-lg hover:bg-slate/90 transition-colors text-base"
-          >
-            Save vehicle
-          </button>
-          <button
-            onClick={onClose}
-            className="flex-1 py-3 border border-ink/12 text-ink font-semibold rounded-lg hover:bg-ink/3 transition-colors text-base"
-          >
-            Cancel
-          </button>
+        <div className="border-t border-ink/8 px-6 py-4 sticky bottom-0 bg-page">
+          {saveError && <p className="text-xs text-red mb-2">{saveError}</p>}
+          <div className="flex gap-3">
+            <button
+              onClick={handleSave}
+              disabled={saving}
+              className="flex-1 py-3 bg-slate text-white font-semibold rounded-lg hover:bg-slate/90 transition-colors text-base disabled:opacity-40 disabled:cursor-default"
+            >
+              Save vehicle
+            </button>
+            <button
+              onClick={onClose}
+              className="flex-1 py-3 border border-ink/12 text-ink font-semibold rounded-lg hover:bg-ink/3 transition-colors text-base"
+            >
+              Cancel
+            </button>
+          </div>
         </div>
       </div>
     </div>
