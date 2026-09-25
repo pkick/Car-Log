@@ -102,20 +102,20 @@ Acceptance
 ### P1-C · Service interval matching
 Branch `fix/p1c-intervals`. Depends on P1-A.
 
-- [ ] **P1-C1** Add `services: string[]` to each interval (D10). Defaults: Oil + filter → `['Oil + filter change']`,
+- [x] **P1-C1** Add `services: string[]` to each interval (D10). Defaults: Oil + filter → `['Oil + filter change']`,
       Tire rotation → `['Tire rotation']`, Brake fluid → `['Brake fluid']`, Cabin air filter → `['Cabin air filter']`.
       Update `DEFAULT_INTERVALS` in both `server/seed.js` and `VehicleContext.jsx` (then remove the client copy;
       the server owns defaults and exposes them via `GET /api/defaults/intervals`).
-- [ ] **P1-C2** `getDueSoonItems` matches `record.services` against `interval.services`. Intervals with an
+- [x] **P1-C2** `getDueSoonItems` matches `record.services` against `interval.services`. Intervals with an
       empty list fall back to "any service in `interval.categoryId`".
-- [ ] **P1-C3** Add `progress` (0 to 1+, for bars) and `dueDate` / `dueOdometer` to each due item.
-- [ ] **P1-C4** Edit vehicle › Service intervals: editable name, a multi-select of which services satisfy the
+- [x] **P1-C3** Add `progress` (0 to 1+, for bars) and `dueDate` / `dueOdometer` to each due item.
+- [x] **P1-C4** Edit vehicle › Service intervals: editable name, a multi-select of which services satisfy the
       interval, and a delete button per row. "+ Add interval" starts with an empty service list and focuses the name.
-- [ ] **P1-C5** Record `categoryId` becomes derived: set it to the category of the first service on save and
+- [x] **P1-C5** Record `categoryId` becomes derived: set it to the category of the first service on save and
       stop reading it for matching anywhere. Activity and history icons already derive categories from services.
-- [ ] **P1-C6** Tests: brake pads don't reset Brake fluid; a record with Brake pads + Tire rotation resets
+- [x] **P1-C6** Tests: brake pads don't reset Brake fluid; a record with Brake pads + Tire rotation resets
       Tire rotation; Air filter doesn't reset Cabin air filter; empty-list fallback works.
-- [ ] **P1-C7** Reset and reseed the dev DB with the new interval shape.
+- [x] **P1-C7** Reset and reseed the dev DB with the new interval shape.
 
 Acceptance
 - Logging "Brake pads" leaves Brake fluid's status unchanged.
@@ -146,15 +146,15 @@ Branch `fix/p1e-safe-writes`. Depends on P1-B.
 
 - [ ] **P1-E1** Every modal awaits its mutation, disables Save while pending, stays open on failure and shows the
       server's message inline. No unhandled promise rejections.
-- [ ] **P1-E2** Server validation helper for all POST/PATCH routes: required fields, numeric types, positive
+- [x] **P1-E2** Server validation helper for all POST/PATCH routes: required fields, numeric types, positive
       amounts, valid `YYYY-MM-DD`. Return `400 { error, field }`.
-- [ ] **P1-E3** Turn on `PRAGMA foreign_keys = ON` and recreate tables with `ON DELETE CASCADE` for fill-ups,
+- [x] **P1-E3** Turn on `PRAGMA foreign_keys = ON` and recreate tables with `ON DELETE CASCADE` for fill-ups,
       services and policy records (D2 allows the reset). Remove the manual deletes in `routes/vehicles.js`.
 - [ ] **P1-E4** Replace `alert()` in `AddVehicleModal` with inline field errors.
 - [ ] **P1-E5** Zero-vehicle safety: `Header`, `Sidebar` and pages render without a vehicle (temporary
       "Add your first vehicle" panel until P4-G builds the real first run). The server stops blocking deletion
       of the last vehicle.
-- [ ] **P1-E6** Route tests for validation errors and cascade delete.
+- [x] **P1-E6** Route tests for validation errors and cascade delete.
 
 Acceptance
 - Stopping the server and saving a fill-up shows an error in the modal; restarting and saving again works.
@@ -167,7 +167,7 @@ Branch `fix/p1f-visual`. Depends on nothing (can run in parallel with P1-B to P1
 - [x] **P1-F1** Extend `theme.extend.opacity` in `tailwind.config.js` with every off-scale value in use:
       `2.5 3 4 4.5 6 8 9 12 14 16 18 24 42 52 62`. Add a comment explaining why. Verify the sidebar active
       state, modal backdrop and the Trends cost-per-mile `<select>` (make it dark with light text).
-- [ ] **P1-F2** Remove the hard-coded 70% bars from the dashboard stat tiles. Drive the "Coming up" bars from
+- [x] **P1-F2** Remove the hard-coded 70% bars from the dashboard stat tiles. Drive the "Coming up" bars from
       `progress` (P1-C3), colored by status.
 - [x] **P1-F3** Replace the static "SAVED LOCALLY" badge with a connection indicator that pings `/api/health`
       every 30 s: "Connected" (green) or "Can't reach server" (red).
@@ -406,6 +406,8 @@ Backlog (not scheduled): units and currency settings (L/100 km, km, liters), hou
 
 Newest first. One line per merged PR: date, group, PR link, one-sentence summary.
 
+- 2026-09-25 · P1-C · Intervals list the services that reset them (D10); the server owns the defaults (`GET /api/defaults/intervals`); due items carry `progress`, `dueDate` and `dueOdometer`, labels follow whichever limit is closer, and the Coming up bars use `progress` (finishes P1-F2). Needs a dev DB reset.
+- 2026-09-25 · P1-E (server) · `400 { error, field }` validation on every write, `ON DELETE CASCADE` for records (startup warns about an old DB), and the last vehicle can be deleted. E1, E4 and the client side of E5 are next.
 - 2026-09-25 · P1-D · Full / Partial toggle, tank warning in both forms, month-to-date spend vs the same days last month, a 12-fill price chart around the vehicle's own average, real 6-month spend and gallon averages, and Looking ahead for every interval.
 - 2026-09-25 · P1-F · Opacity scale extended, connection indicator, Wipers subcategories, placeholders hidden, `tracksFuel` / `tracksService` honored (including Garage cards), title, scroll reset and wrench icon. P1-F2 is half done: the fake 70% tile bars are gone; the Coming up bars wait for `progress` from P1-C3.
 - 2026-09-25 · P1-B · Server owns the odometer (recomputed on every write, D9) and rejects out-of-order fill-up readings with an inline 422; route tests via `node --test`. Fill-ups sharing a date are ordered by entry, so a new one must be the day's highest reading. Existing dev DBs still need `rm server/data/odometer.db` once (P1-B7).

@@ -18,6 +18,9 @@ function formatServicesSummary(services) {
   return `${services.slice(0, 2).join(', ')}, +${services.length - 2} more`
 }
 
+// Number inputs hold strings; the API only accepts JSON numbers (or null when cleared).
+const toNumberOrNull = (value) => (value === '' || value == null ? null : Number(value))
+
 export default function EditVehicleModal({ vehicleId, onClose }) {
   const { vehicles, updateVehicle, getDefaultIntervals } = useContext(VehicleContext)
   const vehicle = vehicles.find(v => v.id === vehicleId)
@@ -79,6 +82,8 @@ export default function EditVehicleModal({ vehicleId, onClose }) {
   const handleSave = () => {
     updateVehicle(vehicleId, {
       ...formData,
+      year: toNumberOrNull(formData.year),
+      purchaseOdometer: toNumberOrNull(formData.purchaseOdometer),
       tracksFuel: trackMode.fuel,
       tracksService: trackMode.service,
       intervals,
@@ -382,9 +387,9 @@ export default function EditVehicleModal({ vehicleId, onClose }) {
                             type="number"
                             value={interval.warnMiles ?? ''}
                             onChange={(e) => updateInterval(interval.id, 'warnMiles', e.target.value === '' ? null : parseInt(e.target.value, 10))}
-                            className="w-16 px-2 py-2 border border-ink/12 rounded text-sm"
+                            className="w-20 px-2 py-2 border border-ink/12 rounded text-sm"
                           />
-                          <span className="text-xs text-ink/40">mi /</span>
+                          <span className="text-xs text-ink/40 whitespace-nowrap">mi /</span>
                           <input
                             type="number"
                             value={interval.warnDays ?? ''}
