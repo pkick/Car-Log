@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { SERVICE_CATEGORIES, CATEGORY_TEXT_CLASS, CATEGORY_TILE_CLASS, CATEGORY_ICON, SUBCATEGORIES, CATEGORY_ID_BY_SERVICE } from '../lib/serviceCategories'
-import { CalendarIcon, PaperclipIcon } from './icons'
+import { CalendarIcon } from './icons'
 import { useRecords } from '../context/RecordsContext'
 import { getDueSoonItems, formatLastReading, getLastReading } from '../lib/vehicleStats'
 import { todayISO } from '../lib/dates'
@@ -288,16 +288,6 @@ export default function LogServiceModal({ vehicle, onClose, editingRecord = null
               rows={3}
               className="w-full px-3 py-2.5 border border-ink/12 rounded-lg text-sm focus:outline-none focus:border-accent resize-none"
             />
-          </div>
-
-          {/* Receipt Photo */}
-          <div>
-            <label className="text-xs font-mono font-semibold tracking-widest uppercase text-ink/45 block mb-2">Receipt photo</label>
-            <div className="border-2 border-dashed border-[oklch(0.56_0.19_258/35%)] bg-[oklch(0.56_0.19_258/6%)] rounded-lg p-6 text-center hover:bg-[oklch(0.56_0.19_258/10%)] transition-colors cursor-pointer">
-              <PaperclipIcon size={41} className="mx-auto mb-2 text-accent" />
-              <p className="font-semibold text-sm mb-0.5">Drop an image or click to attach</p>
-              <p className="text-xs text-ink/50">Stored on this device · JPG, PNG, HEIC</p>
-            </div>
           </div>
 
           {/* Next Due Callout */}

@@ -1,4 +1,4 @@
-import { useState, useContext } from 'react'
+import { useState, useContext, useLayoutEffect, useRef } from 'react'
 import Sidebar from './components/Sidebar'
 import Header from './components/Header'
 import Dashboard from './pages/Dashboard'
@@ -27,6 +27,17 @@ function AppContent() {
 
   const { vehicles, activeVehicleId, setActiveVehicleId, getActiveVehicle } = useContext(VehicleContext)
   const activeVehicle = getActiveVehicle()
+  const scrollRef = useRef(null)
+
+  const hiddenScreens = [
+    ...(activeVehicle?.tracksFuel === false ? ['fuel-log', 'trends'] : []),
+    ...(activeVehicle?.tracksService === false ? ['maintenance'] : []),
+  ]
+  if (hiddenScreens.includes(screen)) setScreen('dashboard')
+
+  useLayoutEffect(() => {
+    scrollRef.current?.scrollTo(0, 0)
+  }, [screen])
 
   const renderPage = () => {
     switch (screen) {
@@ -36,6 +47,7 @@ function AppContent() {
             vehicle={activeVehicle}
             onViewTrends={() => setScreen('trends')}
             onLogService={() => setShowLogService(true)}
+            onEditVehicle={() => setEditingVehicleId(activeVehicle.id)}
           />
         )
       case 'fuel-log':
@@ -65,6 +77,7 @@ function AppContent() {
             vehicle={activeVehicle}
             onViewTrends={() => setScreen('trends')}
             onLogService={() => setShowLogService(true)}
+            onEditVehicle={() => setEditingVehicleId(activeVehicle.id)}
           />
         )
     }
@@ -73,7 +86,7 @@ function AppContent() {
   return (
     <>
       <div className="flex h-screen bg-page">
-        <Sidebar screen={screen} setScreen={setScreen} />
+        <Sidebar screen={screen} setScreen={setScreen} hiddenScreens={hiddenScreens} />
         <main className="flex-1 overflow-hidden flex flex-col">
           <Header
             vehicle={activeVehicle}
@@ -85,7 +98,7 @@ function AppContent() {
             onLogService={() => setShowLogService(true)}
             onLogFillup={() => setShowLogFillup(true)}
           />
-          <div className="flex-1 overflow-auto">
+          <div ref={scrollRef} className="flex-1 overflow-auto">
             {renderPage()}
           </div>
         </main>

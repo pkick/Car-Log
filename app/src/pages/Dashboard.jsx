@@ -19,9 +19,13 @@ const DUE_TILE_CLASS = {
   slate: 'bg-white/10',
 }
 
-export default function Dashboard({ vehicle, onViewTrends, onLogService }) {
+export default function Dashboard({ vehicle, onViewTrends, onLogService, onEditVehicle }) {
   const { getFillUpsForVehicle, getServiceRecordsForVehicle } = useRecords()
-  const [activityFilter, setActivityFilter] = useState('All')
+  const [selectedFilter, setSelectedFilter] = useState('All')
+  const tracksFuel = vehicle.tracksFuel ?? true
+  const tracksService = vehicle.tracksService ?? true
+  const activityFilters = ['All', ...(tracksFuel ? ['Fuel'] : []), ...(tracksService ? ['Service'] : [])]
+  const activityFilter = activityFilters.includes(selectedFilter) ? selectedFilter : 'All'
   const fills = getFillUpsForVehicle(vehicle.id)
   const records = getServiceRecordsForVehicle(vehicle.id)
 
@@ -32,9 +36,10 @@ export default function Dashboard({ vehicle, onViewTrends, onLogService }) {
   const comingUp = dueSoonItems.filter((i) => i.status !== 'ok').slice(0, 3)
 
   const stats = [
-    { label: 'AVG MPG', value: avgMpg != null ? String(avgMpg) : '—', unit: 'mpg', delta: null },
-    { label: 'COST / MILE', value: costPerMile != null ? `$${costPerMile.toFixed(2)}` : '—', unit: 'per mi', delta: null },
+    { kind: 'fuel', label: 'AVG MPG', value: avgMpg != null ? String(avgMpg) : '—', unit: 'mpg', delta: null },
+    { kind: 'fuel', label: 'COST / MILE', value: costPerMile != null ? `$${costPerMile.toFixed(2)}` : '—', unit: 'per mi', delta: null },
     {
+      kind: 'fuel',
       label: 'FUEL SPEND',
       value: `$${spendThisMonth}`,
       unit: 'this mo',
@@ -42,13 +47,14 @@ export default function Dashboard({ vehicle, onViewTrends, onLogService }) {
       deltaType: spendDelta > 0 ? 'negative' : 'positive',
     },
     {
+      kind: 'service',
       label: 'SERVICES',
       value: String(dueCount),
       unit: 'due soon',
       delta: overdueCount > 0 ? `${overdueCount} overdue` : null,
       deltaType: 'negative',
     },
-  ]
+  ].filter((stat) => (stat.kind === 'fuel' ? tracksFuel : tracksService))
 
   const recentMpgFills = withMpg.filter((f) => f.mpg != null).slice(-10)
   const chartData = recentMpgFills.map((f, i) => ({ label: `F${i + 1}`, value: f.mpg }))
@@ -85,6 +91,7 @@ export default function Dashboard({ vehicle, onViewTrends, onLogService }) {
     })),
   ]
     .sort((a, b) => b.date.localeCompare(a.date) || b.odometer - a.odometer)
+    .filter((item) => activityFilters.includes(item.type))
     .filter((item) => activityFilter === 'All' || item.type === activityFilter)
 
   return (
@@ -96,6 +103,7 @@ export default function Dashboard({ vehicle, onViewTrends, onLogService }) {
       </div>
 
       {/* Stat Rail */}
+      {stats.length > 0 && (
       <div className="grid grid-cols-4 gap-[14px] mb-[22px]">
         {stats.map((stat) => (
           <div
@@ -118,16 +126,32 @@ export default function Dashboard({ vehicle, onViewTrends, onLogService }) {
               <span className="text-4xl font-bold tracking-tighter">{stat.value}</span>
               <span className="text-xs font-mono whitespace-nowrap">{stat.unit}</span>
             </div>
-            <div className="h-1 bg-ink/9 rounded-full overflow-hidden">
-              <div className="h-full bg-accent w-[70%]" />
-            </div>
           </div>
         ))}
       </div>
+      )}
 
       {/* Chart + Coming Up Row */}
-      <div className="grid gap-[22px] mb-[22px]" style={{ gridTemplateColumns: '1.5fr 1fr' }}>
-        {/* Fuel Economy Chart */}
+      <div className="grid gap-[22px] mb-[22px]" style={{ gridTemplateColumns: tracksService ? '1.5fr 1fr' : '1fr' }}>
+        {!tracksFuel ? (
+          <div className="bg-white rounded-2.5 border border-dashed border-ink/20 px-6 py-[44px] flex flex-col items-center justify-center gap-[15px] text-center">
+            <div className="w-[34px] h-[34px] rounded-10 bg-ink/5 flex items-center justify-center">
+              <FuelIcon size={20} className="text-ink/35" />
+            </div>
+            <div className="flex flex-col gap-[7px] max-w-[320px]">
+              <h2 className="text-xl font-semibold tracking-tight">Fuel tracking is off for {vehicle.nickname}</h2>
+              <p className="text-xs font-mono leading-relaxed text-ink/55">
+                {tracksService && 'This vehicle logs maintenance only. '}Turn fuel on to record fill-ups, MPG, and cost per mile.
+              </p>
+            </div>
+            <button
+              onClick={onEditVehicle}
+              className="px-4.5 py-3 rounded-lg bg-slate text-page text-xs font-medium hover:bg-slate/90 transition-colors"
+            >
+              Enable fuel tracking
+            </button>
+          </div>
+        ) : (
         <div className="bg-white rounded-2.5 p-[22px] border border-ink/10">
           <div className="flex items-center justify-between mb-5.5">
             <h2 className="text-2xl font-bold">Fuel economy</h2>
@@ -181,8 +205,10 @@ export default function Dashboard({ vehicle, onViewTrends, onLogService }) {
             All trends
           </button>
         </div>
+        )}
 
         {/* Coming Up */}
+        {tracksService && (
         <div className="bg-slate text-page rounded-2.5 p-[22px] border border-ink/10">
           <div className="flex items-center justify-between mb-[22px]">
             <h2 className="text-2xl font-bold">Coming up</h2>
@@ -234,17 +260,19 @@ export default function Dashboard({ vehicle, onViewTrends, onLogService }) {
             Log service
           </button>
         </div>
+        )}
       </div>
 
       {/* Recent Activity */}
       <div className="bg-white rounded-2.5 border border-ink/10">
         <div className="flex items-center justify-between px-6 py-4 border-b border-ink/8">
           <h2 className="text-2xl font-bold">Recent activity</h2>
+          {activityFilters.length > 1 && (
           <div className="flex gap-1.5 p-1 bg-ink/6 rounded-lg">
-            {['All', 'Fuel', 'Service'].map((filter) => (
+            {activityFilters.map((filter) => (
               <button
                 key={filter}
-                onClick={() => setActivityFilter(filter)}
+                onClick={() => setSelectedFilter(filter)}
                 className={`px-3 py-1.5 rounded text-xs font-mono font-semibold transition-colors ${
                   filter === activityFilter
                     ? 'bg-slate text-white'
@@ -255,6 +283,7 @@ export default function Dashboard({ vehicle, onViewTrends, onLogService }) {
               </button>
             ))}
           </div>
+          )}
         </div>
         <div className="h-[296px] overflow-y-auto p-6">
           {activity.length === 0 ? (

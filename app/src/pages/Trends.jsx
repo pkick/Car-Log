@@ -146,7 +146,7 @@ export default function Trends({ vehicle }) {
             <select
               value={cpmWindow}
               onChange={(e) => setCpmWindow(e.target.value)}
-              className="bg-white/24 border border-white/24 rounded-lg text-xs font-mono text-page px-2 py-1.5"
+              className="bg-slate border border-white/24 rounded-lg text-xs font-mono text-page px-2 py-1.5 [color-scheme:dark]"
             >
               <option value="90-days">Rolling 90 days</option>
               <option value="6-months">6 months</option>

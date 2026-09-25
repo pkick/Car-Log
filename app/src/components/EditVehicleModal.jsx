@@ -1,6 +1,6 @@
 import { useState, useContext } from 'react'
 import { VehicleContext, DEFAULT_INTERVALS } from '../context/VehicleContext'
-import { FuelIcon, CheckIcon } from './icons'
+import { FuelIcon, CheckIcon, WrenchIcon } from './icons'
 import { VEHICLE_COLORS, VEHICLE_COLOR_SWATCH_CLASS } from '../lib/vehicleColors'
 
 export default function EditVehicleModal({ vehicleId, onClose }) {
@@ -209,7 +209,7 @@ export default function EditVehicleModal({ vehicleId, onClose }) {
 
               <div className="flex items-center justify-between p-4 border border-ink/10 rounded-lg">
                 <div className="flex items-center gap-3">
-                  <div className="text-2xl">🔧</div>
+                  <div className="text-2xl"><WrenchIcon size={24} /></div>
                   <div>
                     <p className="font-semibold text-base">Maintenance</p>
                     <p className="text-sm text-ink/50">Service history and due reminders</p>

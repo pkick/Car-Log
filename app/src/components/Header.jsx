@@ -1,8 +1,44 @@
-import { useState } from 'react'
-import { FuelIcon, WrenchIcon, AddVehicleIcon, CheckIcon, CarIcon } from './icons'
+import { useEffect, useState } from 'react'
+import { FuelIcon, WrenchIcon, AddVehicleIcon, CarIcon } from './icons'
+
+const HEALTH_POLL_MS = 30000
+
+function ConnectionStatus() {
+  // The header only mounts after the vehicle list loaded from the API, so start as connected.
+  const [connected, setConnected] = useState(true)
+
+  useEffect(() => {
+    let cancelled = false
+    const ping = async () => {
+      try {
+        const res = await fetch('/api/health', { cache: 'no-store' })
+        if (!cancelled) setConnected(res.ok)
+      } catch {
+        if (!cancelled) setConnected(false)
+      }
+    }
+    ping()
+    const id = setInterval(ping, HEALTH_POLL_MS)
+    return () => {
+      cancelled = true
+      clearInterval(id)
+    }
+  }, [])
+
+  return (
+    <div role="status" className="flex items-center gap-2 px-3.5 py-2.25 border border-ink/14 rounded-2xl bg-white/55 whitespace-nowrap">
+      <span className={`w-2 h-2 rounded-full flex-none ${connected ? 'bg-green' : 'bg-red'}`} />
+      <span className="text-xs font-mono font-semibold tracking-wider uppercase text-ink/55">
+        {connected ? 'Connected' : "Can't reach server"}
+      </span>
+    </div>
+  )
+}
 
 export default function Header({ vehicle, vehicles = [], activeVehicleId, onSelectVehicle, onEditVehicle, onAddVehicle, onLogService, onLogFillup }) {
   const [menuOpen, setMenuOpen] = useState(false)
+  const tracksFuel = vehicle.tracksFuel ?? true
+  const tracksService = vehicle.tracksService ?? true
 
   return (
     <header className="flex flex-col gap-[22px] px-10 py-[34px] border-b border-ink/12 bg-page">
@@ -15,7 +51,7 @@ export default function Header({ vehicle, vehicles = [], activeVehicleId, onSele
           >
             <div className="flex flex-col gap-0.5 items-start whitespace-nowrap">
               <span className="font-semibold text-sm tracking-tighter">{vehicle.nickname}</span>
-              <span className="text-xs font-mono text-ink/50">{vehicle.year} {vehicle.make} {vehicle.model} · {vehicle.odometer} mi</span>
+              <span className="text-xs font-mono text-ink/50">{vehicle.year} {vehicle.make} {vehicle.model} · {vehicle.odometer.toLocaleString()} mi</span>
             </div>
             <span className="text-xs font-mono text-ink/40">▼</span>
           </button>
@@ -61,10 +97,8 @@ export default function Header({ vehicle, vehicles = [], activeVehicleId, onSele
 
         {/* Right Actions */}
         <div className="ml-auto flex items-center gap-2.5 flex-wrap justify-end">
-          <div className="flex items-center gap-2 px-3.5 py-2.25 border border-ink/14 rounded-2xl bg-white/55 whitespace-nowrap">
-            <CheckIcon size={12} className="flex-none text-green" />
-            <span className="text-xs font-mono font-semibold tracking-wider text-ink/55">SAVED LOCALLY</span>
-          </div>
+          <ConnectionStatus />
+          {tracksService && (
           <button
             onClick={onLogService}
             className="flex items-center gap-2 px-4.5 py-3 border border-ink/18 rounded-2xl bg-transparent text-ink font-semibold text-sm hover:bg-ink/5 transition-colors whitespace-nowrap"
@@ -72,6 +106,8 @@ export default function Header({ vehicle, vehicles = [], activeVehicleId, onSele
             <WrenchIcon size={24} className="flex-none" />
             Log service
           </button>
+          )}
+          {tracksFuel && (
           <button
             onClick={onLogFillup}
             className="flex items-center gap-2 px-5 py-3 rounded-2xl bg-slate text-page font-semibold text-sm hover:bg-slate/90 transition-colors shadow-btn whitespace-nowrap"
@@ -79,6 +115,7 @@ export default function Header({ vehicle, vehicles = [], activeVehicleId, onSele
             <FuelIcon size={24} className="flex-none" />
             Log fill-up
           </button>
+          )}
         </div>
       </div>
     </header>

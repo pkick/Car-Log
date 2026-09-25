@@ -32,6 +32,7 @@ export const SUBCATEGORIES = {
   tires: ['Tire rotation', 'Tire replacement', 'Tire balance', 'Tire repair'],
   filters: ['Air filter', 'Cabin air filter', 'Fuel filter', 'Transmission filter'],
   fluids: ['Coolant flush', 'Transmission fluid', 'Brake fluid', 'Power steering fluid'],
+  wipers: ['Front wiper blades', 'Rear wiper blade', 'Washer fluid'],
   electrical: ['Battery', 'Alternator', 'Starter', 'Spark plugs'],
   drivetrain: ['Transmission service', 'Differential service', 'Clutch'],
   suspension: ['Struts', 'Springs', 'Shocks', 'Control arms'],

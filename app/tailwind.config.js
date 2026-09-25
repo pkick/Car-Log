@@ -42,6 +42,26 @@ export default {
           62: 'rgba(255, 255, 255, 0.62)',
         },
       },
+      // Color opacity modifiers (bg-ink/42, text-page/62, ...) only generate CSS for keys in
+      // theme.opacity, and the default scale is steps of 5. These are the off-scale values the
+      // design uses; add any new one here or the class silently renders nothing.
+      opacity: {
+        '2.5': '0.025',
+        3: '0.03',
+        4: '0.04',
+        '4.5': '0.045',
+        6: '0.06',
+        8: '0.08',
+        9: '0.09',
+        12: '0.12',
+        14: '0.14',
+        16: '0.16',
+        18: '0.18',
+        24: '0.24',
+        42: '0.42',
+        52: '0.52',
+        62: '0.62',
+      },
       fontFamily: {
         archivo: ['Archivo', 'system-ui', 'sans-serif'],
         mono: ['IBM Plex Mono', 'monospace'],

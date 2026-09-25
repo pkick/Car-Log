@@ -55,25 +55,18 @@ export default function Settings() {
         <div className="px-6 py-4 flex items-center justify-between">
           <div>
             <p className="font-semibold text-sm">Units</p>
-            <p className="text-xs font-mono text-ink/50">MPG · gal · mi</p>
+            <p className="text-xs font-mono text-ink/50">Distance, volume and fuel economy</p>
           </div>
+          <span className="text-xs font-mono text-ink/70">US · miles, gallons</span>
         </div>
 
         {/* Currency */}
         <div className="px-6 py-4 flex items-center justify-between">
           <div>
             <p className="font-semibold text-sm">Currency</p>
-            <p className="text-xs font-mono text-ink/50">USD $</p>
+            <p className="text-xs font-mono text-ink/50">Used for every cost and price</p>
           </div>
-        </div>
-
-        {/* Reminders */}
-        <div className="px-6 py-4 flex items-center justify-between opacity-40">
-          <div>
-            <p className="font-semibold text-sm">Reminders</p>
-            <p className="text-xs font-mono text-ink/50">Default warn-at overridable per interval</p>
-          </div>
-          <span className="text-xs font-mono font-semibold tracking-wider text-ink/50">SOON</span>
+          <span className="text-xs font-mono text-ink/70">USD $</span>
         </div>
 
         {/* Storage */}

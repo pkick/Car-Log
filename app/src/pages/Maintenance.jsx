@@ -55,12 +55,6 @@ export default function Maintenance({ vehicle }) {
                     <div className="flex gap-2">
                       <button
                         onClick={() => setModalState({ defaultCategoryId: item.categoryId })}
-                        className="flex-1 py-2 px-3 border border-ink/12 text-xs font-semibold rounded-lg hover:bg-white/60 transition-colors"
-                      >
-                        Mark done
-                      </button>
-                      <button
-                        onClick={() => setModalState({ defaultCategoryId: item.categoryId })}
                         className="flex-1 py-2 px-3 bg-[oklch(0.56_0.19_258/10%)] text-accent text-xs font-semibold rounded-lg hover:bg-[oklch(0.56_0.19_258/15%)] transition-colors"
                       >
                         Log now

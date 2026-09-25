@@ -4,7 +4,7 @@ import { useRecords } from '../context/RecordsContext'
 import { getDueSoonItems } from '../lib/vehicleStats'
 import { TrendsIcon, SettingsIcon, GarageIcon, WrenchIcon, FuelIcon, RegistrationIcon, DashboardIcon } from './icons'
 
-export default function Sidebar({ screen, setScreen }) {
+export default function Sidebar({ screen, setScreen, hiddenScreens = [] }) {
   const { vehicles, getActiveVehicle } = useContext(VehicleContext)
   const { fillUps, serviceRecords, policyRecords, getFillUpsForVehicle, getServiceRecordsForVehicle, getPolicyRecordsForVehicle } = useRecords()
   const activeVehicle = getActiveVehicle()
@@ -25,9 +25,8 @@ export default function Sidebar({ screen, setScreen }) {
     { id: 'documents', label: 'Documents', meta: activePolicyCount, icon: RegistrationIcon },
     { id: 'trends', label: 'Trends', icon: TrendsIcon },
     { id: 'garage', label: 'Garage', meta: vehicles.length, icon: GarageIcon },
-    { id: 'mobile', label: 'Mobile', meta: 'SOON', disabled: true },
     { id: 'settings', label: 'Settings', icon: SettingsIcon },
-  ]
+  ].filter((item) => !hiddenScreens.includes(item.id))
 
   return (
     <aside className="w-[236px] bg-slate text-page p-[26px] flex flex-col gap-[30px] sticky top-0 h-screen">
