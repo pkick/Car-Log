@@ -75,7 +75,28 @@ export function computeFillMpg(fillsAsc) {
 }
 
 /**
- * Average MPG, cost per mile, and this month's fuel spend with its change from last month.
+ * Month-to-date fuel spend next to the same days of last month: the 1st through `today`, against the 1st
+ * through the same day number last month. When last month is shorter, its window clamps to its last day,
+ * so on Mar 31 the comparison is all of February.
+ * @param {Array<{ date: string, total: number }>} fillsForVehicle
+ * @param {string} [today] `YYYY-MM-DD`; defaults to {@link todayISO}.
+ * @returns {{ current: number, previous: number, delta: number | null }} spend in each window, and the
+ *   percent change to one decimal place. `delta` is `null` when last month's window has no spend.
+ */
+export function getMonthToDateSpend(fillsForVehicle, today = todayISO()) {
+  const spendFromFirstThrough = (end) =>
+    fillsForVehicle
+      .filter((f) => monthKey(f.date) === monthKey(end) && f.date <= end)
+      .reduce((sum, f) => sum + f.total, 0)
+
+  const current = spendFromFirstThrough(today)
+  const previous = spendFromFirstThrough(addMonths(today, -1))
+  const delta = previous > 0 ? Math.round(((current - previous) / previous) * 1000) / 10 : null
+  return { current, previous, delta }
+}
+
+/**
+ * Average MPG, cost per mile, and month-to-date fuel spend with its change from the same days last month.
  * @param {FillUp[]} fillsForVehicle
  * @returns {{
  *   avgMpg: number | null,
@@ -83,7 +104,8 @@ export function computeFillMpg(fillsAsc) {
  *   spendThisMonth: number,
  *   spendDelta: number | null,
  *   withMpg: Array<FillUp & { mpg: number | null }>,
- * }}
+ * }} `spendDelta` is `null` when nothing was spent in last month's comparison window;
+ *   see {@link getMonthToDateSpend}.
  */
 export function getFuelStats(fillsForVehicle) {
   const sorted = [...fillsForVehicle].sort((a, b) => a.odometer - b.odometer)
@@ -97,15 +119,9 @@ export function getFuelStats(fillsForVehicle) {
   const totalMiles = sorted.length >= 2 ? sorted[sorted.length - 1].odometer - sorted[0].odometer : 0
   const costPerMile = totalMiles > 0 ? Math.round((totalSpend / totalMiles) * 100) / 100 : null
 
-  const today = todayISO()
-  const thisMonthKey = monthKey(today)
-  const lastMonthKey = monthKey(addMonths(today, -1))
+  const { current, delta } = getMonthToDateSpend(sorted)
 
-  const spendThisMonth = sorted.filter((f) => monthKey(f.date) === thisMonthKey).reduce((s, f) => s + f.total, 0)
-  const spendLastMonth = sorted.filter((f) => monthKey(f.date) === lastMonthKey).reduce((s, f) => s + f.total, 0)
-  const spendDelta = spendLastMonth > 0 ? Math.round(((spendThisMonth - spendLastMonth) / spendLastMonth) * 1000) / 10 : null
-
-  return { avgMpg, costPerMile, spendThisMonth: Math.round(spendThisMonth), spendDelta, withMpg }
+  return { avgMpg, costPerMile, spendThisMonth: Math.round(current), spendDelta: delta, withMpg }
 }
 
 /**
@@ -261,20 +277,79 @@ export function getMonthlySpend(fillsForVehicle, recordsForVehicle) {
   }))
 }
 
+/** How far from its own average a fill's price must be, as a fraction, to count as high or low. */
+const PRICE_BAND = 0.03
+
 /**
- * How many fills were bought at each price per gallon, cheapest first.
- * @param {FillUp[]} fillsForVehicle
- * @returns {Array<{ price: number, count: number }>}
+ * @typedef {object} PricePoint
+ * @property {number} id
+ * @property {string} date `YYYY-MM-DD`
+ * @property {number} pricePerGal
+ * @property {number} change difference from the average, as a fraction of it (0.05 is 5% above)
+ * @property {'high' | 'low' | 'normal'} level `high` when more than 3% above the average, `low` when more
+ *   than 3% below it.
  */
-export function getPricePaidBuckets(fillsForVehicle) {
-  const buckets = {}
-  fillsForVehicle.forEach((f) => {
-    const key = f.pricePerGal.toFixed(2)
-    buckets[key] = (buckets[key] || 0) + 1
+
+/**
+ * Price per gallon of the latest fill-ups, oldest first, each compared with the average of those same
+ * fills, so the levels depend only on what this vehicle usually pays. Fills without a valid date are left out.
+ * @param {FillUp[]} fillsForVehicle fill-ups for ONE vehicle, in any order
+ * @param {number} [count] how many of the latest fill-ups to include
+ * @returns {{ average: number | null, low: number | null, high: number | null, points: PricePoint[] }}
+ *   `average` is the unrounded mean of the points' prices; `average`, `low` and `high` are `null` when
+ *   there are no points.
+ */
+export function getPriceHistory(fillsForVehicle, count = 12) {
+  const dated = fillsForVehicle
+    .filter((f) => monthKey(f.date))
+    .sort((a, b) => a.date.localeCompare(b.date) || a.odometer - b.odometer)
+  const recent = dated.slice(Math.max(0, dated.length - count))
+  if (!recent.length) return { average: null, low: null, high: null, points: [] }
+
+  const prices = recent.map((f) => f.pricePerGal)
+  const average = prices.reduce((sum, p) => sum + p, 0) / prices.length
+  const points = recent.map(({ id, date, pricePerGal }) => {
+    const change = (pricePerGal - average) / average
+    const level = change > PRICE_BAND ? 'high' : change < -PRICE_BAND ? 'low' : 'normal'
+    return { id, date, pricePerGal, change, level }
   })
-  return Object.entries(buckets)
-    .map(([price, count]) => ({ price: parseFloat(price), count }))
-    .sort((a, b) => a.price - b.price)
+
+  return { average, low: Math.min(...prices), high: Math.max(...prices), points }
+}
+
+/**
+ * Average monthly fuel spend and gallons bought over the last `months` calendar months, including the
+ * current one.
+ *
+ * A month with no fill-ups counts as $0 and 0 gal: the car was being tracked and no fuel was bought.
+ * Months before the vehicle's first logged fill-up are left out instead, so a vehicle whose log starts two
+ * months ago averages over those two months rather than being diluted by four empty ones. The current
+ * month counts as a whole month even though it isn't over.
+ * @param {FillUp[]} fillsForVehicle
+ * @param {number} [months] window length, in calendar months
+ * @param {string} [today] `YYYY-MM-DD`; defaults to {@link todayISO}.
+ * @returns {{ spendPerMonth: number | null, gallonsPerMonth: number | null, months: number }} spend
+ *   rounded to whole dollars and gallons to one decimal place; `months` is how many months were averaged.
+ *   Both averages are `null` when that is 0.
+ */
+export function getMonthlyFuelAverages(fillsForVehicle, months = 6, today = todayISO()) {
+  const dated = fillsForVehicle.filter((f) => monthKey(f.date))
+  const firstMonth = dated.reduce((first, f) => (first && first <= monthKey(f.date) ? first : monthKey(f.date)), null)
+
+  const windowMonths = []
+  for (let i = months - 1; i >= 0; i--) windowMonths.push(monthKey(addMonths(today, -i)))
+  const counted = firstMonth ? windowMonths.filter((key) => key >= firstMonth) : []
+  if (!counted.length) return { spendPerMonth: null, gallonsPerMonth: null, months: 0 }
+
+  const inWindow = dated.filter((f) => counted.includes(monthKey(f.date)))
+  const spend = inWindow.reduce((sum, f) => sum + f.total, 0)
+  const gallons = inWindow.reduce((sum, f) => sum + f.gallons, 0)
+
+  return {
+    spendPerMonth: Math.round(spend / counted.length),
+    gallonsPerMonth: Math.round((gallons / counted.length) * 10) / 10,
+    months: counted.length,
+  }
 }
 
 /**

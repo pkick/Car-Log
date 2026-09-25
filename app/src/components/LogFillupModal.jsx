@@ -13,6 +13,7 @@ export default function LogFillupModal({ vehicle, onClose, editingFillUp = null 
     gallons: editingFillUp ? String(editingFillUp.gallons) : '',
     priceMode: 'perGallon',
     priceValue: editingFillUp ? String(editingFillUp.pricePerGal) : '',
+    isFull: editingFillUp?.isFull ?? true,
   })
   const [saving, setSaving] = useState(false)
   const [odometerError, setOdometerError] = useState(null)
@@ -35,7 +36,7 @@ export default function LogFillupModal({ vehicle, onClose, editingFillUp = null 
   const mpg = (() => {
     if (!vehicle || gallons <= 0 || odometer <= 0) return null
     const others = getFillUpsForVehicle(vehicle.id).filter((f) => f.id !== editingFillUp?.id)
-    const candidate = { id: -1, odometer, gallons, isFull: true }
+    const candidate = { id: -1, odometer, gallons, isFull: formData.isFull }
     const merged = [...others, candidate].sort((a, b) => a.odometer - b.odometer)
     return computeFillMpg(merged).find((f) => f.id === -1)?.mpg ?? null
   })()
@@ -63,7 +64,7 @@ export default function LogFillupModal({ vehicle, onClose, editingFillUp = null 
       odometer,
       gallons,
       pricePerGal,
-      isFull: true,
+      isFull: formData.isFull,
     }
     setSaving(true)
     setOdometerError(null)
@@ -183,16 +184,47 @@ export default function LogFillupModal({ vehicle, onClose, editingFillUp = null 
             </div>
           </div>
 
+          {/* Full / Partial */}
+          <div className="flex items-center justify-between">
+            <span className="text-xs font-mono font-semibold tracking-widest uppercase text-ink/45">Tank</span>
+            <div role="group" aria-label="Tank" className="flex rounded-md border border-ink/12 overflow-hidden">
+              <button
+                type="button"
+                aria-pressed={formData.isFull}
+                onClick={() => setFormData({ ...formData, isFull: true })}
+                className={`px-2 py-0.5 text-xs font-mono font-semibold transition-colors ${
+                  formData.isFull ? 'bg-slate text-white' : 'bg-white text-ink/50 hover:bg-ink/3'
+                }`}
+              >
+                full
+              </button>
+              <button
+                type="button"
+                aria-pressed={!formData.isFull}
+                onClick={() => setFormData({ ...formData, isFull: false })}
+                className={`px-2 py-0.5 text-xs font-mono font-semibold transition-colors ${
+                  !formData.isFull ? 'bg-slate text-white' : 'bg-white text-ink/50 hover:bg-ink/3'
+                }`}
+              >
+                partial
+              </button>
+            </div>
+          </div>
+
           {/* Calculated Values */}
           <div className="bg-slate text-white rounded-lg p-5 mt-6">
             <div className="text-xs font-mono font-semibold tracking-widest uppercase text-page/70 mb-3">Calculated</div>
             <div className="space-y-2">
-              <div className="flex items-baseline gap-2">
-                <span className={`text-3xl font-bold tracking-tighter ${mpg != null ? 'text-accent' : 'text-page/40'}`}>
-                  {mpg != null ? mpg : '—'}
-                </span>
-                <span className="text-sm text-page/80">mpg</span>
-              </div>
+              {formData.isFull ? (
+                <div className="flex items-baseline gap-2">
+                  <span className={`text-3xl font-bold tracking-tighter ${mpg != null ? 'text-accent' : 'text-page/40'}`}>
+                    {mpg != null ? mpg : '—'}
+                  </span>
+                  <span className="text-sm text-page/80">mpg</span>
+                </div>
+              ) : (
+                <p className="text-sm text-page/80">Partial fills aren't averaged until the next full tank</p>
+              )}
               <div className="text-lg font-mono text-page/80">
                 {formData.priceMode === 'total'
                   ? `$${pricePerGal.toFixed(2)}/gal`
@@ -202,11 +234,11 @@ export default function LogFillupModal({ vehicle, onClose, editingFillUp = null 
           </div>
 
           {/* Validation Callout */}
-          {parseFloat(formData.gallons) > (vehicle?.tankSize || 15.9) && (
+          {vehicle?.tankSize > 0 && gallons > vehicle.tankSize && (
             <div className="bg-[oklch(0.55_0.17_28/10%)] border border-[oklch(0.55_0.17_28/30%)] rounded-lg p-3 mt-4">
               <p className="font-semibold text-red text-sm mb-1">Gallons exceed tank size</p>
               <p className="text-xs text-ink/60">
-                The {vehicle?.nickname}'s tank holds {vehicle?.tankSize || 15.9} gal. Save anyway if the pump receipt says otherwise.
+                The {vehicle.nickname}'s tank holds {vehicle.tankSize} gal. Save anyway if the pump receipt says otherwise.
               </p>
             </div>
           )}

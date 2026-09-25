@@ -10,6 +10,7 @@ const emptyForm = () => ({
   gallons: '',
   priceMode: 'perGallon',
   priceValue: '',
+  isFull: true,
 })
 
 export default function FuelLog({ vehicle }) {
@@ -41,7 +42,7 @@ export default function FuelLog({ vehicle }) {
   const previewMpg = (() => {
     if (gallons <= 0 || odometer <= 0) return null
     const others = fillsAsc.filter((f) => f.id !== editingFillId)
-    const candidate = { id: -1, odometer, gallons, isFull: true }
+    const candidate = { id: -1, odometer, gallons, isFull: formData.isFull }
     const merged = [...others, candidate].sort((a, b) => a.odometer - b.odometer)
     return computeFillMpg(merged).find((f) => f.id === -1)?.mpg ?? null
   })()
@@ -75,6 +76,7 @@ export default function FuelLog({ vehicle }) {
       gallons: String(fill.gallons),
       priceMode: 'perGallon',
       priceValue: String(fill.pricePerGal),
+      isFull: fill.isFull,
     })
   }
 
@@ -89,7 +91,7 @@ export default function FuelLog({ vehicle }) {
       setOdometerError('Enter the current odometer reading.')
       return
     }
-    const payload = { vehicleId: vehicle.id, date: formData.date, odometer, gallons, pricePerGal, isFull: true }
+    const payload = { vehicleId: vehicle.id, date: formData.date, odometer, gallons, pricePerGal, isFull: formData.isFull }
     setSaving(true)
     clearErrors()
     try {
@@ -233,13 +235,52 @@ export default function FuelLog({ vehicle }) {
                 />
               </div>
             </div>
+
+            <div className="flex items-center justify-between">
+              <span className="text-xs font-mono font-semibold tracking-widest uppercase text-ink/45">Tank</span>
+              <div role="group" aria-label="Tank" className="flex rounded-md border border-ink/12 overflow-hidden">
+                <button
+                  type="button"
+                  aria-pressed={formData.isFull}
+                  onClick={() => setFormData({ ...formData, isFull: true })}
+                  className={`px-1.5 py-0.5 text-[10px] font-mono font-semibold transition-colors ${
+                    formData.isFull ? 'bg-slate text-white' : 'bg-white text-ink/50 hover:bg-ink/3'
+                  }`}
+                >
+                  full
+                </button>
+                <button
+                  type="button"
+                  aria-pressed={!formData.isFull}
+                  onClick={() => setFormData({ ...formData, isFull: false })}
+                  className={`px-1.5 py-0.5 text-[10px] font-mono font-semibold transition-colors ${
+                    !formData.isFull ? 'bg-slate text-white' : 'bg-white text-ink/50 hover:bg-ink/3'
+                  }`}
+                >
+                  partial
+                </button>
+              </div>
+            </div>
+
+            {vehicle.tankSize > 0 && gallons > vehicle.tankSize && (
+              <div className="bg-[oklch(0.55_0.17_28/10%)] border border-[oklch(0.55_0.17_28/30%)] rounded-lg p-3">
+                <p className="font-semibold text-red text-sm mb-1">Gallons exceed tank size</p>
+                <p className="text-xs text-ink/60">
+                  The {vehicle.nickname}'s tank holds {vehicle.tankSize} gal. Save anyway if the pump receipt says otherwise.
+                </p>
+              </div>
+            )}
           </div>
 
           <div className="bg-slate text-white rounded-lg p-4 mb-6">
             <div className="text-xs font-mono font-semibold tracking-widest uppercase text-white/60 mb-2">Calculated</div>
-            <div className={`text-3xl font-bold tracking-tighter mb-1 ${previewMpg != null ? 'text-accent' : 'text-white/40'}`}>
-              {previewMpg != null ? previewMpg : '—'} mpg
-            </div>
+            {formData.isFull ? (
+              <div className={`text-3xl font-bold tracking-tighter mb-1 ${previewMpg != null ? 'text-accent' : 'text-white/40'}`}>
+                {previewMpg != null ? previewMpg : '—'} mpg
+              </div>
+            ) : (
+              <p className="text-sm text-white/70 mb-1">Partial fills aren't averaged until the next full tank</p>
+            )}
             <div className="text-sm font-mono text-white/70">
               {formData.priceMode === 'total' ? `$${pricePerGal.toFixed(2)}/gal` : `$${totalCost.toFixed(2)} total`}
             </div>

@@ -6,8 +6,9 @@ import {
   computeFillMpg,
   getDueSoonItems,
   getDrivingRate,
+  getMonthlyFuelAverages,
   getMonthlySpend,
-  getPricePaidBuckets,
+  getPriceHistory,
   getRecords,
 } from '../lib/vehicleStats'
 import { isWithinDays, parseISODate } from '../lib/dates'
@@ -16,6 +17,12 @@ const shortDate = (dateStr) => parseISODate(dateStr)?.toLocaleDateString('en-US'
 
 const WINDOW_DAYS = { '90-days': 90, '6-months': 182, '1-year': 365, 'all-time': Infinity }
 const WINDOW_LABEL = { '90-days': 'ROLLING 90 DAYS', '6-months': 'ROLLING 6 MONTHS', '1-year': 'ROLLING 1 YEAR', 'all-time': 'ALL TIME' }
+
+const PRICE_BAR_CLASS = { high: 'bg-red', normal: 'bg-accent', low: 'bg-green' }
+// Half the price chart's height spans at least this change from the average, so a 1% wobble stays small.
+const PRICE_CHART_MIN_CHANGE = 0.04
+
+const formatChange = (change) => `${change > 0 ? '+' : ''}${(change * 100).toFixed(1)}%`
 
 function filterByWindow(items, windowKey) {
   const days = WINDOW_DAYS[windowKey]
@@ -66,20 +73,15 @@ export default function Trends({ vehicle }) {
   const monthlyData = getMonthlySpend(fillsAsc, records)
 
   // Price paid per gallon
-  const priceData = getPricePaidBuckets(fillsAsc)
-  const maxPriceCount = priceData.length ? Math.max(...priceData.map((d) => d.count)) : 1
-  const avgPrice = fillsAsc.length ? Math.round((fillsAsc.reduce((s, f) => s + f.pricePerGal, 0) / fillsAsc.length) * 100) / 100 : null
-  const lowPrice = priceData.length ? priceData[0].price : null
-  const highPrice = priceData.length ? priceData[priceData.length - 1].price : null
+  const priceHistory = getPriceHistory(fillsAsc)
+  const priceHalfRange = Math.max(PRICE_CHART_MIN_CHANGE, ...priceHistory.points.map((p) => Math.abs(p.change)))
+  const fuelAverages = getMonthlyFuelAverages(fillsAsc)
+  const fuelAveragesHint = fuelAverages.months
+    ? `Average of the last ${fuelAverages.months} calendar months, this one included`
+    : undefined
 
   // Looking ahead
   const dueSoonItems = getDueSoonItems(vehicle, records, vehicle.odometer)
-  const oilDue = dueSoonItems.find((i) => i.categoryId === 'oil')
-  const tiresDue = dueSoonItems.find((i) => i.categoryId === 'tires')
-  const brakesDue = dueSoonItems.find((i) => i.categoryId === 'brakes')
-  const OilIcon = CATEGORY_ICON.oil
-  const TiresCategoryIcon = CATEGORY_ICON.tires
-  const BrakesCategoryIcon = CATEGORY_ICON.brakes
   const drivingRate = getDrivingRate(fillsAsc)
   const costPerMileOverall = records4.totalMiles > 0
     ? (fillsAsc.reduce((s, f) => s + f.total, 0) / records4.totalMiles)
@@ -245,33 +247,69 @@ export default function Trends({ vehicle }) {
         {/* Price Paid Per Gallon */}
         <div className="bg-white rounded-2.5 border border-ink/10 p-6">
           <div className="mb-5.5">
-            <p className="text-xs font-mono text-ink/45 tracking-widest uppercase mb-2">Last {fillsAsc.length} fill-ups</p>
-            <h3 className="text-2xl font-bold">{avgPrice != null ? `$${avgPrice.toFixed(2)}` : '—'} <span className="text-sm font-mono text-ink/45">avg</span></h3>
+            <p className="text-xs font-mono text-ink/45 tracking-widest uppercase mb-2">
+              Last {priceHistory.points.length} {priceHistory.points.length === 1 ? 'fill-up' : 'fill-ups'}
+            </p>
+            <h3 className="text-2xl font-bold">{priceHistory.average != null ? `$${priceHistory.average.toFixed(2)}` : '—'} <span className="text-sm font-mono text-ink/45">avg</span></h3>
             <p className="text-xs font-mono text-ink/45 mt-1">
-              {lowPrice != null ? `low $${lowPrice.toFixed(2)} · high $${highPrice.toFixed(2)}` : 'no fill-ups yet'}
+              {priceHistory.low != null ? `low $${priceHistory.low.toFixed(2)} · high $${priceHistory.high.toFixed(2)}` : 'no fill-ups yet'}
             </p>
           </div>
 
-          {priceData.length === 0 ? (
+          {priceHistory.points.length === 0 ? (
             <div className="h-24 mb-6 flex items-center justify-center text-sm text-ink/45">No data yet</div>
           ) : (
-          <div className="flex gap-1 h-24 mb-6">
-            {priceData.map((item) => (
-              <div key={item.price} className="flex-1 flex flex-col justify-end items-center">
-                <div
-                  className={`w-full rounded-[4px_4px_2px_2px] ${
-                    item.price >= 3.55 ? 'bg-red' : item.price <= 3.32 ? 'bg-green' : 'bg-accent'
-                  }`}
-                  style={{ height: `${(item.count / maxPriceCount) * 100}%` }}
-                />
+          <div className="mb-6">
+            <div className="relative h-24">
+              <div className="absolute inset-x-0 top-1/2 h-px bg-ink/20" />
+              <div className="absolute inset-0 flex gap-1">
+                {priceHistory.points.map((point) => (
+                  <div
+                    key={point.id}
+                    className="flex-1 relative"
+                    title={`${shortDate(point.date)} · $${point.pricePerGal.toFixed(2)}/gal · ${formatChange(point.change)} vs avg`}
+                  >
+                    <div
+                      className={`absolute inset-x-0 mx-auto max-w-6 ${PRICE_BAR_CLASS[point.level]} ${
+                        point.change >= 0 ? 'bottom-1/2 rounded-[4px_4px_0_0]' : 'top-1/2 rounded-[0_0_4px_4px]'
+                      }`}
+                      style={{ height: `max(2px, ${(Math.abs(point.change) / priceHalfRange) * 50}%)` }}
+                    />
+                  </div>
+                ))}
               </div>
-            ))}
+            </div>
+            <div className="flex gap-1 mt-2">
+              {priceHistory.points.map((point) => (
+                <span key={point.id} className="flex-1 text-center text-[10px] font-mono text-ink/45 whitespace-nowrap">
+                  {shortDate(point.date)}
+                </span>
+              ))}
+            </div>
+            <div className="flex flex-wrap gap-3 mt-3 text-xs">
+              <div className="flex items-center gap-1.5">
+                <div className="w-3 h-px bg-ink/40" />
+                <span className="font-mono">avg</span>
+              </div>
+              <div className="flex items-center gap-1.5">
+                <div className="w-2 h-2 rounded bg-red" />
+                <span className="font-mono">&gt;3% above</span>
+              </div>
+              <div className="flex items-center gap-1.5">
+                <div className="w-2 h-2 rounded bg-accent" />
+                <span className="font-mono">within 3%</span>
+              </div>
+              <div className="flex items-center gap-1.5">
+                <div className="w-2 h-2 rounded bg-green" />
+                <span className="font-mono">&gt;3% below</span>
+              </div>
+            </div>
           </div>
           )}
 
           <div className="space-y-2 text-xs font-mono">
-            <p className="text-ink/60">Spend / month <span className="float-right font-semibold">${monthlyData.length ? monthlyData[monthlyData.length - 1].fuel : 0}</span></p>
-            <p className="text-ink/60">Gal / month <span className="float-right font-semibold">{drivingRate.milesPerMonth && chartAvg ? Math.round((drivingRate.milesPerMonth / chartAvg) * 10) / 10 : '—'}</span></p>
+            <p className="text-ink/60" title={fuelAveragesHint}>Spend / month <span className="float-right font-semibold">{fuelAverages.spendPerMonth != null ? `$${fuelAverages.spendPerMonth}` : '—'}</span></p>
+            <p className="text-ink/60" title={fuelAveragesHint}>Gal / month <span className="float-right font-semibold">{fuelAverages.gallonsPerMonth ?? '—'}</span></p>
             <p className="text-ink/60">Cheapest fill <span className="float-right font-semibold">{records4.cheapestGal != null ? `$${records4.cheapestGal.toFixed(2)}/gal` : '—'}</span></p>
           </div>
         </div>
@@ -280,39 +318,24 @@ export default function Trends({ vehicle }) {
         <div className="bg-white rounded-2.5 border border-ink/10 p-6">
           <h3 className="font-semibold text-sm mb-4">Looking ahead</h3>
           <div className="space-y-3">
-            {oilDue && (
-              <div className="flex items-start gap-3">
-                <div className={`w-6 h-6 rounded flex items-center justify-center flex-none ${CATEGORY_TILE_CLASS[CATEGORY_BY_ID.oil.color]} ${CATEGORY_TEXT_CLASS[CATEGORY_BY_ID.oil.color]}`}>
-                  <OilIcon size={14} />
-                </div>
-                <div className="flex-1">
-                  <p className="text-sm font-semibold">Next oil change</p>
-                  <p className={`text-xs font-mono ${oilDue.status === 'overdue' ? 'text-red' : 'text-ink/50'}`}>{oilDue.remainingLabel}</p>
-                </div>
-              </div>
+            {dueSoonItems.length === 0 && (
+              <p className="text-sm text-ink/45">No service intervals set up for {vehicle.nickname}.</p>
             )}
-            {tiresDue && (
-              <div className="flex items-start gap-3">
-                <div className={`w-6 h-6 rounded flex items-center justify-center flex-none ${CATEGORY_TILE_CLASS[CATEGORY_BY_ID.tires.color]} ${CATEGORY_TEXT_CLASS[CATEGORY_BY_ID.tires.color]}`}>
-                  <TiresCategoryIcon size={14} />
+            {dueSoonItems.map((item) => {
+              const { color } = CATEGORY_BY_ID[item.categoryId] ?? CATEGORY_BY_ID.other
+              const Icon = CATEGORY_ICON[item.categoryId] ?? CATEGORY_ICON.other
+              return (
+                <div key={item.intervalId} className="flex items-start gap-3">
+                  <div className={`w-6 h-6 rounded flex items-center justify-center flex-none ${CATEGORY_TILE_CLASS[color]} ${CATEGORY_TEXT_CLASS[color]}`}>
+                    <Icon size={14} />
+                  </div>
+                  <div className="flex-1">
+                    <p className="text-sm font-semibold">{item.name}</p>
+                    <p className={`text-xs font-mono ${item.status === 'overdue' ? 'text-red' : 'text-ink/50'}`}>{item.remainingLabel}</p>
+                  </div>
                 </div>
-                <div className="flex-1">
-                  <p className="text-sm font-semibold">Next tire rotation</p>
-                  <p className={`text-xs font-mono ${tiresDue.status === 'overdue' ? 'text-red' : 'text-ink/50'}`}>{tiresDue.remainingLabel}</p>
-                </div>
-              </div>
-            )}
-            {brakesDue && (
-              <div className="flex items-start gap-3">
-                <div className={`w-6 h-6 rounded flex items-center justify-center flex-none ${CATEGORY_TILE_CLASS[CATEGORY_BY_ID.brakes.color]} ${CATEGORY_TEXT_CLASS[CATEGORY_BY_ID.brakes.color]}`}>
-                  <BrakesCategoryIcon size={14} />
-                </div>
-                <div className="flex-1">
-                  <p className="text-sm font-semibold">Brake fluid</p>
-                  <p className={`text-xs font-mono ${brakesDue.status === 'overdue' ? 'text-red' : 'text-ink/50'}`}>{brakesDue.remainingLabel}</p>
-                </div>
-              </div>
-            )}
+              )
+            })}
             <div className="flex items-start gap-3">
               <div className="w-6 h-6 rounded bg-[oklch(0.56_0.19_258/20%)] flex items-center justify-center text-accent flex-none">
                 <FuelIcon size={14} />
