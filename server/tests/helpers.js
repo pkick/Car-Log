@@ -63,6 +63,18 @@ export function addServiceRecord(vehicleId, date, odometer) {
 }
 
 /**
+ * Posts an insurance payment for a vehicle.
+ * @param {number} vehicleId The vehicle id.
+ * @param {object} [fields] Fields to override.
+ * @returns {Promise<{ status: number, body: any }>} The response.
+ */
+export function addPolicyRecord(vehicleId, fields = {}) {
+  return request('POST', '/api/policy-records', {
+    vehicleId, type: 'insurance', date: '2026-05-14', cost: 612, renewalDate: '2026-11-14', provider: 'State Farm', ...fields,
+  })
+}
+
+/**
  * Reads a vehicle's odometer from `GET /api/vehicles`.
  * @param {number} vehicleId The vehicle id.
  * @returns {Promise<number>} The stored odometer.

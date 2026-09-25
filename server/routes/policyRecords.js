@@ -1,5 +1,6 @@
 import { Router } from 'express'
 import { db } from '../db.js'
+import { validatePolicyRecord } from '../validate.js'
 
 const router = Router()
 
@@ -13,6 +14,9 @@ router.get('/', (req, res) => {
 
 router.post('/', (req, res) => {
   const p = req.body
+  const invalid = validatePolicyRecord(p)
+  if (invalid) return res.status(400).json(invalid)
+
   const info = db.prepare(`
     INSERT INTO policy_records (vehicleId, type, date, cost, renewalDate, provider, notes)
     VALUES (?, ?, ?, ?, ?, ?, ?)
@@ -27,10 +31,13 @@ router.patch('/:id', (req, res) => {
   if (!existing) return res.status(404).json({ error: 'Policy record not found' })
 
   const merged = { ...existing, ...req.body }
+  const invalid = validatePolicyRecord(merged)
+  if (invalid) return res.status(400).json(invalid)
+
   db.prepare(`
     UPDATE policy_records SET vehicleId=?, type=?, date=?, cost=?, renewalDate=?, provider=?, notes=?
     WHERE id=?
-  `).run(merged.vehicleId, merged.type, merged.date, merged.cost, merged.renewalDate, merged.provider, merged.notes, id)
+  `).run(merged.vehicleId, merged.type, merged.date, merged.cost ?? 0, merged.renewalDate, merged.provider, merged.notes, id)
   const row = db.prepare('SELECT * FROM policy_records WHERE id = ?').get(id)
   res.json(row)
 })

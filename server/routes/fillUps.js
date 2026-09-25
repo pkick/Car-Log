@@ -1,6 +1,7 @@
 import { Router } from 'express'
 import { db } from '../db.js'
 import { recomputeOdometer } from '../vehicles.js'
+import { validateFillUp } from '../validate.js'
 
 const router = Router()
 
@@ -67,6 +68,9 @@ router.get('/', (req, res) => {
 
 router.post('/', (req, res) => {
   const f = req.body
+  const invalid = validateFillUp(f)
+  if (invalid) return res.status(400).json(invalid)
+
   const conflict = findOdometerConflict(f)
   if (conflict) return res.status(422).json({ error: conflict, field: 'odometer' })
 
@@ -85,6 +89,9 @@ router.patch('/:id', (req, res) => {
   if (!existing) return res.status(404).json({ error: 'Fill-up not found' })
 
   const merged = { ...rowToFillUp(existing), ...req.body, vehicleId: existing.vehicleId }
+  const invalid = validateFillUp(merged)
+  if (invalid) return res.status(400).json(invalid)
+
   const conflict = findOdometerConflict(merged, id)
   if (conflict) return res.status(422).json({ error: conflict, field: 'odometer' })
 

@@ -1,6 +1,7 @@
 import { Router } from 'express'
 import { db } from '../db.js'
 import { recomputeOdometer } from '../vehicles.js'
+import { validateServiceRecord } from '../validate.js'
 
 const router = Router()
 
@@ -18,6 +19,9 @@ router.get('/', (req, res) => {
 
 router.post('/', (req, res) => {
   const r = req.body
+  const invalid = validateServiceRecord(r)
+  if (invalid) return res.status(400).json(invalid)
+
   const info = db.prepare(`
     INSERT INTO service_records (vehicleId, date, odometer, categoryId, services, cost, performedBy, shopName, partsUsed, notes)
     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
@@ -34,13 +38,16 @@ router.patch('/:id', (req, res) => {
   const existing = db.prepare('SELECT * FROM service_records WHERE id = ?').get(id)
   if (!existing) return res.status(404).json({ error: 'Service record not found' })
 
-  const merged = { ...rowToServiceRecord(existing), ...req.body }
+  const merged = { ...rowToServiceRecord(existing), ...req.body, vehicleId: existing.vehicleId }
+  const invalid = validateServiceRecord(merged)
+  if (invalid) return res.status(400).json(invalid)
+
   db.prepare(`
     UPDATE service_records SET date=?, odometer=?, categoryId=?, services=?, cost=?, performedBy=?, shopName=?, partsUsed=?, notes=?
     WHERE id=?
   `).run(
-    merged.date, merged.odometer, merged.categoryId, JSON.stringify(merged.services ?? []),
-    merged.cost, merged.performedBy, merged.shopName, merged.partsUsed, merged.notes, id
+    merged.date, merged.odometer, merged.categoryId, JSON.stringify(merged.services),
+    merged.cost ?? 0, merged.performedBy, merged.shopName, merged.partsUsed, merged.notes, id
   )
   const row = db.prepare('SELECT * FROM service_records WHERE id = ?').get(id)
   res.json({ serviceRecord: rowToServiceRecord(row), vehicle: recomputeOdometer(row.vehicleId) })

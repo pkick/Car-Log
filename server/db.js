@@ -9,6 +9,7 @@ const dbPath = process.env.DB_PATH || path.join(__dirname, 'data', 'odometer.db'
 if (dbPath !== ':memory:') fs.mkdirSync(path.dirname(dbPath), { recursive: true })
 
 export const db = new DatabaseSync(dbPath)
+db.exec('PRAGMA foreign_keys = ON')
 
 db.exec(`
   CREATE TABLE IF NOT EXISTS vehicles (
@@ -41,7 +42,7 @@ db.exec(`
     pricePerGal REAL NOT NULL,
     total REAL NOT NULL,
     isFull INTEGER NOT NULL DEFAULT 1,
-    FOREIGN KEY (vehicleId) REFERENCES vehicles(id)
+    FOREIGN KEY (vehicleId) REFERENCES vehicles(id) ON DELETE CASCADE
   );
 
   CREATE TABLE IF NOT EXISTS service_records (
@@ -56,7 +57,7 @@ db.exec(`
     shopName TEXT,
     partsUsed TEXT,
     notes TEXT,
-    FOREIGN KEY (vehicleId) REFERENCES vehicles(id)
+    FOREIGN KEY (vehicleId) REFERENCES vehicles(id) ON DELETE CASCADE
   );
 
   CREATE TABLE IF NOT EXISTS policy_records (
@@ -68,7 +69,7 @@ db.exec(`
     renewalDate TEXT,
     provider TEXT,
     notes TEXT,
-    FOREIGN KEY (vehicleId) REFERENCES vehicles(id)
+    FOREIGN KEY (vehicleId) REFERENCES vehicles(id) ON DELETE CASCADE
   );
 `)
 
@@ -77,6 +78,29 @@ db.exec(`
 const vehicleColumns = db.prepare(`PRAGMA table_info(vehicles)`).all().map((c) => c.name)
 if (!vehicleColumns.includes('color')) {
   db.exec(`ALTER TABLE vehicles ADD COLUMN color TEXT`)
+}
+
+const RECORD_TABLES = ['fill_ups', 'service_records', 'policy_records']
+
+/**
+ * Lists the record tables whose `vehicleId` foreign key doesn't cascade deletes. Files created before P1-E3
+ * lack `ON DELETE CASCADE`, and `CREATE TABLE IF NOT EXISTS` never updates an existing table.
+ * @param {DatabaseSync} database The database to inspect.
+ * @returns {string[]} The stale table names, or an empty array when every record table cascades.
+ */
+export function tablesWithoutCascade(database) {
+  return RECORD_TABLES.filter((table) => !database.prepare(`PRAGMA foreign_key_list(${table})`).all()
+    .some((key) => key.table === 'vehicles' && key.on_delete === 'CASCADE'))
+}
+
+const staleTables = tablesWithoutCascade(db)
+if (staleTables.length > 0) {
+  const shownPath = process.env.DB_PATH ? dbPath : 'server/data/odometer.db'
+  console.warn(
+    `WARNING: ${shownPath} was created with an old schema (${staleTables.join(', ')} don't cascade deletes), ` +
+    'so deleting a vehicle that has records will fail.\n' +
+    `Dev data is disposable: stop the server, run \`rm ${shownPath}\`, and start it again to recreate and reseed it.`
+  )
 }
 
 function seedIfEmpty() {

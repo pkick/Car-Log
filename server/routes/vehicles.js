@@ -2,6 +2,7 @@ import { Router } from 'express'
 import { db } from '../db.js'
 import { rowToVehicle, recomputeOdometer } from '../vehicles.js'
 import { DEFAULT_INTERVALS } from '../seed.js'
+import { validateVehicle } from '../validate.js'
 
 const router = Router()
 
@@ -12,6 +13,9 @@ router.get('/', (req, res) => {
 
 router.post('/', (req, res) => {
   const v = req.body
+  const invalid = validateVehicle(v)
+  if (invalid) return res.status(400).json(invalid)
+
   const info = db.prepare(`
     INSERT INTO vehicles (nickname, year, make, model, trim, vin, plate, purchaseDate, purchaseOdometer, registrationRenewal, insuranceRenewal, tankSize, tracksFuel, tracksService, intervals, color)
     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
@@ -30,6 +34,9 @@ router.patch('/:id', (req, res) => {
   if (!existing) return res.status(404).json({ error: 'Vehicle not found' })
 
   const merged = { ...rowToVehicle(existing), ...req.body }
+  const invalid = validateVehicle(merged)
+  if (invalid) return res.status(400).json(invalid)
+
   db.prepare(`
     UPDATE vehicles SET nickname=?, year=?, make=?, model=?, trim=?, vin=?, plate=?, purchaseDate=?, purchaseOdometer=?, registrationRenewal=?, insuranceRenewal=?, tankSize=?, tracksFuel=?, tracksService=?, intervals=?, color=?
     WHERE id=?
@@ -42,21 +49,10 @@ router.patch('/:id', (req, res) => {
   res.json(recomputeOdometer(id))
 })
 
+// Fill-ups, service records and policy records go with the vehicle through ON DELETE CASCADE.
 router.delete('/:id', (req, res) => {
-  const id = Number(req.params.id)
-  const { count } = db.prepare('SELECT COUNT(*) as count FROM vehicles').get()
-  if (count <= 1) return res.status(400).json({ error: 'Cannot delete the last vehicle' })
-
-  db.exec('BEGIN')
-  try {
-    db.prepare('DELETE FROM fill_ups WHERE vehicleId = ?').run(id)
-    db.prepare('DELETE FROM service_records WHERE vehicleId = ?').run(id)
-    db.prepare('DELETE FROM vehicles WHERE id = ?').run(id)
-    db.exec('COMMIT')
-  } catch (err) {
-    db.exec('ROLLBACK')
-    throw err
-  }
+  const { changes } = db.prepare('DELETE FROM vehicles WHERE id = ?').run(Number(req.params.id))
+  if (changes === 0) return res.status(404).json({ error: 'Vehicle not found' })
   res.status(204).end()
 })
 

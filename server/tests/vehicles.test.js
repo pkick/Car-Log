@@ -1,6 +1,8 @@
 import { test } from 'node:test'
 import assert from 'node:assert/strict'
-import { request, createVehicle, addFillUp, addServiceRecord, listedOdometer } from './helpers.js'
+import { request, createVehicle, addFillUp, addServiceRecord, addPolicyRecord, listedOdometer } from './helpers.js'
+
+const RECORD_PATHS = ['/api/fill-ups', '/api/service-records', '/api/policy-records']
 
 test('POST ignores a client-sent odometer', async () => {
   const { status, body } = await request('POST', '/api/vehicles', {
@@ -55,4 +57,54 @@ test('vehicle responses keep their shape', async () => {
   assert.equal(vehicle.tracksService, true)
   assert.deepEqual(vehicle.intervals, [{ id: 1, name: 'Oil' }])
   assert.equal(vehicle.color, 'slate')
+})
+
+test('deleting a vehicle removes its fill-ups, service records and policy records', async () => {
+  const vehicle = await createVehicle()
+  const other = await createVehicle()
+  for (const { id } of [vehicle, other]) {
+    assert.equal((await addFillUp(id, '2026-08-28', 10500)).status, 201)
+    assert.equal((await addServiceRecord(id, '2026-09-01', 10600)).status, 201)
+    assert.equal((await addPolicyRecord(id)).status, 201)
+  }
+
+  const deleted = await request('DELETE', `/api/vehicles/${vehicle.id}`)
+
+  assert.equal(deleted.status, 204)
+  const { body: vehicles } = await request('GET', '/api/vehicles')
+  assert.equal(vehicles.some((v) => v.id === vehicle.id), false)
+  for (const path of RECORD_PATHS) {
+    const { body: all } = await request('GET', path)
+    assert.equal(all.some((record) => record.vehicleId === vehicle.id), false, path)
+    assert.equal(all.filter((record) => record.vehicleId === other.id).length, 1, path)
+  }
+})
+
+test('DELETE of a missing vehicle returns 404', async () => {
+  const { status, body } = await request('DELETE', '/api/vehicles/999999')
+
+  assert.equal(status, 404)
+  assert.equal(typeof body.error, 'string')
+})
+
+// Runs last in this file: it deletes the seeded vehicles and every vehicle the tests above created.
+test('the last remaining vehicle can be deleted', async () => {
+  const { body: vehicles } = await request('GET', '/api/vehicles')
+  const ids = vehicles.map((v) => v.id)
+  assert.ok(ids.includes(1) && ids.includes(2), 'the seeded vehicles are present')
+
+  for (const id of ids.slice(0, -1)) {
+    assert.equal((await request('DELETE', `/api/vehicles/${id}`)).status, 204)
+  }
+  assert.deepEqual((await request('GET', '/api/vehicles')).body.map((v) => v.id), ids.slice(-1))
+
+  const last = await request('DELETE', `/api/vehicles/${ids.at(-1)}`)
+
+  assert.equal(last.status, 204)
+  assert.deepEqual((await request('GET', '/api/vehicles')).body, [])
+  for (const path of RECORD_PATHS) {
+    assert.deepEqual((await request('GET', path)).body, [], path)
+  }
+  const { status } = await request('POST', '/api/vehicles', { nickname: 'Fresh start' })
+  assert.equal(status, 201)
 })
