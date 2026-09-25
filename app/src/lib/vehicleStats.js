@@ -1,4 +1,4 @@
-import { addMonths, daysBetween, monthKey, parseISODate, todayISO } from './dates'
+import { addMonths, currentYear, daysBetween, monthKey, parseISODate, todayISO } from './dates'
 
 /**
  * @typedef {object} FillUp
@@ -176,6 +176,40 @@ export function getDueSoonItems(vehicle, serviceRecords, currentOdometer) {
   return items.sort(
     (a, b) => order[a.status] - order[b.status] || (a.milesRemaining ?? Infinity) - (b.milesRemaining ?? Infinity)
   )
+}
+
+/**
+ * The highest odometer reading logged for a vehicle, for the "Last: …" hint under odometer inputs.
+ * Readings that are missing or not positive are ignored.
+ * @param {Array<{ id: number, date: string, odometer: number }>} fills fill-ups for ONE vehicle
+ * @param {Array<{ id: number, date: string, odometer: number }>} records service records for the same vehicle
+ * @param {{ type: 'fill' | 'service', id: number } | null} [exclude] the record being edited. Fill-up and
+ *   service ids come from separate tables and can collide, so the type says which list to skip it in.
+ * @returns {{ odometer: number, date: string } | null} `null` when there is no reading.
+ */
+export function getLastReading(fills, records, exclude = null) {
+  const keep = (type) => (r) => r.odometer > 0 && !(exclude?.type === type && exclude.id === r.id)
+  const readings = [...fills.filter(keep('fill')), ...records.filter(keep('service'))]
+  if (!readings.length) return null
+
+  const last = readings.reduce((best, r) => (r.odometer > best.odometer ? r : best))
+  return { odometer: last.odometer, date: last.date }
+}
+
+/**
+ * Hint text for an odometer input: `Last: 84,210 on Aug 28` (with the year when it isn't this year),
+ * falling back to the purchase reading when nothing has been logged.
+ * @param {{ odometer: number, date: string } | null} reading from {@link getLastReading}
+ * @param {number | null} [purchaseOdometer]
+ * @returns {string | null} `null` when there is nothing to show.
+ */
+export function formatLastReading(reading, purchaseOdometer) {
+  if (!reading) return purchaseOdometer > 0 ? `Last: ${purchaseOdometer.toLocaleString()} at purchase` : null
+  const date = parseISODate(reading.date)
+  if (!date) return `Last: ${reading.odometer.toLocaleString()}`
+  const day = date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })
+  const year = date.getFullYear() === currentYear() ? '' : `, ${date.getFullYear()}`
+  return `Last: ${reading.odometer.toLocaleString()} on ${day}${year}`
 }
 
 /**

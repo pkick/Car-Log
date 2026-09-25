@@ -4,6 +4,8 @@ import {
   getDrivingRate,
   getDueSoonItems,
   getFuelStats,
+  formatLastReading,
+  getLastReading,
   getMonthlySpend,
   getServiceHistorySorted,
 } from './vehicleStats'
@@ -114,6 +116,40 @@ describe('getServiceHistorySorted', () => {
   })
 })
 
+describe('getLastReading', () => {
+  const fills = [
+    { id: 1, date: '2026-08-01', odometer: 84000 },
+    { id: 2, date: '2026-08-28', odometer: 84210 },
+  ]
+  const records = [
+    { id: 1, date: '2026-07-15', odometer: 83500 },
+    { id: 2, date: '2026-09-10', odometer: 84400 },
+  ]
+
+  it('returns the highest reading across fill-ups and service records', () => {
+    expect(getLastReading(fills, records)).toEqual({ odometer: 84400, date: '2026-09-10' })
+    expect(getLastReading(fills, records.slice(0, 1))).toEqual({ odometer: 84210, date: '2026-08-28' })
+  })
+
+  it('skips only the fill-up being edited, even when a service record shares its id', () => {
+    expect(getLastReading(fills, [], { type: 'fill', id: 2 })).toEqual({ odometer: 84000, date: '2026-08-01' })
+    expect(getLastReading(fills, records, { type: 'fill', id: 2 })).toEqual({ odometer: 84400, date: '2026-09-10' })
+  })
+
+  it('skips only the service record being edited, even when a fill-up shares its id', () => {
+    expect(getLastReading(fills, records, { type: 'service', id: 2 })).toEqual({ odometer: 84210, date: '2026-08-28' })
+  })
+
+  it('returns null when there are no readings', () => {
+    expect(getLastReading([], [])).toBeNull()
+    expect(getLastReading(fills.slice(0, 1), [], { type: 'fill', id: 1 })).toBeNull()
+  })
+
+  it('ignores missing and zero readings', () => {
+    expect(getLastReading([{ id: 1, date: '2026-09-01', odometer: 0 }], [{ id: 1, date: '2026-09-02', odometer: null }])).toBeNull()
+  })
+})
+
 describe('getDrivingRate', () => {
   it('counts whole calendar days across the spring-forward DST change', () => {
     const fills = [
@@ -139,5 +175,28 @@ describe('records with a blank date', () => {
     expect(getMonthlySpend(fills, records).at(-1)).toEqual({ month: 'Sep', fuel: 40, service: 0 })
     expect(getDueSoonItems(vehicle, records, 1300)[0].milesRemaining).toBe(4600)
     expect(getServiceHistorySorted([...records, { date: '2026-09-01' }])[0].date).toBe('2026-09-01')
+  })
+})
+
+describe('formatLastReading', () => {
+  afterEach(() => {
+    vi.useRealTimers()
+  })
+
+  it('shows the reading and its date, with the year only when it is not this year', () => {
+    vi.useFakeTimers()
+    vi.setSystemTime(new Date(2026, 8, 25, 12))
+    expect(formatLastReading({ odometer: 84210, date: '2026-08-28' }, 41880)).toBe('Last: 84,210 on Aug 28')
+    expect(formatLastReading({ odometer: 84210, date: '2025-12-30' }, 41880)).toBe('Last: 84,210 on Dec 30, 2025')
+  })
+
+  it('falls back to the purchase reading, then to nothing', () => {
+    expect(formatLastReading(null, 41880)).toBe('Last: 41,880 at purchase')
+    expect(formatLastReading(null, 0)).toBeNull()
+    expect(formatLastReading(null, null)).toBeNull()
+  })
+
+  it('omits a malformed date', () => {
+    expect(formatLastReading({ odometer: 84210, date: '' }, 41880)).toBe('Last: 84,210')
   })
 })

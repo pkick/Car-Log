@@ -1,4 +1,5 @@
 import { createContext, useContext, useEffect, useState } from 'react'
+import { VehicleContext } from './VehicleContext'
 
 export const RecordsContext = createContext()
 
@@ -9,12 +10,13 @@ async function api(path, options) {
   })
   if (!res.ok) {
     const body = await res.json().catch(() => ({}))
-    throw new Error(body.error || `Request failed: ${res.status}`)
+    throw Object.assign(new Error(body.error || `Request failed: ${res.status}`), { field: body.field, status: res.status })
   }
   return res.status === 204 ? null : res.json()
 }
 
 export function RecordsProvider({ children }) {
+  const { mergeVehicle } = useContext(VehicleContext)
   const [fillUps, setFillUps] = useState([])
   const [serviceRecords, setServiceRecords] = useState([])
   const [policyRecords, setPolicyRecords] = useState([])
@@ -40,35 +42,41 @@ export function RecordsProvider({ children }) {
   const getPolicyRecordsForVehicle = (vehicleId) => policyRecords.filter((p) => p.vehicleId === vehicleId)
 
   const addFillUp = async (data) => {
-    const created = await api('/api/fill-ups', { method: 'POST', body: JSON.stringify(data) })
-    setFillUps((fs) => [...fs, created])
-    return created.id
+    const { fillUp, vehicle } = await api('/api/fill-ups', { method: 'POST', body: JSON.stringify(data) })
+    setFillUps((fs) => [...fs, fillUp])
+    mergeVehicle(vehicle)
+    return fillUp.id
   }
 
   const updateFillUp = async (id, updates) => {
-    const updated = await api(`/api/fill-ups/${id}`, { method: 'PATCH', body: JSON.stringify(updates) })
-    setFillUps((fs) => fs.map((f) => (f.id === id ? updated : f)))
+    const { fillUp, vehicle } = await api(`/api/fill-ups/${id}`, { method: 'PATCH', body: JSON.stringify(updates) })
+    setFillUps((fs) => fs.map((f) => (f.id === id ? fillUp : f)))
+    mergeVehicle(vehicle)
   }
 
   const deleteFillUp = async (id) => {
-    await api(`/api/fill-ups/${id}`, { method: 'DELETE' })
+    const { vehicle } = await api(`/api/fill-ups/${id}`, { method: 'DELETE' })
     setFillUps((fs) => fs.filter((f) => f.id !== id))
+    mergeVehicle(vehicle)
   }
 
   const addServiceRecord = async (data) => {
-    const created = await api('/api/service-records', { method: 'POST', body: JSON.stringify(data) })
-    setServiceRecords((rs) => [...rs, created])
-    return created.id
+    const { serviceRecord, vehicle } = await api('/api/service-records', { method: 'POST', body: JSON.stringify(data) })
+    setServiceRecords((rs) => [...rs, serviceRecord])
+    mergeVehicle(vehicle)
+    return serviceRecord.id
   }
 
   const updateServiceRecord = async (id, updates) => {
-    const updated = await api(`/api/service-records/${id}`, { method: 'PATCH', body: JSON.stringify(updates) })
-    setServiceRecords((rs) => rs.map((r) => (r.id === id ? updated : r)))
+    const { serviceRecord, vehicle } = await api(`/api/service-records/${id}`, { method: 'PATCH', body: JSON.stringify(updates) })
+    setServiceRecords((rs) => rs.map((r) => (r.id === id ? serviceRecord : r)))
+    mergeVehicle(vehicle)
   }
 
   const deleteServiceRecord = async (id) => {
-    await api(`/api/service-records/${id}`, { method: 'DELETE' })
+    const { vehicle } = await api(`/api/service-records/${id}`, { method: 'DELETE' })
     setServiceRecords((rs) => rs.filter((r) => r.id !== id))
+    mergeVehicle(vehicle)
   }
 
   const addPolicyRecord = async (data) => {

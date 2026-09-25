@@ -2,23 +2,26 @@ import { useState } from 'react'
 import { SERVICE_CATEGORIES, CATEGORY_TEXT_CLASS, CATEGORY_TILE_CLASS, CATEGORY_ICON, SUBCATEGORIES, CATEGORY_ID_BY_SERVICE } from '../lib/serviceCategories'
 import { CalendarIcon, PaperclipIcon } from './icons'
 import { useRecords } from '../context/RecordsContext'
-import { getDueSoonItems } from '../lib/vehicleStats'
+import { getDueSoonItems, formatLastReading, getLastReading } from '../lib/vehicleStats'
 import { todayISO } from '../lib/dates'
 
 export default function LogServiceModal({ vehicle, onClose, editingRecord = null, defaultCategoryId = 'oil' }) {
-  const { getServiceRecordsForVehicle, addServiceRecord, updateServiceRecord } = useRecords()
+  const { getFillUpsForVehicle, getServiceRecordsForVehicle, addServiceRecord, updateServiceRecord } = useRecords()
 
   const [activeCategory, setActiveCategory] = useState(editingRecord?.categoryId || defaultCategoryId)
   const [selectedServices, setSelectedServices] = useState(editingRecord?.services || [])
   const [formData, setFormData] = useState({
     date: editingRecord?.date || todayISO(),
-    odometer: editingRecord?.odometer ?? vehicle?.odometer ?? 0,
+    odometer: editingRecord?.odometer ?? '',
     cost: editingRecord ? String(editingRecord.cost) : '',
     performedBy: editingRecord?.performedBy || 'shop',
     shopName: editingRecord?.shopName || '',
     partsUsed: editingRecord?.partsUsed || '',
     notes: editingRecord?.notes || '',
   })
+  const [saving, setSaving] = useState(false)
+  const [odometerError, setOdometerError] = useState(null)
+  const [saveError, setSaveError] = useState(null)
 
   const handleServiceToggle = (service) => {
     if (selectedServices.includes(service)) {
@@ -35,17 +38,24 @@ export default function LogServiceModal({ vehicle, onClose, editingRecord = null
   const handleChange = (e) => {
     const { name, value } = e.target
     setFormData({ ...formData, [name]: value })
+    if (name === 'odometer') setOdometerError(null)
   }
 
-  const handleSave = () => {
-    if (!vehicle || selectedServices.length === 0) return
+  const odometer = parseInt(formData.odometer, 10) || 0
+
+  const handleSave = async () => {
+    if (!vehicle || selectedServices.length === 0 || saving) return
+    if (odometer <= 0) {
+      setOdometerError('Enter the current odometer reading.')
+      return
+    }
     // categoryId drives interval/due-soon matching, so it needs to reflect what was actually
     // selected rather than whichever tab happened to be open when Save was clicked.
     const derivedCategoryId = CATEGORY_ID_BY_SERVICE[selectedServices[0]] || activeCategory
     const payload = {
       vehicleId: vehicle.id,
       date: formData.date,
-      odometer: parseInt(formData.odometer, 10) || 0,
+      odometer,
       categoryId: derivedCategoryId,
       services: selectedServices,
       cost: parseFloat(formData.cost) || 0,
@@ -54,17 +64,37 @@ export default function LogServiceModal({ vehicle, onClose, editingRecord = null
       partsUsed: formData.partsUsed,
       notes: formData.notes,
     }
-    if (editingRecord) {
-      updateServiceRecord(editingRecord.id, payload)
-    } else {
-      addServiceRecord(payload)
+    setSaving(true)
+    setOdometerError(null)
+    setSaveError(null)
+    try {
+      if (editingRecord) {
+        await updateServiceRecord(editingRecord.id, payload)
+      } else {
+        await addServiceRecord(payload)
+      }
+      onClose()
+    } catch (err) {
+      if (err.field === 'odometer') setOdometerError(err.message)
+      else setSaveError(err.message)
+      setSaving(false)
     }
-    onClose()
   }
 
   const dueForActiveCategory = vehicle
     ? getDueSoonItems(vehicle, getServiceRecordsForVehicle(vehicle.id), vehicle.odometer).find(
         (item) => item.categoryId === activeCategory
+      )
+    : null
+
+  const odometerHint = vehicle
+    ? formatLastReading(
+        getLastReading(
+          getFillUpsForVehicle(vehicle.id),
+          getServiceRecordsForVehicle(vehicle.id),
+          editingRecord ? { type: 'service', id: editingRecord.id } : null
+        ),
+        vehicle.purchaseOdometer
       )
     : null
 
@@ -177,6 +207,11 @@ export default function LogServiceModal({ vehicle, onClose, editingRecord = null
                 onChange={handleChange}
                 className="w-full px-3 py-2.5 border border-ink/12 rounded-lg text-sm focus:outline-none focus:border-accent"
               />
+              {odometerError ? (
+                <p className="text-xs text-red mt-1.5">{odometerError}</p>
+              ) : odometerHint && (
+                <p className="text-xs font-mono text-ink/50 mt-1.5">{odometerHint}</p>
+              )}
             </div>
             <div>
               <label className="text-xs font-mono font-semibold tracking-widest uppercase text-ink/45 block mb-2">Cost</label>
@@ -279,20 +314,23 @@ export default function LogServiceModal({ vehicle, onClose, editingRecord = null
         </div>
 
         {/* Footer */}
-        <div className="border-t border-ink/8 px-6 py-3 flex gap-3 sticky bottom-0 bg-page">
-          <button
-            onClick={handleSave}
-            disabled={selectedServices.length === 0}
-            className="flex-1 py-2.5 bg-slate text-white font-semibold rounded-lg hover:bg-slate/90 transition-colors text-sm disabled:opacity-40 disabled:cursor-default"
-          >
-            {editingRecord ? 'Save changes' : 'Save service'}
-          </button>
-          <button
-            onClick={onClose}
-            className="flex-1 py-2.5 border border-ink/12 text-ink font-semibold rounded-lg hover:bg-ink/3 transition-colors text-sm"
-          >
-            Cancel
-          </button>
+        <div className="border-t border-ink/8 px-6 py-3 sticky bottom-0 bg-page">
+          {saveError && <p className="text-xs text-red mb-2">{saveError}</p>}
+          <div className="flex gap-3">
+            <button
+              onClick={handleSave}
+              disabled={selectedServices.length === 0 || saving}
+              className="flex-1 py-2.5 bg-slate text-white font-semibold rounded-lg hover:bg-slate/90 transition-colors text-sm disabled:opacity-40 disabled:cursor-default"
+            >
+              {editingRecord ? 'Save changes' : 'Save service'}
+            </button>
+            <button
+              onClick={onClose}
+              className="flex-1 py-2.5 border border-ink/12 text-ink font-semibold rounded-lg hover:bg-ink/3 transition-colors text-sm"
+            >
+              Cancel
+            </button>
+          </div>
         </div>
       </div>
     </div>

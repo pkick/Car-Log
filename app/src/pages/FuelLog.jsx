@@ -1,21 +1,24 @@
 import { useState } from 'react'
 import { FuelIcon } from '../components/icons'
 import { useRecords } from '../context/RecordsContext'
-import { computeFillMpg } from '../lib/vehicleStats'
+import { computeFillMpg, formatLastReading, getLastReading } from '../lib/vehicleStats'
 import { todayISO } from '../lib/dates'
 
-const emptyForm = (vehicle) => ({
+const emptyForm = () => ({
   date: todayISO(),
-  odometer: String(vehicle?.odometer ?? ''),
+  odometer: '',
   gallons: '',
   priceMode: 'perGallon',
   priceValue: '',
 })
 
 export default function FuelLog({ vehicle }) {
-  const { getFillUpsForVehicle, addFillUp, updateFillUp, deleteFillUp } = useRecords()
+  const { getFillUpsForVehicle, getServiceRecordsForVehicle, addFillUp, updateFillUp, deleteFillUp } = useRecords()
   const [editingFillId, setEditingFillId] = useState(null)
-  const [formData, setFormData] = useState(emptyForm(vehicle))
+  const [formData, setFormData] = useState(emptyForm())
+  const [saving, setSaving] = useState(false)
+  const [odometerError, setOdometerError] = useState(null)
+  const [saveError, setSaveError] = useState(null)
 
   const fillsAsc = [...getFillUpsForVehicle(vehicle.id)].sort((a, b) => a.odometer - b.odometer)
   const fillsWithMpg = computeFillMpg(fillsAsc)
@@ -24,6 +27,7 @@ export default function FuelLog({ vehicle }) {
   const handleChange = (e) => {
     const { name, value } = e.target
     setFormData({ ...formData, [name]: value })
+    if (name === 'odometer') setOdometerError(null)
   }
 
   const gallons = parseFloat(formData.gallons) || 0
@@ -42,13 +46,29 @@ export default function FuelLog({ vehicle }) {
     return computeFillMpg(merged).find((f) => f.id === -1)?.mpg ?? null
   })()
 
+  const odometerHint = formatLastReading(
+    getLastReading(
+      fillsAsc,
+      getServiceRecordsForVehicle(vehicle.id),
+      editingFillId ? { type: 'fill', id: editingFillId } : null
+    ),
+    vehicle.purchaseOdometer
+  )
+
+  const clearErrors = () => {
+    setOdometerError(null)
+    setSaveError(null)
+  }
+
   const resetForm = () => {
     setEditingFillId(null)
-    setFormData(emptyForm(vehicle))
+    setFormData(emptyForm())
+    clearErrors()
   }
 
   const handleEdit = (fill) => {
     setEditingFillId(fill.id)
+    clearErrors()
     setFormData({
       date: fill.date,
       odometer: String(fill.odometer),
@@ -63,15 +83,27 @@ export default function FuelLog({ vehicle }) {
     if (editingFillId === id) resetForm()
   }
 
-  const handleSave = () => {
-    if (gallons <= 0 || pricePerGal <= 0) return
-    const payload = { vehicleId: vehicle.id, date: formData.date, odometer, gallons, pricePerGal, isFull: true }
-    if (editingFillId) {
-      updateFillUp(editingFillId, payload)
-    } else {
-      addFillUp(payload)
+  const handleSave = async () => {
+    if (gallons <= 0 || pricePerGal <= 0 || saving) return
+    if (odometer <= 0) {
+      setOdometerError('Enter the current odometer reading.')
+      return
     }
-    resetForm()
+    const payload = { vehicleId: vehicle.id, date: formData.date, odometer, gallons, pricePerGal, isFull: true }
+    setSaving(true)
+    clearErrors()
+    try {
+      if (editingFillId) {
+        await updateFillUp(editingFillId, payload)
+      } else {
+        await addFillUp(payload)
+      }
+      resetForm()
+    } catch (err) {
+      if (err.field === 'odometer') setOdometerError(err.message)
+      else setSaveError(err.message)
+    }
+    setSaving(false)
   }
 
   return (
@@ -151,6 +183,11 @@ export default function FuelLog({ vehicle }) {
               <div>
                 <label className="text-xs font-mono font-semibold tracking-widest uppercase text-ink/45 block mb-2">Odometer</label>
                 <input type="number" name="odometer" value={formData.odometer} onChange={handleChange} className="w-full px-3 py-2.5 border border-ink/12 rounded-lg text-sm" />
+                {odometerError ? (
+                  <p className="text-xs text-red mt-1.5">{odometerError}</p>
+                ) : odometerHint && (
+                  <p className="text-xs font-mono text-ink/50 mt-1.5">{odometerHint}</p>
+                )}
               </div>
             </div>
 
@@ -208,9 +245,10 @@ export default function FuelLog({ vehicle }) {
             </div>
           </div>
 
+          {saveError && <p className="text-xs text-red mb-2">{saveError}</p>}
           <button
             onClick={handleSave}
-            disabled={gallons <= 0 || pricePerGal <= 0}
+            disabled={gallons <= 0 || pricePerGal <= 0 || saving}
             className="w-full py-3 bg-slate text-white font-semibold rounded-lg hover:bg-slate/90 transition-colors mb-3 disabled:opacity-40 disabled:cursor-default"
           >
             {editingFillId ? 'Save changes' : 'Save fill-up'}

@@ -57,6 +57,10 @@ export function VehicleProvider({ children }) {
     setVehicles((vs) => vs.map((v) => (v.id === id ? updated : v)))
   }
 
+  const mergeVehicle = (vehicle) => {
+    setVehicles((vs) => vs.map((v) => (v.id === vehicle.id ? vehicle : v)))
+  }
+
   const addVehicle = async (vehicleData) => {
     const created = await api('/api/vehicles', { method: 'POST', body: JSON.stringify(vehicleData) })
     setVehicles((vs) => [...vs, created])
@@ -93,6 +97,7 @@ export function VehicleProvider({ children }) {
       setActiveVehicleId,
       getActiveVehicle,
       updateVehicle,
+      mergeVehicle,
       addVehicle,
       deleteVehicle,
     }}>

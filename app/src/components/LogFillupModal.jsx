@@ -1,23 +1,27 @@
 import { useState } from 'react'
 import { FuelIcon, CalendarIcon } from './icons'
 import { useRecords } from '../context/RecordsContext'
-import { computeFillMpg } from '../lib/vehicleStats'
+import { computeFillMpg, formatLastReading, getLastReading } from '../lib/vehicleStats'
 import { todayISO } from '../lib/dates'
 
 export default function LogFillupModal({ vehicle, onClose, editingFillUp = null }) {
-  const { getFillUpsForVehicle, addFillUp, updateFillUp } = useRecords()
+  const { getFillUpsForVehicle, getServiceRecordsForVehicle, addFillUp, updateFillUp } = useRecords()
 
   const [formData, setFormData] = useState({
     date: editingFillUp?.date || todayISO(),
-    odometer: editingFillUp?.odometer ?? vehicle?.odometer ?? 0,
+    odometer: editingFillUp?.odometer ?? '',
     gallons: editingFillUp ? String(editingFillUp.gallons) : '',
     priceMode: 'perGallon',
     priceValue: editingFillUp ? String(editingFillUp.pricePerGal) : '',
   })
+  const [saving, setSaving] = useState(false)
+  const [odometerError, setOdometerError] = useState(null)
+  const [saveError, setSaveError] = useState(null)
 
   const handleChange = (e) => {
     const { name, value } = e.target
     setFormData({ ...formData, [name]: value })
+    if (name === 'odometer') setOdometerError(null)
   }
 
   const gallons = parseFloat(formData.gallons) || 0
@@ -36,8 +40,23 @@ export default function LogFillupModal({ vehicle, onClose, editingFillUp = null 
     return computeFillMpg(merged).find((f) => f.id === -1)?.mpg ?? null
   })()
 
-  const handleSave = () => {
-    if (!vehicle || gallons <= 0 || pricePerGal <= 0) return
+  const odometerHint = vehicle
+    ? formatLastReading(
+        getLastReading(
+          getFillUpsForVehicle(vehicle.id),
+          getServiceRecordsForVehicle(vehicle.id),
+          editingFillUp ? { type: 'fill', id: editingFillUp.id } : null
+        ),
+        vehicle.purchaseOdometer
+      )
+    : null
+
+  const handleSave = async () => {
+    if (!vehicle || gallons <= 0 || pricePerGal <= 0 || saving) return
+    if (odometer <= 0) {
+      setOdometerError('Enter the current odometer reading.')
+      return
+    }
     const payload = {
       vehicleId: vehicle.id,
       date: formData.date,
@@ -46,12 +65,21 @@ export default function LogFillupModal({ vehicle, onClose, editingFillUp = null 
       pricePerGal,
       isFull: true,
     }
-    if (editingFillUp) {
-      updateFillUp(editingFillUp.id, payload)
-    } else {
-      addFillUp(payload)
+    setSaving(true)
+    setOdometerError(null)
+    setSaveError(null)
+    try {
+      if (editingFillUp) {
+        await updateFillUp(editingFillUp.id, payload)
+      } else {
+        await addFillUp(payload)
+      }
+      onClose()
+    } catch (err) {
+      if (err.field === 'odometer') setOdometerError(err.message)
+      else setSaveError(err.message)
+      setSaving(false)
     }
-    onClose()
   }
 
   return (
@@ -95,6 +123,11 @@ export default function LogFillupModal({ vehicle, onClose, editingFillUp = null 
                 onChange={handleChange}
                 className="w-full px-3 py-2.5 border border-ink/12 rounded-lg text-base focus:outline-none focus:border-accent"
               />
+              {odometerError ? (
+                <p className="text-xs text-red mt-1.5">{odometerError}</p>
+              ) : odometerHint && (
+                <p className="text-xs font-mono text-ink/50 mt-1.5">{odometerHint}</p>
+              )}
             </div>
           </div>
 
@@ -180,20 +213,23 @@ export default function LogFillupModal({ vehicle, onClose, editingFillUp = null 
         </div>
 
         {/* Footer */}
-        <div className="border-t border-ink/8 px-6 py-3 flex gap-3 sticky bottom-0 bg-page">
-          <button
-            onClick={handleSave}
-            disabled={gallons <= 0 || pricePerGal <= 0}
-            className="flex-1 py-2.5 bg-slate text-white font-semibold rounded-lg hover:bg-slate/90 transition-colors text-sm disabled:opacity-40 disabled:cursor-default"
-          >
-            {editingFillUp ? 'Save changes' : 'Save fill-up'}
-          </button>
-          <button
-            onClick={onClose}
-            className="flex-1 py-2.5 border border-ink/12 text-ink font-semibold rounded-lg hover:bg-ink/3 transition-colors text-sm"
-          >
-            Cancel
-          </button>
+        <div className="border-t border-ink/8 px-6 py-3 sticky bottom-0 bg-page">
+          {saveError && <p className="text-xs text-red mb-2">{saveError}</p>}
+          <div className="flex gap-3">
+            <button
+              onClick={handleSave}
+              disabled={gallons <= 0 || pricePerGal <= 0 || saving}
+              className="flex-1 py-2.5 bg-slate text-white font-semibold rounded-lg hover:bg-slate/90 transition-colors text-sm disabled:opacity-40 disabled:cursor-default"
+            >
+              {editingFillUp ? 'Save changes' : 'Save fill-up'}
+            </button>
+            <button
+              onClick={onClose}
+              className="flex-1 py-2.5 border border-ink/12 text-ink font-semibold rounded-lg hover:bg-ink/3 transition-colors text-sm"
+            >
+              Cancel
+            </button>
+          </div>
         </div>
       </div>
     </div>
