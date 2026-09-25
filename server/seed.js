@@ -1,8 +1,12 @@
+/**
+ * Intervals every new vehicle starts with. Each interval is reset by a service record that includes any of
+ * its `services` (D10); `categoryId` is the category of its first service and picks the icon.
+ */
 export const DEFAULT_INTERVALS = [
-  { id: 1, categoryId: 'oil', name: 'Oil + filter', trackBy: 'both', miles: 5000, months: 12, warnMiles: 500, warnDays: 14 },
-  { id: 2, categoryId: 'tires', name: 'Tire rotation', trackBy: 'miles', miles: 5000, months: null, warnMiles: 500, warnDays: 14 },
-  { id: 3, categoryId: 'brakes', name: 'Brake fluid', trackBy: 'both', miles: 30000, months: 36, warnMiles: 1000, warnDays: 30 },
-  { id: 4, categoryId: 'filters', name: 'Cabin air filter', trackBy: 'months', miles: null, months: 24, warnMiles: 750, warnDays: 21 },
+  { id: 1, categoryId: 'oil', name: 'Oil + filter', services: ['Oil + filter change'], trackBy: 'both', miles: 5000, months: 12, warnMiles: 500, warnDays: 14 },
+  { id: 2, categoryId: 'tires', name: 'Tire rotation', services: ['Tire rotation'], trackBy: 'miles', miles: 5000, months: null, warnMiles: 500, warnDays: 14 },
+  { id: 3, categoryId: 'brakes', name: 'Brake fluid', services: ['Brake fluid'], trackBy: 'both', miles: 30000, months: 36, warnMiles: 1000, warnDays: 30 },
+  { id: 4, categoryId: 'filters', name: 'Cabin air filter', services: ['Cabin air filter'], trackBy: 'months', miles: null, months: 24, warnMiles: 750, warnDays: 21 },
 ]
 
 export const SEED_VEHICLES = [
@@ -23,7 +27,7 @@ export const SEED_VEHICLES = [
     tracksFuel: true,
     tracksService: true,
     odometer: 84210,
-    intervals: DEFAULT_INTERVALS.map((i) => ({ ...i })),
+    intervals: structuredClone(DEFAULT_INTERVALS),
     color: 'accent',
   },
   {
@@ -43,7 +47,7 @@ export const SEED_VEHICLES = [
     tracksFuel: true,
     tracksService: true,
     odometer: 47850,
-    intervals: DEFAULT_INTERVALS.map((i) => ({ ...i })),
+    intervals: structuredClone(DEFAULT_INTERVALS),
     color: 'teal',
   },
 ]
@@ -94,13 +98,14 @@ export const SEED_FILL_UPS = [
 ]
 
 export const SEED_SERVICE_RECORDS = [
-  // The Wagon — tires overdue, oil coming up, brakes/filters fresh
+  // The Wagon — tires overdue, oil coming up. The brake pads and engine air filter don't reset Brake fluid or
+  // Cabin air filter (D10), so both are overdue from the purchase date.
   serviceRecord(1, 1, '2026-02-01', 76800, 'tires', ['Tire rotation'], 0, 'shop', 'Costco'),
   serviceRecord(2, 1, '2026-04-22', 79630, 'oil', ['Oil + filter change'], 58.0, 'shop', 'Ridge Auto', 'Mobil 1 0W-20 · Volvo 31372212 filter'),
   serviceRecord(3, 1, '2026-05-01', 80105, 'filters', ['Air filter'], 28.5, 'diy', 'DIY'),
   serviceRecord(4, 1, '2026-06-10', 81890, 'brakes', ['Brake pads'], 285.0, 'shop', 'Ridge Auto'),
 
-  // The Truck — oil & brake-fluid interval coming up, tires/filters fresh
+  // The Truck — oil coming up, Brake fluid overdue by date (36 months since purchase), tires/cabin filter fresh
   serviceRecord(5, 2, '2026-04-10', 43230, 'oil', ['Oil + filter change'], 74.0, 'shop', 'Ford Quick Lane', 'Motorcraft 5W-30 · FL-820-S filter'),
   serviceRecord(6, 2, '2026-06-01', 45300, 'filters', ['Cabin air filter'], 24.0, 'diy', 'DIY'),
   serviceRecord(7, 2, '2026-07-20', 46700, 'tires', ['Tire rotation'], 0, 'shop', 'Discount Tire'),

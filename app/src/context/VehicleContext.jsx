@@ -2,13 +2,6 @@ import { createContext, useEffect, useState } from 'react'
 
 export const VehicleContext = createContext()
 
-export const DEFAULT_INTERVALS = [
-  { id: 1, categoryId: 'oil', name: 'Oil + filter', trackBy: 'both', miles: 5000, months: 12, warnMiles: 500, warnDays: 14 },
-  { id: 2, categoryId: 'tires', name: 'Tire rotation', trackBy: 'miles', miles: 5000, months: null, warnMiles: 500, warnDays: 14 },
-  { id: 3, categoryId: 'brakes', name: 'Brake fluid', trackBy: 'both', miles: 30000, months: 36, warnMiles: 1000, warnDays: 30 },
-  { id: 4, categoryId: 'filters', name: 'Cabin air filter', trackBy: 'months', miles: null, months: 24, warnMiles: 750, warnDays: 21 },
-]
-
 const ACTIVE_VEHICLE_KEY = 'odometer:active-vehicle-id'
 
 async function api(path, options) {
@@ -67,6 +60,8 @@ export function VehicleProvider({ children }) {
     setActiveVehicleId(created.id)
   }
 
+  const getDefaultIntervals = () => api('/api/defaults/intervals')
+
   const deleteVehicle = async (id) => {
     if (vehicles.length <= 1) return
     await api(`/api/vehicles/${id}`, { method: 'DELETE' })
@@ -100,6 +95,7 @@ export function VehicleProvider({ children }) {
       mergeVehicle,
       addVehicle,
       deleteVehicle,
+      getDefaultIntervals,
     }}>
       {children}
     </VehicleContext.Provider>

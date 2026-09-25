@@ -246,7 +246,12 @@ export default function Dashboard({ vehicle, onViewTrends, onLogService, onEditV
                   item.status === 'overdue'
                     ? 'bg-[oklch(0.55_0.17_28/40%)]'
                     : 'bg-[oklch(0.56_0.13_195/40%)]'
-                }`} />
+                }`}>
+                  <div
+                    className={`h-full rounded-full ${item.status === 'overdue' ? 'bg-red' : 'bg-teal'}`}
+                    style={{ width: `${Math.min(item.progress, 1) * 100}%` }}
+                  />
+                </div>
                 <p className="text-xs font-mono text-page/60">{item.detailLabel}</p>
               </div>
             </div>

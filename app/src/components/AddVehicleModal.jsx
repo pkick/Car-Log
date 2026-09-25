@@ -1,5 +1,5 @@
 import { useState, useContext } from 'react'
-import { VehicleContext, DEFAULT_INTERVALS } from '../context/VehicleContext'
+import { VehicleContext } from '../context/VehicleContext'
 import { currentYear } from '../lib/dates'
 
 export default function AddVehicleModal({ onClose }) {
@@ -45,7 +45,6 @@ export default function AddVehicleModal({ onClose }) {
       tracksFuel: trackMode.fuel,
       tracksService: trackMode.service,
       odometer: purchaseOdometer,
-      intervals: DEFAULT_INTERVALS.map((i) => ({ ...i })),
     })
     onClose()
   }

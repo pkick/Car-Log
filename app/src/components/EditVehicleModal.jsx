@@ -1,10 +1,25 @@
-import { useState, useContext } from 'react'
-import { VehicleContext, DEFAULT_INTERVALS } from '../context/VehicleContext'
-import { FuelIcon, CheckIcon, WrenchIcon } from './icons'
+import { Fragment, useState, useContext, useRef } from 'react'
+import { VehicleContext } from '../context/VehicleContext'
+import { FuelIcon, CheckIcon, WrenchIcon, TrashIcon } from './icons'
 import { VEHICLE_COLORS, VEHICLE_COLOR_SWATCH_CLASS } from '../lib/vehicleColors'
+import {
+  SERVICE_CATEGORIES,
+  SUBCATEGORIES,
+  CATEGORY_BY_ID,
+  CATEGORY_ICON,
+  CATEGORY_ID_BY_SERVICE,
+  CATEGORY_TILE_CLASS,
+  CATEGORY_TEXT_CLASS,
+} from '../lib/serviceCategories'
+
+function formatServicesSummary(services) {
+  if (services.length === 0) return 'Pick services'
+  if (services.length <= 2) return services.join(', ')
+  return `${services.slice(0, 2).join(', ')}, +${services.length - 2} more`
+}
 
 export default function EditVehicleModal({ vehicleId, onClose }) {
-  const { vehicles, updateVehicle } = useContext(VehicleContext)
+  const { vehicles, updateVehicle, getDefaultIntervals } = useContext(VehicleContext)
   const vehicle = vehicles.find(v => v.id === vehicleId)
 
   const [formData, setFormData] = useState(vehicle || {})
@@ -14,8 +29,11 @@ export default function EditVehicleModal({ vehicleId, onClose }) {
   })
 
   const [intervals, setIntervals] = useState(
-    (vehicle?.intervals?.length ? vehicle.intervals : DEFAULT_INTERVALS).map((i) => ({ ...i }))
+    (vehicle?.intervals ?? []).map((i) => ({ ...i, services: [...(i.services ?? [])] }))
   )
+  const [expandedIntervalId, setExpandedIntervalId] = useState(null)
+  const [defaultsError, setDefaultsError] = useState(null)
+  const focusIntervalId = useRef(null)
 
   if (!vehicle) return null
 
@@ -28,12 +46,34 @@ export default function EditVehicleModal({ vehicleId, onClose }) {
     setIntervals(intervals.map((iv) => (iv.id === id ? { ...iv, [field]: value } : iv)))
   }
 
+  const toggleIntervalService = (id, service) => {
+    setIntervals(intervals.map((iv) => {
+      if (iv.id !== id) return iv
+      const services = iv.services.includes(service) ? iv.services.filter((s) => s !== service) : [...iv.services, service]
+      return { ...iv, services, categoryId: CATEGORY_ID_BY_SERVICE[services[0]] ?? 'other' }
+    }))
+  }
+
+  const removeInterval = (id) => {
+    setIntervals(intervals.filter((iv) => iv.id !== id))
+  }
+
   const addInterval = () => {
     const id = Math.max(0, ...intervals.map((i) => i.id)) + 1
+    focusIntervalId.current = id
     setIntervals([
       ...intervals,
-      { id, categoryId: 'other', name: 'New interval', trackBy: 'miles', miles: 5000, months: null, warnMiles: 500, warnDays: 14 },
+      { id, categoryId: 'other', name: '', services: [], trackBy: 'miles', miles: 5000, months: null, warnMiles: 500, warnDays: 14 },
     ])
+  }
+
+  const addDefaultIntervals = async () => {
+    setDefaultsError(null)
+    try {
+      setIntervals(await getDefaultIntervals())
+    } catch (err) {
+      setDefaultsError(err.message)
+    }
   }
 
   const handleSave = () => {
@@ -251,6 +291,15 @@ export default function EditVehicleModal({ vehicleId, onClose }) {
           {/* Service Intervals Table */}
           <div>
             <p className="text-xs font-mono font-semibold tracking-widest uppercase text-ink/45 mb-4">Service intervals – Whichever comes first · warn-at is per interval</p>
+            {intervals.length === 0 ? (
+              <div className="bg-white border border-ink/10 rounded-2.5 p-6 text-sm text-ink/45">
+                No service intervals for {vehicle.nickname}.{' '}
+                <button type="button" onClick={addDefaultIntervals} className="font-semibold text-accent hover:underline">
+                  Add the default intervals
+                </button>
+                {defaultsError && <p className="text-xs text-red mt-2">{defaultsError}</p>}
+              </div>
+            ) : (
             <div className="overflow-x-auto">
               <table className="w-full text-sm">
                 <thead>
@@ -260,12 +309,46 @@ export default function EditVehicleModal({ vehicleId, onClose }) {
                     <th className="text-left py-3 px-4 font-semibold text-ink">Miles</th>
                     <th className="text-left py-3 px-4 font-semibold text-ink">Months</th>
                     <th className="text-left py-3 px-4 font-semibold text-ink">Warn at</th>
+                    <th className="py-3 pl-2" />
                   </tr>
                 </thead>
                 <tbody>
-                  {intervals.map((interval) => (
-                    <tr key={interval.id} className="border-b border-ink/8 hover:bg-ink/3">
-                      <td className="py-3 px-4 font-medium">{interval.name}</td>
+                  {intervals.map((interval) => {
+                    const cat = CATEGORY_BY_ID[interval.categoryId] ?? CATEGORY_BY_ID.other
+                    const Icon = CATEGORY_ICON[cat.id]
+                    const expanded = expandedIntervalId === interval.id
+                    return (
+                    <Fragment key={interval.id}>
+                    <tr className="border-b border-ink/8 hover:bg-ink/3">
+                      <td className="py-3 px-4">
+                        <div className="flex items-center gap-2">
+                          <span className={`w-7 h-7 rounded-md flex items-center justify-center flex-none ${CATEGORY_TILE_CLASS[cat.color]} ${CATEGORY_TEXT_CLASS[cat.color]}`}>
+                            <Icon size={16} className="flex-none" />
+                          </span>
+                          <input
+                            type="text"
+                            ref={(el) => {
+                              if (el && focusIntervalId.current === interval.id) {
+                                el.focus()
+                                focusIntervalId.current = null
+                              }
+                            }}
+                            value={interval.name}
+                            onChange={(e) => updateInterval(interval.id, 'name', e.target.value)}
+                            placeholder="Interval name"
+                            aria-label="Interval name"
+                            className="w-full min-w-[140px] px-3 py-2 border border-ink/12 rounded text-sm font-medium"
+                          />
+                        </div>
+                        <button
+                          type="button"
+                          onClick={() => setExpandedIntervalId(expanded ? null : interval.id)}
+                          aria-expanded={expanded}
+                          className={`mt-1.5 ml-9 text-xs font-mono text-left hover:text-ink ${interval.services.length ? 'text-ink/50' : 'text-accent'}`}
+                        >
+                          {formatServicesSummary(interval.services)} {expanded ? '▴' : '▾'}
+                        </button>
+                      </td>
                       <td className="py-3 px-4">
                         <select
                           value={interval.trackBy}
@@ -311,11 +394,62 @@ export default function EditVehicleModal({ vehicleId, onClose }) {
                           <span className="text-xs text-ink/40">d</span>
                         </div>
                       </td>
+                      <td className="py-3 pl-2">
+                        <button
+                          type="button"
+                          onClick={() => removeInterval(interval.id)}
+                          aria-label={`Delete ${interval.name || 'this'} interval`}
+                          className="w-9 h-9 flex items-center justify-center border border-ink/12 text-ink/50 rounded-lg hover:bg-[oklch(0.55_0.17_28/10%)] hover:text-red hover:border-[oklch(0.55_0.17_28/30%)] transition-colors"
+                        >
+                          <TrashIcon size={16} />
+                        </button>
+                      </td>
                     </tr>
-                  ))}
+                    {expanded && (
+                      <tr className="border-b border-ink/8">
+                        <td colSpan={6} className="px-4 pb-4 pt-1">
+                          <div className="bg-ink/3 border border-ink/10 rounded-lg p-4">
+                            <p className="text-xs font-mono text-ink/45 mb-3 uppercase tracking-wider">
+                              Services that reset {interval.name || 'this interval'}
+                            </p>
+                            <div className="grid grid-cols-3 gap-x-6 gap-y-4">
+                              {SERVICE_CATEGORIES.map((category) => (
+                                <div key={category.id}>
+                                  <p className="text-xs font-mono font-semibold tracking-widest uppercase text-ink/45 mb-2">{category.label}</p>
+                                  <div className="flex flex-wrap gap-1.5">
+                                    {SUBCATEGORIES[category.id].map((service) => {
+                                      const selected = interval.services.includes(service)
+                                      return (
+                                        <button
+                                          key={service}
+                                          type="button"
+                                          onClick={() => toggleIntervalService(interval.id, service)}
+                                          aria-pressed={selected}
+                                          className={`px-2.5 py-1 rounded-lg font-semibold text-xs transition-colors ${
+                                            selected
+                                              ? 'bg-slate text-white'
+                                              : 'bg-white border border-ink/10 text-ink hover:bg-white/80'
+                                          }`}
+                                        >
+                                          {service}
+                                        </button>
+                                      )
+                                    })}
+                                  </div>
+                                </div>
+                              ))}
+                            </div>
+                          </div>
+                        </td>
+                      </tr>
+                    )}
+                    </Fragment>
+                    )
+                  })}
                 </tbody>
               </table>
             </div>
+            )}
             <button
               onClick={addInterval}
               className="mt-4 px-4 py-2 border border-dashed border-ink/20 rounded text-sm font-semibold text-ink hover:bg-ink/3 transition-colors"

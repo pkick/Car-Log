@@ -1,6 +1,7 @@
 import { Router } from 'express'
 import { db } from '../db.js'
 import { rowToVehicle, recomputeOdometer } from '../vehicles.js'
+import { DEFAULT_INTERVALS } from '../seed.js'
 
 const router = Router()
 
@@ -18,7 +19,7 @@ router.post('/', (req, res) => {
     v.nickname, v.year ?? null, v.make ?? null, v.model ?? null, v.trim ?? null, v.vin ?? null, v.plate ?? null,
     v.purchaseDate ?? null, v.purchaseOdometer ?? null, v.registrationRenewal ?? null, v.insuranceRenewal ?? null,
     v.tankSize ?? null, v.tracksFuel === false ? 0 : 1, v.tracksService === false ? 0 : 1,
-    JSON.stringify(v.intervals ?? []), v.color ?? 'slate'
+    JSON.stringify(Array.isArray(v.intervals) && v.intervals.length ? v.intervals : DEFAULT_INTERVALS), v.color ?? 'slate'
   )
   res.status(201).json(recomputeOdometer(info.lastInsertRowid))
 })

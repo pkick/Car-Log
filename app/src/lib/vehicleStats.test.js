@@ -11,6 +11,7 @@ import {
   getMonthToDateSpend,
   getPriceHistory,
   getServiceHistorySorted,
+  recordResetsInterval,
 } from './vehicleStats'
 
 afterEach(() => {
@@ -51,10 +52,74 @@ describe('computeFillMpg', () => {
   })
 })
 
+const DEFAULT_INTERVALS = [
+  { id: 1, categoryId: 'oil', name: 'Oil + filter', services: ['Oil + filter change'], miles: 5000, months: 12, warnMiles: 500, warnDays: 14 },
+  { id: 2, categoryId: 'tires', name: 'Tire rotation', services: ['Tire rotation'], miles: 5000, months: null, warnMiles: 500, warnDays: 14 },
+  { id: 3, categoryId: 'brakes', name: 'Brake fluid', services: ['Brake fluid'], miles: 30000, months: 36, warnMiles: 1000, warnDays: 30 },
+  { id: 4, categoryId: 'filters', name: 'Cabin air filter', services: ['Cabin air filter'], miles: null, months: 24, warnMiles: 750, warnDays: 21 },
+]
+
+const serviced = (date, odometer, services, categoryId = 'other') => ({ date, odometer, services, categoryId, cost: 0 })
+
+// The seeded Wagon and Truck, on 2026-09-25.
+const wagon = { intervals: DEFAULT_INTERVALS, purchaseDate: '2021-04-02', purchaseOdometer: 41880 }
+const wagonRecords = [
+  serviced('2026-02-01', 76800, ['Tire rotation'], 'tires'),
+  serviced('2026-04-22', 79630, ['Oil + filter change'], 'oil'),
+  serviced('2026-05-01', 80105, ['Air filter'], 'filters'),
+  serviced('2026-06-10', 81890, ['Brake pads'], 'brakes'),
+]
+const truck = { intervals: DEFAULT_INTERVALS, purchaseDate: '2022-09-10', purchaseOdometer: 18500 }
+const truckRecords = [
+  serviced('2026-04-10', 43230, ['Oil + filter change'], 'oil'),
+  serviced('2026-06-01', 45300, ['Cabin air filter'], 'filters'),
+  serviced('2026-07-20', 46700, ['Tire rotation'], 'tires'),
+]
+
+const dueItem = (items, name) => items.find((item) => item.name === name)
+
+describe('recordResetsInterval', () => {
+  const brakeFluid = DEFAULT_INTERVALS[2]
+  const tireRotation = DEFAULT_INTERVALS[1]
+  const cabinFilter = DEFAULT_INTERVALS[3]
+
+  it('matches when one of the record\'s services is in the interval\'s list', () => {
+    expect(recordResetsInterval({ services: ['Brake fluid'] }, brakeFluid)).toBe(true)
+    expect(recordResetsInterval({ services: ['Brake pads', 'Tire rotation'] }, tireRotation)).toBe(true)
+  })
+
+  it('does not let brake pads reset Brake fluid, or Air filter reset Cabin air filter', () => {
+    expect(recordResetsInterval({ services: ['Brake pads'], categoryId: 'brakes' }, brakeFluid)).toBe(false)
+    expect(recordResetsInterval({ services: ['Air filter'], categoryId: 'filters' }, cabinFilter)).toBe(false)
+  })
+
+  it('never reads the record\'s categoryId', () => {
+    expect(recordResetsInterval({ services: ['Brake pads'], categoryId: 'tires' }, tireRotation)).toBe(false)
+    expect(recordResetsInterval({ services: ['Tire repair'], categoryId: 'tires' }, { categoryId: 'tires', services: [] })).toBe(true)
+    expect(recordResetsInterval({ services: ['Brake pads'], categoryId: 'tires' }, { categoryId: 'tires', services: [] })).toBe(false)
+  })
+
+  it('falls back to any service in the interval\'s category when its list is empty or missing', () => {
+    expect(recordResetsInterval({ services: ['Tire replacement'] }, { categoryId: 'tires', services: [] })).toBe(true)
+    expect(recordResetsInterval({ services: ['Oil only (top-off)'] }, { categoryId: 'oil' })).toBe(true)
+    expect(recordResetsInterval({ services: ['Brake pads'] }, { categoryId: 'oil' })).toBe(false)
+  })
+
+  it('does not match a record without services', () => {
+    expect(recordResetsInterval({ categoryId: 'tires' }, tireRotation)).toBe(false)
+    expect(recordResetsInterval({ categoryId: 'tires' }, { categoryId: 'tires' })).toBe(false)
+  })
+})
+
 describe('getDueSoonItems', () => {
-  const interval = { id: 1, categoryId: 'x', name: 'Test', miles: null, months: 12, warnMiles: 0, warnDays: 0 }
+  const interval = { id: 1, categoryId: 'filters', name: 'Test', services: ['Cabin air filter'], miles: null, months: 12, warnMiles: 0, warnDays: 0 }
   const vehicle = { intervals: [interval] }
-  const records = [{ categoryId: 'x', date: '2026-01-31', odometer: 1000, services: [] }]
+  const records = [serviced('2026-01-31', 1000, ['Cabin air filter'], 'filters')]
+
+  const onSep25 = () => {
+    vi.useFakeTimers()
+    vi.setSystemTime(new Date(2026, 8, 25, 12))
+  }
 
   it('is not overdue the day before the calendar due date (12 months after 2026-01-31)', () => {
     vi.useFakeTimers()
@@ -68,6 +133,122 @@ describe('getDueSoonItems', () => {
     vi.setSystemTime(new Date(2027, 0, 31, 12))
     const [item] = getDueSoonItems(vehicle, records, 1000)
     expect(item.status).toBe('overdue')
+  })
+
+  it('does not let a Brake pads record reset Brake fluid', () => {
+    onSep25()
+    const before = dueItem(getDueSoonItems(wagon, wagonRecords, 84210), 'Brake fluid')
+    const after = dueItem(getDueSoonItems(wagon, [...wagonRecords, serviced('2026-09-25', 84210, ['Brake pads'], 'brakes')], 84210), 'Brake fluid')
+    expect(before.lastServiceDate).toBeNull()
+    expect(before.status).toBe('overdue')
+    expect(after).toEqual(before)
+  })
+
+  it('resets Tire rotation from a record with Brake pads + Tire rotation', () => {
+    onSep25()
+    expect(dueItem(getDueSoonItems(wagon, wagonRecords, 84210), 'Tire rotation').status).toBe('overdue')
+
+    const both = serviced('2026-09-25', 84210, ['Brake pads', 'Tire rotation'], 'brakes')
+    const item = dueItem(getDueSoonItems(wagon, [...wagonRecords, both], 84210), 'Tire rotation')
+    expect(item).toMatchObject({ status: 'ok', milesRemaining: 5000, progress: 0, lastServiceDate: '2026-09-25', remainingLabel: '5,000 mi' })
+  })
+
+  it('does not let an Air filter record reset Cabin air filter', () => {
+    onSep25()
+    const item = dueItem(getDueSoonItems(wagon, wagonRecords, 84210), 'Cabin air filter')
+    expect(item.lastServiceDate).toBeNull()
+    expect(item.dueDate).toBe('2023-04-02')
+    expect(item.status).toBe('overdue')
+  })
+
+  it('falls back to the interval\'s category when its services list is empty or missing', () => {
+    onSep25()
+    const legacy = { id: 9, categoryId: 'tires', name: 'Tires', miles: 5000, months: null, warnMiles: 500, warnDays: 14 }
+    const records = [serviced('2026-09-01', 84000, ['Tire replacement'], 'tires'), serviced('2026-09-20', 84100, ['Brake pads'], 'tires')]
+
+    for (const interval of [legacy, { ...legacy, services: [] }]) {
+      const [item] = getDueSoonItems({ intervals: [interval] }, records, 84210)
+      expect(item).toMatchObject({ lastServiceOdometer: 84000, milesRemaining: 4790 })
+    }
+  })
+
+  it('reports the due reading, due date and progress of a miles-and-months interval', () => {
+    onSep25()
+    const oil = dueItem(getDueSoonItems(wagon, wagonRecords, 84210), 'Oil + filter')
+    expect(oil).toMatchObject({ dueOdometer: 84630, dueDate: '2027-04-22', milesRemaining: 420, status: 'coming-up' })
+    // 4,580 of 5,000 mi beats 156 of 365 days.
+    expect(oil.progress).toBeCloseTo(0.916)
+    expect(oil.remainingLabel).toBe('420 mi')
+  })
+
+  it('reports a due date and day-based progress for a months-only interval', () => {
+    onSep25()
+    const filter = dueItem(getDueSoonItems(truck, truckRecords, 47850), 'Cabin air filter')
+    expect(filter).toMatchObject({ dueOdometer: null, dueDate: '2028-06-01', milesRemaining: null, status: 'ok' })
+    // 116 of 731 days (2028 is a leap year).
+    expect(filter.progress).toBeCloseTo(116 / 731)
+    expect(filter.remainingLabel).toBe('~88 wks')
+  })
+
+  it('reports no due date for a miles-only interval', () => {
+    onSep25()
+    const tires = dueItem(getDueSoonItems(truck, truckRecords, 47850), 'Tire rotation')
+    expect(tires).toMatchObject({ dueOdometer: 51700, dueDate: null, milesRemaining: 3850 })
+    expect(tires.progress).toBeCloseTo(0.23)
+  })
+
+  it('measures from the purchase when nothing has reset the interval', () => {
+    onSep25()
+    const fluid = dueItem(getDueSoonItems(truck, truckRecords, 47850), 'Brake fluid')
+    expect(fluid).toMatchObject({ dueOdometer: 48500, dueDate: '2025-09-10', milesRemaining: 650, lastServiceOdometer: null })
+    // 1,476 of 1,096 days since purchase beats 29,350 of 30,000 mi.
+    expect(fluid.progress).toBeCloseTo(1476 / 1096)
+  })
+
+  it('labels an interval overdue by date with the day it came due, not its remaining miles', () => {
+    onSep25()
+    const fluid = dueItem(getDueSoonItems(truck, truckRecords, 47850), 'Brake fluid')
+    expect(fluid.status).toBe('overdue')
+    expect(fluid.remainingLabel).toBe('Overdue since Sep 10, 2025')
+  })
+
+  it('leaves the year out of an overdue date in the current year', () => {
+    onSep25()
+    const [item] = getDueSoonItems(vehicle, [serviced('2025-03-03', 1000, ['Cabin air filter'])], 1000)
+    expect(item.remainingLabel).toBe('Overdue since Mar 3')
+  })
+
+  it('counts days under two weeks from a date limit, and weeks after that', () => {
+    onSep25()
+    const labelFrom = (date) => getDueSoonItems(vehicle, [serviced(date, 1000, ['Cabin air filter'])], 1000)[0].remainingLabel
+    expect(labelFrom('2025-09-26')).toBe('1 day')
+    expect(labelFrom('2025-10-08')).toBe('13 days')
+    expect(labelFrom('2025-10-09')).toBe('~2 wks')
+    expect(labelFrom('2025-11-20')).toBe('~8 wks')
+  })
+
+  it('labels by miles when the miles limit is further along', () => {
+    onSep25()
+    const tires = dueItem(getDueSoonItems(wagon, wagonRecords, 84210), 'Tire rotation')
+    expect(tires.remainingLabel).toBe('Due 2,410 mi ago')
+    expect(tires.progress).toBeCloseTo(7410 / 5000)
+  })
+
+  it('sorts overdue items first, then by highest progress', () => {
+    onSep25()
+    const items = getDueSoonItems(wagon, wagonRecords, 84210)
+    expect(items.map((i) => [i.name, i.status])).toEqual([
+      ['Cabin air filter', 'overdue'],
+      ['Brake fluid', 'overdue'],
+      ['Tire rotation', 'overdue'],
+      ['Oil + filter', 'coming-up'],
+    ])
+  })
+
+  it('gives an interval with no limits zero progress and a placeholder label', () => {
+    onSep25()
+    const [item] = getDueSoonItems({ intervals: [{ ...interval, months: null }] }, records, 1000)
+    expect(item).toMatchObject({ status: 'ok', progress: 0, dueDate: null, dueOdometer: null, remainingLabel: '—' })
   })
 })
 
@@ -351,8 +532,10 @@ describe('records with a blank date', () => {
       { date: '', odometer: 1000, gallons: 10, pricePerGal: 4, total: 40, isFull: true },
       { date: '2026-09-10', odometer: 1300, gallons: 10, pricePerGal: 4, total: 40, isFull: true },
     ]
-    const records = [{ categoryId: 'x', date: '', odometer: 900, cost: 50, services: [] }]
-    const vehicle = { intervals: [{ id: 1, categoryId: 'x', name: 'Test', miles: 5000, months: 6, warnMiles: 500, warnDays: 30 }] }
+    const records = [{ categoryId: 'oil', date: '', odometer: 900, cost: 50, services: ['Oil + filter change'] }]
+    const vehicle = {
+      intervals: [{ id: 1, categoryId: 'oil', name: 'Test', services: ['Oil + filter change'], miles: 5000, months: 6, warnMiles: 500, warnDays: 30 }],
+    }
 
     expect(getFuelStats(fills).spendThisMonth).toBe(40)
     expect(getMonthlySpend(fills, records).at(-1)).toEqual({ month: 'Sep', fuel: 40, service: 0 })

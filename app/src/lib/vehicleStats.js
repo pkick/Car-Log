@@ -1,4 +1,5 @@
 import { addMonths, currentYear, daysBetween, monthKey, parseISODate, todayISO } from './dates'
+import { CATEGORY_ID_BY_SERVICE } from './serviceCategories'
 
 /**
  * @typedef {object} FillUp
@@ -12,13 +13,16 @@ import { addMonths, currentYear, daysBetween, monthKey, parseISODate, todayISO }
  * @typedef {object} ServiceRecord
  * @property {string} date `YYYY-MM-DD`
  * @property {number} odometer
- * @property {string} categoryId
+ * @property {string[]} services service names from `SUBCATEGORIES`
+ * @property {string} categoryId the category of the first service, for display. Never used for matching.
  * @property {number} cost
  *
  * @typedef {object} Interval
  * @property {number} id
- * @property {string} categoryId
+ * @property {string} categoryId the category of the first of `services`, or `other`; picks the icon, and is
+ *   what older intervals without `services` match on
  * @property {string} name
+ * @property {string[]} [services] service names that reset this interval (D10)
  * @property {number | null} miles
  * @property {number | null} months
  * @property {number} warnMiles
@@ -31,12 +35,16 @@ import { addMonths, currentYear, daysBetween, monthKey, parseISODate, todayISO }
  *
  * @typedef {object} DueItem
  * @property {number} intervalId
- * @property {string} categoryId
+ * @property {string} categoryId the interval's category
  * @property {string} name
  * @property {'overdue' | 'coming-up' | 'ok'} status
- * @property {string} remainingLabel
+ * @property {string} remainingLabel what is left of whichever limit is closer to due
  * @property {string} detailLabel
  * @property {number | null} milesRemaining
+ * @property {number | null} dueOdometer the reading the interval is due at, or `null` without a miles limit
+ * @property {string | null} dueDate `YYYY-MM-DD` the interval is due on, or `null` without a months limit
+ * @property {number} progress how far through the interval it is, from 0: the larger of the miles and days
+ *   fractions. 1 or more once it is due.
  * @property {number | null} lastServiceOdometer
  * @property {string | null} lastServiceDate
  */
@@ -125,7 +133,40 @@ export function getFuelStats(fillsForVehicle) {
 }
 
 /**
- * Status of each maintenance interval, measured from its last service (or the purchase), most urgent first.
+ * Whether a service record resets an interval: one of the record's services is in the interval's `services`
+ * (D10). An interval without `services` (older data) is reset by any service in its `categoryId`. The
+ * record's own `categoryId` is never read, because it only reflects the record's first service.
+ * @param {{ services?: string[] }} record
+ * @param {{ categoryId?: string, services?: string[] }} interval
+ * @returns {boolean}
+ */
+export function recordResetsInterval(record, interval) {
+  const services = record.services ?? []
+  if (interval.services?.length) return services.some((s) => interval.services.includes(s))
+  return services.some((s) => CATEGORY_ID_BY_SERVICE[s] === interval.categoryId)
+}
+
+/**
+ * How much of a limit has been used, from 0. A limit of 0 or less is used up at once.
+ * @param {number} used
+ * @param {number} limit
+ * @returns {number}
+ */
+const fractionUsed = (used, limit) => (limit > 0 ? (used > 0 ? used / limit : 0) : 1)
+
+/**
+ * @param {string} iso a valid `YYYY-MM-DD`
+ * @returns {string} `Mar 3`, or `Mar 3, 2025` outside the current year.
+ */
+function formatDueDay(iso) {
+  const date = parseISODate(iso)
+  const day = date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })
+  return date.getFullYear() === currentYear() ? day : `${day}, ${date.getFullYear()}`
+}
+
+/**
+ * Status of each maintenance interval, measured from the latest service that resets it (see
+ * {@link recordResetsInterval}) or from the purchase. Most urgent first, then furthest through its interval.
  * @param {Vehicle} vehicle
  * @param {ServiceRecord[]} serviceRecords
  * @param {number} currentOdometer
@@ -136,18 +177,23 @@ export function getDueSoonItems(vehicle, serviceRecords, currentOdometer) {
   const today = todayISO()
 
   const items = intervals.map((interval) => {
-    const matching = serviceRecords
-      .filter((r) => r.categoryId === interval.categoryId)
-      .sort((a, b) => b.odometer - a.odometer)
-    const last = matching[0]
+    const last = serviceRecords
+      .filter((r) => recordResetsInterval(r, interval))
+      .sort((a, b) => b.odometer - a.odometer)[0]
 
     const baseOdometer = last ? last.odometer : vehicle.purchaseOdometer ?? 0
     const baseDate = last ? last.date : vehicle.purchaseDate || today
 
     const milesSince = currentOdometer - baseOdometer
+    const dueOdometer = interval.miles != null ? baseOdometer + interval.miles : null
+    const dueDate = interval.months != null ? addMonths(baseDate, interval.months) : null
 
     const milesRemaining = interval.miles != null ? interval.miles - milesSince : null
-    const daysRemaining = interval.months != null ? daysBetween(today, addMonths(baseDate, interval.months)) : null
+    const daysRemaining = interval.months != null ? daysBetween(today, dueDate) : null
+
+    const milesProgress = interval.miles != null ? fractionUsed(milesSince, interval.miles) : null
+    const dateProgress = dueDate ? fractionUsed(daysBetween(baseDate, today), daysBetween(baseDate, dueDate)) : null
+    const progress = Math.max(milesProgress ?? 0, dateProgress ?? 0)
 
     let status = 'ok'
     if ((milesRemaining != null && milesRemaining <= 0) || (daysRemaining != null && daysRemaining <= 0)) {
@@ -159,14 +205,20 @@ export function getDueSoonItems(vehicle, serviceRecords, currentOdometer) {
       status = 'coming-up'
     }
 
-    const remainingLabel =
-      milesRemaining != null
-        ? milesRemaining <= 0
+    let remainingLabel = '—'
+    if (dateProgress != null && (milesProgress == null || dateProgress > milesProgress)) {
+      remainingLabel =
+        daysRemaining <= 0
+          ? `Overdue since ${formatDueDay(dueDate)}`
+          : daysRemaining < 14
+            ? `${daysRemaining} ${daysRemaining === 1 ? 'day' : 'days'}`
+            : `~${Math.round(daysRemaining / 7)} wks`
+    } else if (milesRemaining != null) {
+      remainingLabel =
+        milesRemaining <= 0
           ? `Due ${Math.abs(milesRemaining).toLocaleString()} mi ago`
           : `${milesRemaining.toLocaleString()} mi`
-        : daysRemaining <= 0
-          ? 'OVERDUE'
-          : `~${Math.round(daysRemaining / 7)} wks`
+    }
 
     const detailLabel = [
       interval.miles != null ? `every ${interval.miles.toLocaleString()} mi` : null,
@@ -183,15 +235,16 @@ export function getDueSoonItems(vehicle, serviceRecords, currentOdometer) {
       remainingLabel,
       detailLabel,
       milesRemaining,
+      dueOdometer,
+      dueDate,
+      progress,
       lastServiceOdometer: last?.odometer ?? null,
       lastServiceDate: last?.date ?? null,
     }
   })
 
   const order = { overdue: 0, 'coming-up': 1, ok: 2 }
-  return items.sort(
-    (a, b) => order[a.status] - order[b.status] || (a.milesRemaining ?? Infinity) - (b.milesRemaining ?? Infinity)
-  )
+  return items.sort((a, b) => order[a.status] - order[b.status] || b.progress - a.progress)
 }
 
 /**

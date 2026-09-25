@@ -49,8 +49,8 @@ export default function LogServiceModal({ vehicle, onClose, editingRecord = null
       setOdometerError('Enter the current odometer reading.')
       return
     }
-    // categoryId drives interval/due-soon matching, so it needs to reflect what was actually
-    // selected rather than whichever tab happened to be open when Save was clicked.
+    // Derived from what was selected, not whichever tab is open. It's for display and export only:
+    // intervals match on `services` (D10).
     const derivedCategoryId = CATEGORY_ID_BY_SERVICE[selectedServices[0]] || activeCategory
     const payload = {
       vehicleId: vehicle.id,
