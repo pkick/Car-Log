@@ -3,6 +3,7 @@ import { SERVICE_CATEGORIES, CATEGORY_TEXT_CLASS, CATEGORY_TILE_CLASS, CATEGORY_
 import { CalendarIcon, PaperclipIcon } from './icons'
 import { useRecords } from '../context/RecordsContext'
 import { getDueSoonItems } from '../lib/vehicleStats'
+import { todayISO } from '../lib/dates'
 
 export default function LogServiceModal({ vehicle, onClose, editingRecord = null, defaultCategoryId = 'oil' }) {
   const { getServiceRecordsForVehicle, addServiceRecord, updateServiceRecord } = useRecords()
@@ -10,7 +11,7 @@ export default function LogServiceModal({ vehicle, onClose, editingRecord = null
   const [activeCategory, setActiveCategory] = useState(editingRecord?.categoryId || defaultCategoryId)
   const [selectedServices, setSelectedServices] = useState(editingRecord?.services || [])
   const [formData, setFormData] = useState({
-    date: editingRecord?.date || new Date().toISOString().split('T')[0],
+    date: editingRecord?.date || todayISO(),
     odometer: editingRecord?.odometer ?? vehicle?.odometer ?? 0,
     cost: editingRecord ? String(editingRecord.cost) : '',
     performedBy: editingRecord?.performedBy || 'shop',

@@ -2,6 +2,7 @@ import { useState, useContext } from 'react'
 import { CalendarIcon } from './icons'
 import { useRecords } from '../context/RecordsContext'
 import { VehicleContext } from '../context/VehicleContext'
+import { todayISO } from '../lib/dates'
 
 export default function LogPolicyModal({ vehicle, onClose, editingRecord = null, defaultType = 'insurance' }) {
   const { addPolicyRecord, updatePolicyRecord } = useRecords()
@@ -9,7 +10,7 @@ export default function LogPolicyModal({ vehicle, onClose, editingRecord = null,
 
   const [formData, setFormData] = useState({
     type: editingRecord?.type || defaultType,
-    date: editingRecord?.date || new Date().toISOString().split('T')[0],
+    date: editingRecord?.date || todayISO(),
     cost: editingRecord ? String(editingRecord.cost) : '',
     renewalDate: editingRecord?.renewalDate || '',
     provider: editingRecord?.provider || '',

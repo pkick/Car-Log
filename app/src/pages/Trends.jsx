@@ -10,14 +10,11 @@ import {
   getPricePaidBuckets,
   getRecords,
 } from '../lib/vehicleStats'
+import { addDays, parseISODate, todayISO } from '../lib/dates'
 
-const daysAgo = (n) => {
-  const d = new Date()
-  d.setDate(d.getDate() - n)
-  return d
-}
+const daysAgo = (n) => addDays(todayISO(), -n)
 
-const shortDate = (dateStr) => new Date(dateStr).toLocaleDateString('en-US', { month: 'short', day: 'numeric' }).toUpperCase()
+const shortDate = (dateStr) => parseISODate(dateStr).toLocaleDateString('en-US', { month: 'short', day: 'numeric' }).toUpperCase()
 
 const WINDOW_DAYS = { '90-days': 90, '6-months': 182, '1-year': 365, 'all-time': Infinity }
 const WINDOW_LABEL = { '90-days': 'ROLLING 90 DAYS', '6-months': 'ROLLING 6 MONTHS', '1-year': 'ROLLING 1 YEAR', 'all-time': 'ALL TIME' }
@@ -26,14 +23,14 @@ function filterByWindow(items, windowKey) {
   const days = WINDOW_DAYS[windowKey]
   if (!isFinite(days)) return items
   const cutoff = daysAgo(days)
-  return items.filter((i) => new Date(i.date) >= cutoff)
+  return items.filter((i) => i.date >= cutoff)
 }
 
 function filterByTrendRange(fillsWithMpgAsc, range) {
   if (range === '12 fills') return fillsWithMpgAsc.slice(-12)
   const days = range === '6 mo' ? 182 : 365
   const cutoff = daysAgo(days)
-  return fillsWithMpgAsc.filter((f) => new Date(f.date) >= cutoff)
+  return fillsWithMpgAsc.filter((f) => f.date >= cutoff)
 }
 
 export default function Trends({ vehicle }) {
