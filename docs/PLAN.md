@@ -144,14 +144,14 @@ Acceptance
 ### P1-E · Safe writes and server validation
 Branch `fix/p1e-safe-writes`. Depends on P1-B.
 
-- [ ] **P1-E1** Every modal awaits its mutation, disables Save while pending, stays open on failure and shows the
+- [x] **P1-E1** Every modal awaits its mutation, disables Save while pending, stays open on failure and shows the
       server's message inline. No unhandled promise rejections.
 - [x] **P1-E2** Server validation helper for all POST/PATCH routes: required fields, numeric types, positive
       amounts, valid `YYYY-MM-DD`. Return `400 { error, field }`.
 - [x] **P1-E3** Turn on `PRAGMA foreign_keys = ON` and recreate tables with `ON DELETE CASCADE` for fill-ups,
       services and policy records (D2 allows the reset). Remove the manual deletes in `routes/vehicles.js`.
-- [ ] **P1-E4** Replace `alert()` in `AddVehicleModal` with inline field errors.
-- [ ] **P1-E5** Zero-vehicle safety: `Header`, `Sidebar` and pages render without a vehicle (temporary
+- [x] **P1-E4** Replace `alert()` in `AddVehicleModal` with inline field errors.
+- [x] **P1-E5** Zero-vehicle safety: `Header`, `Sidebar` and pages render without a vehicle (temporary
       "Add your first vehicle" panel until P4-G builds the real first run). The server stops blocking deletion
       of the last vehicle.
 - [x] **P1-E6** Route tests for validation errors and cascade delete.
@@ -407,7 +407,7 @@ Backlog (not scheduled): units and currency settings (L/100 km, km, liters), hou
 Newest first. One line per merged PR: date, group, PR link, one-sentence summary.
 
 - 2026-09-25 · P1-C · Intervals list the services that reset them (D10); the server owns the defaults (`GET /api/defaults/intervals`); due items carry `progress`, `dueDate` and `dueOdometer`, labels follow whichever limit is closer, and the Coming up bars use `progress` (finishes P1-F2). Needs a dev DB reset.
-- 2026-09-25 · P1-E (server) · `400 { error, field }` validation on every write, `ON DELETE CASCADE` for records (startup warns about an old DB), and the last vehicle can be deleted. E1, E4 and the client side of E5 are next.
+- 2026-09-25 · P1-E · `400 { error, field }` validation on every write, `ON DELETE CASCADE` for records (startup warns about an old DB); every form awaits its save and shows the server's message inline ("Can't reach the server" when it's down); no `alert()`; the last vehicle can be deleted and the app shows an "Add your first vehicle" panel. **Phase 1 complete.**
 - 2026-09-25 · P1-D · Full / Partial toggle, tank warning in both forms, month-to-date spend vs the same days last month, a 12-fill price chart around the vehicle's own average, real 6-month spend and gallon averages, and Looking ahead for every interval.
 - 2026-09-25 · P1-F · Opacity scale extended, connection indicator, Wipers subcategories, placeholders hidden, `tracksFuel` / `tracksService` honored (including Garage cards), title, scroll reset and wrench icon. P1-F2 is half done: the fake 70% tile bars are gone; the Coming up bars wait for `progress` from P1-C3.
 - 2026-09-25 · P1-B · Server owns the odometer (recomputed on every write, D9) and rejects out-of-order fill-up readings with an inline 422; route tests via `node --test`. Fill-ups sharing a date are ordered by entry, so a new one must be the day's highest reading. Existing dev DBs still need `rm server/data/odometer.db` once (P1-B7).
