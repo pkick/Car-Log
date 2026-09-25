@@ -84,7 +84,7 @@ export default function Dashboard({ vehicle, onViewTrends, onLogService }) {
       categoryIds: [...new Set(r.services.map((s) => CATEGORY_ID_BY_SERVICE[s]).filter(Boolean))],
     })),
   ]
-    .sort((a, b) => new Date(b.date) - new Date(a.date) || b.odometer - a.odometer)
+    .sort((a, b) => b.date.localeCompare(a.date) || b.odometer - a.odometer)
     .filter((item) => activityFilter === 'All' || item.type === activityFilter)
 
   return (

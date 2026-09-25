@@ -1,12 +1,13 @@
 import { useState, useContext } from 'react'
 import { VehicleContext, DEFAULT_INTERVALS } from '../context/VehicleContext'
+import { currentYear } from '../lib/dates'
 
 export default function AddVehicleModal({ onClose }) {
   const { addVehicle } = useContext(VehicleContext)
 
   const [formData, setFormData] = useState({
     nickname: '',
-    year: new Date().getFullYear(),
+    year: currentYear(),
     make: '',
     model: '',
     trim: '',
