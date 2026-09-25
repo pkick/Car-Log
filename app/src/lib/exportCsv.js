@@ -20,7 +20,7 @@ export function buildCsv(vehicles, fillUps, serviceRecords) {
       'Service', vehicleName(r.vehicleId), r.date, r.odometer, '', '', '',
       r.categoryId, r.services.join('; '), r.cost, r.performedBy, r.shopName, r.partsUsed, r.notes,
     ]),
-  ].sort((a, b) => new Date(a[2]) - new Date(b[2]))
+  ].sort((a, b) => String(a[2]).localeCompare(String(b[2])))
 
   return [HEADERS, ...rows].map((row) => row.map(csvEscape).join(',')).join('\n')
 }

@@ -54,19 +54,28 @@ Applies to every task group.
 Goal: every number the app shows is correct, every flow that looks usable works, and nothing
 fails silently. No redesign yet.
 
+### P1-CI · Continuous integration
+Branch `chore/ci`. Depends on the GitHub token having the `workflow` scope (`gh auth refresh -h github.com -s workflow`).
+
+- [ ] **P1-CI1** GitHub Actions workflow on every PR and push to `main`: `npm ci`, `npm run lint`, `npm test`,
+      `npm run build` in `app/`, and `npm test` in `server/` once it exists.
+
+Acceptance
+- A PR shows a green check, and a failing test turns it red.
+
 ### P1-A · Test harness and local dates
 Branch `fix/p1a-dates`. Depends on nothing.
 
-- [ ] **P1-A1** Add Vitest to `app/` with a `test` script that runs under `TZ=America/Los_Angeles`.
+- [x] **P1-A1** Add Vitest to `app/` with a `test` script that runs under `TZ=America/Los_Angeles`.
       Add baseline tests that lock in `computeFillMpg` (partial fills accumulate, first full fill has no MPG).
-- [ ] **P1-A2** Create `app/src/lib/dates.js` with JSDoc and tests: `todayISO()`, `parseISODate(str)` (local
+- [x] **P1-A2** Create `app/src/lib/dates.js` with JSDoc and tests: `todayISO()`, `parseISODate(str)` (local
       midnight), `addMonths(iso, n)` (calendar months, clamps day 31), `daysBetween(a, b)`, `monthKey(iso)`,
       `isWithinDays(iso, n, today)`.
-- [ ] **P1-A3** Replace every `toISOString()` default and every `new Date('YYYY-MM-DD')` parse (14 call sites in
+- [x] **P1-A3** Replace every `toISOString()` default and every `new Date('YYYY-MM-DD')` parse (14 call sites in
       11 files: `LogFillupModal`, `AddVehicleModal`, `LogServiceModal`, `LogPolicyModal`, `vehicleStats`,
-      `exportCsv`, `Documents`, `Trends`, `FuelLog`, `Settings`, `Dashboard`). `grep -rn "new Date(" app/src` must
-      only show `new Date()` for "now" inside `dates.js`.
-- [ ] **P1-A4** Replace `interval.months * 30` in `getDueSoonItems` with `addMonths` so due dates land on real
+      `exportCsv`, `Documents`, `Trends`, `FuelLog`, `Settings`, `Dashboard`). No `toISOString()` and no
+      `new Date(<date string>)` remain outside `dates.js`.
+- [x] **P1-A4** Replace `interval.months * 30` in `getDueSoonItems` with `addMonths` so due dates land on real
       calendar dates.
 
 Acceptance
@@ -406,4 +415,5 @@ Backlog (not scheduled): units and currency settings (L/100 km, km, liters), hou
 
 Newest first. One line per merged PR: date, group, PR link, one-sentence summary.
 
-- 2026-09-24 · Plan · Added this plan, `roadmap.html` and `CLAUDE.md`.
+- 2026-09-24 · P1-A · [#2](https://github.com/pkick/Car-Log/pull/2) · Vitest harness and `lib/dates.js`; forms default to the local date, and spend grouping no longer puts the 1st of a month in the previous month.
+- 2026-09-24 · Plan · [#1](https://github.com/pkick/Car-Log/pull/1) · Added this plan, `roadmap.html` and `CLAUDE.md`.

@@ -2,12 +2,11 @@ import { useState } from 'react'
 import { useRecords } from '../context/RecordsContext'
 import LogPolicyModal from '../components/LogPolicyModal'
 import { InsuranceIcon, RegistrationIcon } from '../components/icons'
+import { daysBetween, todayISO } from '../lib/dates'
 
 function getRenewalStatus(dateStr) {
   if (!dateStr) return { status: 'unknown', daysUntil: null }
-  const today = new Date()
-  const renewal = new Date(dateStr)
-  const daysUntil = Math.round((renewal - today) / 86400000)
+  const daysUntil = daysBetween(todayISO(), dateStr)
   if (daysUntil < 0) return { status: 'overdue', daysUntil }
   if (daysUntil <= 30) return { status: 'coming-up', daysUntil }
   return { status: 'ok', daysUntil }
@@ -66,7 +65,7 @@ export default function Documents({ vehicle }) {
 
   const records = getPolicyRecordsForVehicle(vehicle.id)
   const history = [...records]
-    .sort((a, b) => new Date(b.date) - new Date(a.date))
+    .sort((a, b) => b.date.localeCompare(a.date))
     .filter((r) => filter === 'All' || (filter === 'Insurance' ? r.type === 'insurance' : r.type === 'registration'))
 
   return (

@@ -2,9 +2,10 @@ import { useState } from 'react'
 import { FuelIcon } from '../components/icons'
 import { useRecords } from '../context/RecordsContext'
 import { computeFillMpg } from '../lib/vehicleStats'
+import { todayISO } from '../lib/dates'
 
 const emptyForm = (vehicle) => ({
-  date: new Date().toISOString().split('T')[0],
+  date: todayISO(),
   odometer: String(vehicle?.odometer ?? ''),
   gallons: '',
   priceMode: 'perGallon',

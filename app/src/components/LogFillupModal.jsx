@@ -2,12 +2,13 @@ import { useState } from 'react'
 import { FuelIcon, CalendarIcon } from './icons'
 import { useRecords } from '../context/RecordsContext'
 import { computeFillMpg } from '../lib/vehicleStats'
+import { todayISO } from '../lib/dates'
 
 export default function LogFillupModal({ vehicle, onClose, editingFillUp = null }) {
   const { getFillUpsForVehicle, addFillUp, updateFillUp } = useRecords()
 
   const [formData, setFormData] = useState({
-    date: editingFillUp?.date || new Date().toISOString().split('T')[0],
+    date: editingFillUp?.date || todayISO(),
     odometer: editingFillUp?.odometer ?? vehicle?.odometer ?? 0,
     gallons: editingFillUp ? String(editingFillUp.gallons) : '',
     priceMode: 'perGallon',

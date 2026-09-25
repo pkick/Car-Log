@@ -3,6 +3,7 @@ import { useUIPrefs, DEFAULT_TEXT_SCALE, MIN_TEXT_SCALE, MAX_TEXT_SCALE } from '
 import { VehicleContext } from '../context/VehicleContext'
 import { useRecords } from '../context/RecordsContext'
 import { buildCsv, downloadCsv } from '../lib/exportCsv'
+import { todayISO } from '../lib/dates'
 import { ExportIcon, TextSizeIcon, ServerIcon } from '../components/icons'
 
 export default function Settings() {
@@ -12,8 +13,7 @@ export default function Settings() {
 
   const handleExport = () => {
     const csv = buildCsv(vehicles, fillUps, serviceRecords)
-    const today = new Date().toISOString().split('T')[0]
-    downloadCsv(csv, `odometer-export-${today}.csv`)
+    downloadCsv(csv, `odometer-export-${todayISO()}.csv`)
   }
 
   return (

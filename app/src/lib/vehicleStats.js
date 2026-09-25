@@ -1,7 +1,4 @@
-function dateMonthKey(dateStr) {
-  const d = new Date(dateStr)
-  return `${d.getFullYear()}-${d.getMonth()}`
-}
+import { addMonths, daysBetween, monthKey, parseISODate, todayISO } from './dates'
 
 // Accumulates gallons across partial fills until the next full fill, so MPG
 // is only ever computed for a tank-to-tank span that actually started and
@@ -29,7 +26,7 @@ export function computeFillMpg(fillsAsc) {
   })
 }
 
-export function getFuelStats(fillsForVehicle) {
+export function getFuelStats(fillsForVehicle, today = todayISO()) {
   const sorted = [...fillsForVehicle].sort((a, b) => a.odometer - b.odometer)
   const withMpg = computeFillMpg(sorted)
   const validMpgs = withMpg.filter((f) => f.mpg != null).map((f) => f.mpg)
@@ -41,21 +38,18 @@ export function getFuelStats(fillsForVehicle) {
   const totalMiles = sorted.length >= 2 ? sorted[sorted.length - 1].odometer - sorted[0].odometer : 0
   const costPerMile = totalMiles > 0 ? Math.round((totalSpend / totalMiles) * 100) / 100 : null
 
-  const now = new Date()
-  const thisMonthKey = `${now.getFullYear()}-${now.getMonth()}`
-  const prevDate = new Date(now.getFullYear(), now.getMonth() - 1, 1)
-  const lastMonthKey = `${prevDate.getFullYear()}-${prevDate.getMonth()}`
+  const thisMonthKey = monthKey(today)
+  const lastMonthKey = monthKey(addMonths(today, -1))
 
-  const spendThisMonth = sorted.filter((f) => dateMonthKey(f.date) === thisMonthKey).reduce((s, f) => s + f.total, 0)
-  const spendLastMonth = sorted.filter((f) => dateMonthKey(f.date) === lastMonthKey).reduce((s, f) => s + f.total, 0)
+  const spendThisMonth = sorted.filter((f) => monthKey(f.date) === thisMonthKey).reduce((s, f) => s + f.total, 0)
+  const spendLastMonth = sorted.filter((f) => monthKey(f.date) === lastMonthKey).reduce((s, f) => s + f.total, 0)
   const spendDelta = spendLastMonth > 0 ? Math.round(((spendThisMonth - spendLastMonth) / spendLastMonth) * 1000) / 10 : null
 
   return { avgMpg, costPerMile, spendThisMonth: Math.round(spendThisMonth), spendDelta, withMpg }
 }
 
-export function getDueSoonItems(vehicle, serviceRecords, currentOdometer) {
+export function getDueSoonItems(vehicle, serviceRecords, currentOdometer, today = todayISO()) {
   const intervals = vehicle.intervals || []
-  const today = new Date()
 
   const items = intervals.map((interval) => {
     const matching = serviceRecords
@@ -64,13 +58,11 @@ export function getDueSoonItems(vehicle, serviceRecords, currentOdometer) {
     const last = matching[0]
 
     const baseOdometer = last ? last.odometer : vehicle.purchaseOdometer ?? 0
-    const baseDate = last ? last.date : vehicle.purchaseDate || today.toISOString().slice(0, 10)
+    const baseDate = last ? last.date : vehicle.purchaseDate || today
 
     const milesSince = currentOdometer - baseOdometer
-    const daysSince = Math.floor((today - new Date(baseDate)) / 86400000)
-
     const milesRemaining = interval.miles != null ? interval.miles - milesSince : null
-    const daysRemaining = interval.months != null ? interval.months * 30 - daysSince : null
+    const daysRemaining = interval.months != null ? daysBetween(today, addMonths(baseDate, interval.months)) : null
 
     let status = 'ok'
     if ((milesRemaining != null && milesRemaining <= 0) || (daysRemaining != null && daysRemaining <= 0)) {
@@ -118,7 +110,7 @@ export function getDueSoonItems(vehicle, serviceRecords, currentOdometer) {
 }
 
 export function getServiceHistorySorted(records) {
-  return [...records].sort((a, b) => new Date(b.date) - new Date(a.date))
+  return [...records].sort((a, b) => b.date.localeCompare(a.date))
 }
 
 export function getRecords(fillsForVehicle) {
@@ -134,18 +126,17 @@ export function getRecords(fillsForVehicle) {
   }
 }
 
-export function getMonthlySpend(fillsForVehicle, recordsForVehicle) {
-  const now = new Date()
+export function getMonthlySpend(fillsForVehicle, recordsForVehicle, today = todayISO()) {
   const months = []
   for (let i = 2; i >= 0; i--) {
-    const d = new Date(now.getFullYear(), now.getMonth() - i, 1)
-    months.push({ key: `${d.getFullYear()}-${d.getMonth()}`, month: d.toLocaleString('en-US', { month: 'short' }) })
+    const iso = addMonths(today, -i)
+    months.push({ key: monthKey(iso), month: parseISODate(iso).toLocaleString('en-US', { month: 'short' }) })
   }
 
   return months.map(({ key, month }) => ({
     month,
-    fuel: Math.round(fillsForVehicle.filter((f) => dateMonthKey(f.date) === key).reduce((s, f) => s + f.total, 0)),
-    service: Math.round(recordsForVehicle.filter((r) => dateMonthKey(r.date) === key).reduce((s, r) => s + r.cost, 0)),
+    fuel: Math.round(fillsForVehicle.filter((f) => monthKey(f.date) === key).reduce((s, f) => s + f.total, 0)),
+    service: Math.round(recordsForVehicle.filter((r) => monthKey(r.date) === key).reduce((s, r) => s + r.cost, 0)),
   }))
 }
 
@@ -161,12 +152,12 @@ export function getPricePaidBuckets(fillsForVehicle) {
 }
 
 export function getDrivingRate(fillsForVehicle) {
-  const sorted = [...fillsForVehicle].sort((a, b) => new Date(a.date) - new Date(b.date))
+  const sorted = [...fillsForVehicle].sort((a, b) => a.date.localeCompare(b.date))
   if (sorted.length < 2) return { milesPerMonth: 0, milesPerYear: 0, fillsPerYear: 0 }
 
   const first = sorted[0]
   const last = sorted[sorted.length - 1]
-  const daysSpan = Math.max(1, (new Date(last.date) - new Date(first.date)) / 86400000)
+  const daysSpan = Math.max(1, daysBetween(first.date, last.date))
   const milesSpan = last.odometer - first.odometer
   const milesPerMonth = Math.round(milesSpan / (daysSpan / 30))
 
