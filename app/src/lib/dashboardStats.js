@@ -85,7 +85,7 @@ export function getOdometerReadings(fills, services) {
  * @param {string} [today] `YYYY-MM-DD`; defaults to {@link todayISO}.
  * @returns {DrivingPace | null} `null` without two readings on different days in the window.
  */
-export function getDrivingPace(readings, days = Infinity, today = todayISO()) {
+export function getReadingsPace(readings, days = Infinity, today = todayISO()) {
   const inWindow = readings.filter((r) => isWithinDays(r.date, days, today))
   if (inWindow.length < 2) return null
   const first = inWindow[0]
@@ -111,7 +111,7 @@ export function getDrivingPace(readings, days = Infinity, today = todayISO()) {
  * @returns {number | null} `null` when no pace can be measured.
  */
 export function getRecentMilesPerDay(readings, today = todayISO()) {
-  const pace = getDrivingPace(readings, RECENT_PACE_DAYS, today) ?? getDrivingPace(readings, Infinity, today)
+  const pace = getReadingsPace(readings, RECENT_PACE_DAYS, today) ?? getReadingsPace(readings, Infinity, today)
   return pace ? pace.milesPerDay : null
 }
 
@@ -322,5 +322,5 @@ export function getPaceTile({ fills, services }, days, months, today = todayISO(
   const trend = getMonthlyMiles(readings, months)
     .filter((m) => m.miles != null && m.days >= MIN_MONTH_COVERAGE_DAYS)
     .map((m) => (m.miles / m.days) * DAYS_PER_MONTH)
-  return { pace: getDrivingPace(readings, days, today), trend }
+  return { pace: getReadingsPace(readings, days, today), trend }
 }

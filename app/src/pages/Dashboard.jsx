@@ -31,6 +31,7 @@ import { currentYear, parseISODate, todayISO } from '../lib/dates'
 import { isEmptyVehicle } from '../lib/onboarding'
 import { getRenewalItems } from '../lib/renewals'
 import { getDueSoonItems } from '../lib/vehicleStats'
+import { getDrivingPace, withProjectedDates } from '../lib/projections'
 
 // The range is a viewing preference, remembered per browser for every vehicle.
 const RANGE_KEY = 'odometer:dashboard-range'
@@ -173,7 +174,7 @@ export default function Dashboard({ vehicle, onViewTrends, onViewSchedule, onLog
 
         {tracksService && (
           <UpNextCard
-            items={rankDueItems(dueItems, milesPerDay, today)}
+            items={withProjectedDates(rankDueItems(dueItems, milesPerDay, today), getDrivingPace(trackedFills, trackedRecords, today), today)}
             dueCount={dueCount}
             overdueCount={overdueCount}
             onViewSchedule={onViewSchedule}

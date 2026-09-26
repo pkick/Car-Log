@@ -66,8 +66,11 @@ export default function UpNextCard({ items, dueCount, overdueCount, onViewSchedu
                 <div className="min-w-0 flex-1">
                   <div className="flex items-baseline justify-between gap-3">
                     <h3 className="text-sm font-semibold truncate">{item.name}</h3>
-                    <span className={cx('text-xs font-mono font-semibold whitespace-nowrap', REMAINING_CLASS[item.status])}>
-                      {item.remainingLabel}
+                    <span
+                      className={cx('text-xs font-mono font-semibold whitespace-nowrap', REMAINING_CLASS[item.status])}
+                      title={item.projectedLabel && item.status !== 'overdue' ? 'Projected from your driving pace' : undefined}
+                    >
+                      {item.status === 'overdue' ? item.remainingLabel : [item.remainingLabel, item.projectedLabel].filter(Boolean).join(' · ')}
                     </span>
                   </div>
                   <p className="text-xs font-mono text-page/60 mt-0.5 mb-2">{item.detailLabel}</p>

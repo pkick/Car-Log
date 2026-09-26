@@ -84,6 +84,8 @@ primitive in every state, run the dev server and open http://localhost:5173/dev/
 - `Toast` (through `useToast()` from `context/toast.js`): `success(message, detail)` after a save, `error(message)`,
   and `undo(message, { onUndo, onExpire })`, which record deletes use for their 5-second window.
 - `Skeleton`: grey placeholder blocks while data loads.
+- `Menu`, `MenuItem`, `MenuLabel`, `MenuSeparator`: a menu button (row More, vehicle switcher); arrows, Home / End,
+  Esc and Tab close it and return focus.
 - `Modal`, `Drawer`: every dialog. Focus trap, Esc and backdrop close, focus return, sticky header and footer.
   Modal `sm` 440 / `md` 600 / `lg` 760px; Drawer slides in from the right at 400 / 480 / 640px.
 

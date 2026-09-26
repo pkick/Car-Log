@@ -5,7 +5,7 @@ import {
   DEFAULT_RANGE,
   findDashboardRange,
   getCostPerMileTile,
-  getDrivingPace,
+  getReadingsPace,
   getFirstRecordDate,
   getMonthSpendTile,
   getMonthlyMiles,
@@ -66,11 +66,11 @@ describe('getOdometerReadings', () => {
   })
 })
 
-describe('getDrivingPace', () => {
+describe('getReadingsPace', () => {
   const readings = [reading('2026-06-01', 10000), reading('2026-07-01', 11000), reading('2026-08-30', 13000)]
 
   it('divides the miles between the first and last reading by the days between them', () => {
-    const pace = getDrivingPace(readings, Infinity, TODAY)
+    const pace = getReadingsPace(readings, Infinity, TODAY)
     expect(pace.miles).toBe(3000)
     expect(pace.days).toBe(90)
     expect(pace.milesPerDay).toBeCloseTo(33.333, 3)
@@ -79,14 +79,14 @@ describe('getDrivingPace', () => {
   })
 
   it('only uses readings inside the window', () => {
-    const pace = getDrivingPace(readings, 90, TODAY)
+    const pace = getReadingsPace(readings, 90, TODAY)
     expect(pace).toMatchObject({ miles: 2000, days: 60 })
   })
 
   it('needs two readings on different days', () => {
-    expect(getDrivingPace([reading('2026-09-01', 1000)], Infinity, TODAY)).toBeNull()
-    expect(getDrivingPace([reading('2026-09-01', 1000), reading('2026-09-01', 1200)], Infinity, TODAY)).toBeNull()
-    expect(getDrivingPace(readings, 20, TODAY)).toBeNull()
+    expect(getReadingsPace([reading('2026-09-01', 1000)], Infinity, TODAY)).toBeNull()
+    expect(getReadingsPace([reading('2026-09-01', 1000), reading('2026-09-01', 1200)], Infinity, TODAY)).toBeNull()
+    expect(getReadingsPace(readings, 20, TODAY)).toBeNull()
   })
 })
 

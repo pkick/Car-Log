@@ -313,16 +313,16 @@ Branch `feat/p3a-charts`. Depends on P2-A.
 ### P3-B · Dashboard 2.0
 Branch `feat/p3b-dashboard`. Depends on P3-A, P2-C, P2-D. Wireframe: roadmap 3A.
 
-- [ ] **P3-B1** Vehicle switcher moves to the top of the sidebar; header holds search trigger, connection status,
+- [x] **P3-B1** Vehicle switcher moves to the top of the sidebar; header holds search trigger, connection status,
       Log service and Log fill-up.
-- [ ] **P3-B2** Attention banner: the single most urgent item across overdue services and renewals, with its
+- [x] **P3-B2** Attention banner: the single most urgent item across overdue services and renewals, with its
       action and "Snooze 2 wks" (stored per item). Hidden when nothing is due.
-- [ ] **P3-B3** Stat tiles with sparklines: Avg MPG (last 5 vs previous 5 full tanks), Cost per mile all-in for
+- [x] **P3-B3** Stat tiles with sparklines: Avg MPG (last 5 vs previous 5 full tanks), Cost per mile all-in for
       the selected range, Spent this month (vs same days last month, split fuel / service), Driving pace (mi/mo).
-- [ ] **P3-B4** Range selector (90 days / 1 year / All time) drives the tiles and chart.
-- [ ] **P3-B5** MPG line chart with average and partial markers.
-- [ ] **P3-B6** Up next: top three intervals with `ProgressTrack`, status color and projected date.
-- [ ] **P3-B7** Activity timeline grouped by month, including documents, with Edit and More on hover.
+- [x] **P3-B4** Range selector (90 days / 1 year / All time) drives the tiles and chart.
+- [x] **P3-B5** MPG line chart with average and partial markers.
+- [x] **P3-B6** Up next: top three intervals with `ProgressTrack`, status color and projected date.
+- [x] **P3-B7** Activity timeline grouped by month, including documents, with Edit and More on hover.
 
 ### P3-C · Smart fill-up drawer
 Branch `feat/p3c-fillup-drawer`. Depends on P2-D, P2-E. Wireframe: roadmap 3B.
@@ -546,6 +546,7 @@ Backlog (not scheduled): units and currency settings (L/100 km, km, liters), hou
 Newest first. One line per merged PR: date, group, PR link, one-sentence summary.
 
 - 2026-09-25 · P1-C · Intervals list the services that reset them (D10); the server owns the defaults (`GET /api/defaults/intervals`); due items carry `progress`, `dueDate` and `dueOdometer`, labels follow whichever limit is closer, and the Coming up bars use `progress` (finishes P1-F2). Needs a dev DB reset.
+- 2026-09-26 · P3-B · Dashboard 2.0: vehicle switcher in the sidebar, an attention banner for the single most urgent service or renewal (Snooze 2 wks), sparkline stat tiles with a 90 days / 1 year / All time range, an MPG line chart, Up next with progress tracks and projected dates, and a month-grouped activity timeline with Edit and a More menu. New `Menu` primitive.
 - 2026-09-26 · P3-D · Maintenance schedule: progress tracks, status filter chips, projected due dates from the driving pace (`lib/projections.js`), one-click Mark done with Undo, Set last done baselines for intervals with no history, searchable history with category chips and a yearly spend card; Log service shows the next milestone.
 - 2026-09-26 · P4-G · First-run screen (no header, 3-step strip that keeps guiding on the Dashboard until set up), empty-vehicle Dashboard with em-dash tiles and invitation cards, and opt-in demo data (`POST`/`DELETE /api/demo`, migration `002_demo_flag`, a Clear demo data banner). The Import CSV button joins the first-run screen with P4-E.
 - 2026-09-26 · P2-D · Toasts (success, error, undo; max three, bottom-right, announced); deleting a fill-up, service or payment hides it with a 5-second Undo before the DELETE is sent (flushed on page close); success toasts carry a detail such as the MPG; vehicles and records load together behind one skeleton, with an error boundary and Retry.
