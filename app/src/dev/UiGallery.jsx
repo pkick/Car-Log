@@ -1,7 +1,6 @@
 // Dev-only gallery of the components/ui primitives, served at /dev/ui by main.jsx while
-// import.meta.env.DEV is true; the production build never includes it.
-// P2-C (routing): keep /dev/ui working when the router lands (leave the check in main.jsx ahead of
-// the router, or give it a dev-only route).
+// import.meta.env.DEV is true; the production build never includes it. main.jsx checks the path
+// before it renders the app, so the gallery needs no route (in a build, /dev/ui is the 404 page).
 import { useEffect, useRef, useState } from 'react'
 import {
   Badge,

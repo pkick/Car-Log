@@ -1,8 +1,9 @@
-import { createContext, useEffect, useState } from 'react'
+import { createContext, useCallback, useEffect, useState } from 'react'
 
 export const VehicleContext = createContext()
 
-const ACTIVE_VEHICLE_KEY = 'odometer:active-vehicle-id'
+// Named before routing, when it held the active vehicle.
+const LAST_VEHICLE_KEY = 'odometer:active-vehicle-id'
 
 const UNREACHABLE = "Can't reach the server. Check that it's running and try again."
 // A proxy in front of the API (Vite in dev, or one on the NAS) answers these when the API is down.
@@ -28,8 +29,8 @@ async function api(path, options) {
 
 export function VehicleProvider({ children }) {
   const [vehicles, setVehicles] = useState([])
-  const [activeVehicleId, setActiveVehicleIdState] = useState(() => {
-    const stored = localStorage.getItem(ACTIVE_VEHICLE_KEY)
+  const [rememberedId, setRememberedId] = useState(() => {
+    const stored = localStorage.getItem(LAST_VEHICLE_KEY)
     return stored ? parseInt(stored, 10) : null
   })
   const [loading, setLoading] = useState(true)
@@ -39,7 +40,6 @@ export function VehicleProvider({ children }) {
     api('/api/vehicles')
       .then((data) => {
         setVehicles(data)
-        setActiveVehicleIdState((prev) => (prev && data.some((v) => v.id === prev) ? prev : data[0]?.id ?? null))
         setLoading(false)
       })
       .catch((err) => {
@@ -48,13 +48,15 @@ export function VehicleProvider({ children }) {
       })
   }, [])
 
-  const setActiveVehicleId = (id) => {
-    setActiveVehicleIdState(id)
-    if (id == null) localStorage.removeItem(ACTIVE_VEHICLE_KEY)
-    else localStorage.setItem(ACTIVE_VEHICLE_KEY, String(id))
-  }
+  // The URL says which vehicle is shown; this remembers it for `/` to open next time.
+  const rememberVehicle = useCallback((id) => {
+    setRememberedId(id)
+    if (id == null) localStorage.removeItem(LAST_VEHICLE_KEY)
+    else localStorage.setItem(LAST_VEHICLE_KEY, String(id))
+  }, [])
 
-  const getActiveVehicle = () => vehicles.find((v) => v.id === activeVehicleId)
+  // The vehicle `/` opens: the last one shown if it still exists, else the first.
+  const lastVehicleId = vehicles.some((v) => v.id === rememberedId) ? rememberedId : vehicles[0]?.id ?? null
 
   const updateVehicle = async (id, updates) => {
     const updated = await api(`/api/vehicles/${id}`, { method: 'PATCH', body: JSON.stringify(updates) })
@@ -68,7 +70,7 @@ export function VehicleProvider({ children }) {
   const addVehicle = async (vehicleData) => {
     const created = await api('/api/vehicles', { method: 'POST', body: JSON.stringify(vehicleData) })
     setVehicles((vs) => [...vs, created])
-    setActiveVehicleId(created.id)
+    rememberVehicle(created.id)
   }
 
   const getDefaultIntervals = () => api('/api/defaults/intervals')
@@ -76,7 +78,7 @@ export function VehicleProvider({ children }) {
   const deleteVehicle = async (id) => {
     await api(`/api/vehicles/${id}`, { method: 'DELETE' })
     setVehicles((vs) => vs.filter((v) => v.id !== id))
-    if (activeVehicleId === id) setActiveVehicleId(vehicles.find((v) => v.id !== id)?.id ?? null)
+    if (rememberedId === id) rememberVehicle(null)
   }
 
   if (loading) {
@@ -95,9 +97,8 @@ export function VehicleProvider({ children }) {
   return (
     <VehicleContext.Provider value={{
       vehicles,
-      activeVehicleId,
-      setActiveVehicleId,
-      getActiveVehicle,
+      lastVehicleId,
+      rememberVehicle,
       updateVehicle,
       mergeVehicle,
       addVehicle,

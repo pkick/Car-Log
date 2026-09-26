@@ -4,7 +4,7 @@ import { useRecords } from '../context/RecordsContext'
 import { Modal } from './ui'
 import FormActions from './FormActions'
 
-export default function DeleteVehicleModal({ vehicleId, onClose }) {
+export default function DeleteVehicleModal({ vehicleId, onClose, onDeleted }) {
   const { vehicles, deleteVehicle } = useContext(VehicleContext)
   const { removeVehicleRecords } = useRecords()
   const [deleting, setDeleting] = useState(false)
@@ -19,6 +19,7 @@ export default function DeleteVehicleModal({ vehicleId, onClose }) {
     try {
       await deleteVehicle(vehicleId)
       removeVehicleRecords(vehicleId)
+      onDeleted?.(vehicleId)
       onClose()
     } catch (err) {
       setDeleteError(err.message)

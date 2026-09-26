@@ -1,13 +1,14 @@
 import { useContext } from 'react'
+import { NavLink } from 'react-router'
 import { VehicleContext } from '../context/VehicleContext'
 import { useRecords } from '../context/RecordsContext'
 import { getDueSoonItems } from '../lib/vehicleStats'
+import { tracksSection, vehiclePath } from '../lib/routes'
 import { TrendsIcon, SettingsIcon, GarageIcon, WrenchIcon, FuelIcon, RegistrationIcon, DashboardIcon } from './icons'
 
-export default function Sidebar({ screen, setScreen, hiddenScreens = [] }) {
-  const { vehicles, getActiveVehicle } = useContext(VehicleContext)
+export default function Sidebar({ activeVehicle }) {
+  const { vehicles } = useContext(VehicleContext)
   const { fillUps, serviceRecords, policyRecords, getFillUpsForVehicle, getServiceRecordsForVehicle, getPolicyRecordsForVehicle } = useRecords()
-  const activeVehicle = getActiveVehicle()
 
   const activeFillCount = activeVehicle ? getFillUpsForVehicle(activeVehicle.id).length : 0
   const activeDueSoonCount = activeVehicle
@@ -18,15 +19,24 @@ export default function Sidebar({ screen, setScreen, hiddenScreens = [] }) {
   const activePolicyCount = activeVehicle ? getPolicyRecordsForVehicle(activeVehicle.id).length : 0
   const totalEntries = fillUps.length + serviceRecords.length + policyRecords.length
 
+  // With no vehicles, Dashboard is `/` and its first-vehicle panel.
+  const vehicleItems = activeVehicle
+    ? [
+        { section: 'overview', label: 'Dashboard', icon: DashboardIcon },
+        { section: 'fuel', label: 'Fuel log', meta: activeFillCount, icon: FuelIcon },
+        { section: 'maintenance', label: 'Maintenance', meta: activeDueSoonCount, icon: WrenchIcon },
+        { section: 'documents', label: 'Documents', meta: activePolicyCount, icon: RegistrationIcon },
+        { section: 'trends', label: 'Trends', icon: TrendsIcon },
+      ]
+        .filter((item) => tracksSection(activeVehicle, item.section))
+        .map((item) => ({ ...item, to: vehiclePath(activeVehicle, item.section) }))
+    : [{ to: '/', label: 'Dashboard', icon: DashboardIcon }]
+
   const navItems = [
-    { id: 'dashboard', label: 'Dashboard', icon: DashboardIcon },
-    { id: 'fuel-log', label: 'Fuel log', meta: activeFillCount, icon: FuelIcon },
-    { id: 'maintenance', label: 'Maintenance', meta: activeDueSoonCount, icon: WrenchIcon },
-    { id: 'documents', label: 'Documents', meta: activePolicyCount, icon: RegistrationIcon },
-    { id: 'trends', label: 'Trends', icon: TrendsIcon },
-    { id: 'garage', label: 'Garage', meta: vehicles.length, icon: GarageIcon },
-    { id: 'settings', label: 'Settings', icon: SettingsIcon },
-  ].filter((item) => !hiddenScreens.includes(item.id))
+    ...vehicleItems,
+    { to: '/garage', label: 'Garage', meta: vehicles.length, icon: GarageIcon },
+    { to: '/settings', label: 'Settings', icon: SettingsIcon },
+  ]
 
   return (
     <aside className="w-[236px] bg-slate text-page p-[26px] flex flex-col gap-[30px] sticky top-0 h-screen">
@@ -42,28 +52,22 @@ export default function Sidebar({ screen, setScreen, hiddenScreens = [] }) {
       {/* Navigation */}
       <nav className="flex flex-col gap-1">
         {navItems.map((item) => (
-          <button
-            key={item.id}
-            onClick={() => !item.disabled && setScreen(item.id)}
-            disabled={item.disabled}
-            className={`flex items-center gap-1.5 px-3 py-2 rounded-lg text-sm transition-colors ${
-              item.disabled
-                ? 'text-page/35 cursor-default'
-                : screen === item.id
-                  ? 'bg-white/16 text-page'
-                  : 'text-page/62 hover:bg-white/14'
-            }`}
+          <NavLink
+            key={item.label}
+            to={item.to}
+            end
+            className={({ isActive }) =>
+              `flex items-center gap-1.5 px-3 py-2 rounded-lg text-sm transition-colors ${
+                isActive ? 'bg-white/16 text-page' : 'text-page/62 hover:bg-white/14'
+              }`
+            }
           >
-            {item.icon ? (
-              <item.icon size={19} className={`flex-none ${item.disabled ? 'text-accent-on-dark/40' : 'text-accent-on-dark'}`} />
-            ) : (
-              <span className={`w-1.5 h-1.5 rounded-full flex-none ${item.disabled ? 'bg-accent-on-dark/40' : 'bg-accent-on-dark'}`} />
-            )}
+            <item.icon size={19} className="flex-none text-accent-on-dark" />
             <span>{item.label}</span>
             {item.meta != null && item.meta !== 0 && (
               <span className="ml-auto text-xs opacity-55 font-mono">{item.meta}</span>
             )}
-          </button>
+          </NavLink>
         ))}
       </nav>
 
