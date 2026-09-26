@@ -22,6 +22,7 @@ import {
   Textarea,
 } from '../components/ui'
 import { CalendarIcon, CarIcon, ExportIcon, FuelIcon, PencilIcon, TrashIcon, WrenchIcon } from '../components/icons'
+import ChartGallery from './ChartGallery'
 
 const TOKENS = [
   { name: 'page', swatch: 'bg-page' },
@@ -524,6 +525,8 @@ export default function UiGallery() {
       <Section title="Modal and Drawer" note="Esc, backdrop and × close; Tab is trapped; focus returns to the trigger">
         <DialogDemos />
       </Section>
+
+      <ChartGallery />
     </main>
   )
 }
