@@ -240,11 +240,11 @@ Acceptance
 ### P2-D · Feedback: toasts, undo, loading
 Branch `feat/p2d-feedback`. Depends on P2-A.
 
-- [ ] **P2-D1** `ToastProvider` with success, error and undo variants; max three stacked; bottom-right.
-- [ ] **P2-D2** Undo delete for fill-ups, services and payments: hide optimistically, send DELETE after 5 s,
+- [x] **P2-D1** `ToastProvider` with success, error and undo variants; max three stacked; bottom-right.
+- [x] **P2-D2** Undo delete for fill-ups, services and payments: hide optimistically, send DELETE after 5 s,
       restore on Undo or on server error.
-- [ ] **P2-D3** Success toasts with a useful detail ("Fill-up saved · 32.2 mpg").
-- [ ] **P2-D4** Load vehicles and records in parallel (one bootstrap request or `Promise.all` across providers).
+- [x] **P2-D3** Success toasts with a useful detail ("Fill-up saved · 32.2 mpg").
+- [x] **P2-D4** Load vehicles and records in parallel (one bootstrap request or `Promise.all` across providers).
       Replace the full-screen "Loading…" with skeletons. Add a top-level error boundary with a retry button.
 
 Acceptance
@@ -546,6 +546,7 @@ Backlog (not scheduled): units and currency settings (L/100 km, km, liters), hou
 Newest first. One line per merged PR: date, group, PR link, one-sentence summary.
 
 - 2026-09-25 · P1-C · Intervals list the services that reset them (D10); the server owns the defaults (`GET /api/defaults/intervals`); due items carry `progress`, `dueDate` and `dueOdometer`, labels follow whichever limit is closer, and the Coming up bars use `progress` (finishes P1-F2). Needs a dev DB reset.
+- 2026-09-26 · P2-D · Toasts (success, error, undo; max three, bottom-right, announced); deleting a fill-up, service or payment hides it with a 5-second Undo before the DELETE is sent (flushed on page close); success toasts carry a detail such as the MPG; vehicles and records load together behind one skeleton, with an error boundary and Retry.
 - 2026-09-26 · P3-G · Garage cards show tracking badges and a due count, open the vehicle on click (stretched `CardLink`) and the Add vehicle tile is a real button; Documents has renewal cards with countdowns, status and the last payment, from a tested `lib/renewals.js` that P3-B's attention banner will use.
 - 2026-09-26 · P2-C · `react-router` v7 in library mode: `/v/:vehicleId/{overview,fuel,maintenance,documents,trends}`, `/garage`, `/settings`, a 404 page; the active vehicle comes from the URL, switching vehicles keeps the section, untracked sections redirect, and back/forward restore scroll. Deep links work in dev and from the production server.
 - 2026-09-26 · P3-F · Trends rebuilt on the chart kit: MPG per tank (hollow when partial fills went in), 12 months of stacked spend (fuel, service, insurance, registration), all-in cost per mile, station insights (empty until P3-C adds stations), price per gallon, records, and Looking ahead with progress tracks.
