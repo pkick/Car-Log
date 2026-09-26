@@ -13,21 +13,23 @@ Before starting, find the next unchecked task group whose dependencies are merge
 
 - `app/`: React 19 + Vite 8 + Tailwind 3.4. Contexts in `src/context`, pages in `src/pages`,
   modals and shared pieces in `src/components`, pure logic in `src/lib`.
-- `server/`: Express 4 + Node's built-in `node:sqlite`. Routes in `routes/`, schema and seed in `db.js` / `seed.js`.
+- `server/`: Express 4 + `node:sqlite`. Routes in `routes/`, schema in `migrations/` (run by `migrate.js` from `db.js`),
+  demo data in `seed.js`. `index.js` starts the server; `docker-entrypoint.js` is the container's start command.
 - `design_handoff_car_tracker/README.md`: the original design spec (tokens, screens, behavior). Treat it as
   the source of truth for visual details unless PLAN.md says otherwise.
 
 ## Running
 
-Requires Node 22.5+.
+Requires Node 22.13+ (`node:sqlite` needs a flag before that).
 
 ```bash
 cd server && npm install && npm run dev   # API on :3001
 cd app && npm install && npm run dev      # Vite on :5173, proxies /api to :3001
 ```
 
-Dev data is disposable until PLAN.md task P2-F lands: `rm server/data/odometer.db` and restart the server to
-reseed. After P2-F, schema changes must be migrations.
+`npm run dev` in `server/` sets `SEED_DEMO=1`, so an empty dev DB gets the two demo vehicles; `npm start` starts
+empty. Data lives in `DATA_DIR` (default `server/data`). For a clean slate: stop the server,
+`rm server/data/odometer.db`, and start it again. For production (Docker, unraid, backups, upgrades) see README.md.
 
 ## Conventions
 
@@ -40,6 +42,12 @@ reseed. After P2-F, schema changes must be migrations.
   Mono for data and labels.
 - **UI primitives** live in `app/src/components/ui`; see [UI primitives](#ui-primitives) below.
 - **Icons** go in `app/src/components/icons.jsx` on the 24px, 2px-stroke grid.
+- **Schema changes are migrations** (D2 flipped at P2-F). Add `server/migrations/NNN_name.sql` with the next number
+  and never edit one that has shipped. Each runs once, in its own transaction, with foreign keys off, and
+  `foreign_key_check` must pass. Don't put `BEGIN`/`COMMIT` in a migration. If a new column belongs in backups,
+  update `routes/backup.js` (it inserts every column explicitly) and extend `tests/backup.test.js`.
+- **Server tests** run against `:memory:` with `SEED_DEMO=1`. Each test file runs in its own process, so a file can
+  set `process.env` (e.g. `STATIC_DIR`) before importing `./helpers.js`.
 - Keep `lib/` functions pure, documented with JSDoc, and covered by tests.
 - Match the surrounding code style; no comments that restate the code.
 

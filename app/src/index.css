@@ -2,7 +2,6 @@
 @tailwind components;
 @tailwind utilities;
 
-
 /* Color tokens as space-separated sRGB channels. tailwind.config.js reads them as
    rgb(var(--token) / <alpha-value>), so every opacity modifier works and dark mode (P2-G) only
    has to redefine these. The oklch() sources are from the design handoff; values outside sRGB

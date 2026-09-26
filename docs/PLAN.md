@@ -270,16 +270,16 @@ Acceptance
 ### P2-F · Ready for real data (deployment)
 Branch `feat/p2f-deploy`. Depends on P1-E. **After this merges, D2 flips: no more DB resets.**
 
-- [ ] **P2-F1** `DATA_DIR` env (default `server/data`) for the DB and future uploads.
-- [ ] **P2-F2** Migration runner: `schema_migrations` table and numbered files in `server/migrations/`, run on
+- [x] **P2-F1** `DATA_DIR` env (default `server/data`) for the DB and future uploads.
+- [x] **P2-F2** Migration runner: `schema_migrations` table and numbered files in `server/migrations/`, run on
       start. Migration `001` is the full current schema. Remove the ad hoc `ALTER TABLE` in `db.js`.
-- [ ] **P2-F3** Seed only when `SEED_DEMO=1`; otherwise start empty (first-run panel from P1-E5).
-- [ ] **P2-F4** Full JSON export and import (all tables) in Settings, alongside the existing CSV export.
-- [ ] **P2-F5** Production serving: Express serves the built `app/dist` with SPA fallback.
-- [ ] **P2-F6** Multi-stage `Dockerfile`, `docker-compose.yml`, and an unraid template; `/data` volume; health check.
-- [ ] **P2-F7** Self-host fonts with `@fontsource/archivo` and `@fontsource/ibm-plex-mono`; remove the Google
+- [x] **P2-F3** Seed only when `SEED_DEMO=1`; otherwise start empty (first-run panel from P1-E5).
+- [x] **P2-F4** Full JSON export and import (all tables) in Settings, alongside the existing CSV export.
+- [x] **P2-F5** Production serving: Express serves the built `app/dist` with SPA fallback.
+- [x] **P2-F6** Multi-stage `Dockerfile`, `docker-compose.yml`, and an unraid template; `/data` volume; health check.
+- [x] **P2-F7** Self-host fonts with `@fontsource/archivo` and `@fontsource/ibm-plex-mono`; remove the Google
       Fonts `@import`.
-- [ ] **P2-F8** README: deploy, backup and upgrade instructions.
+- [x] **P2-F8** README: deploy, backup and upgrade instructions.
 
 Acceptance
 - `docker compose up` on a clean machine serves the app on one port with an empty DB and no internet.
@@ -546,6 +546,7 @@ Backlog (not scheduled): units and currency settings (L/100 km, km, liters), hou
 Newest first. One line per merged PR: date, group, PR link, one-sentence summary.
 
 - 2026-09-25 · P1-C · Intervals list the services that reset them (D10); the server owns the defaults (`GET /api/defaults/intervals`); due items carry `progress`, `dueDate` and `dueOdometer`, labels follow whichever limit is closer, and the Coming up bars use `progress` (finishes P1-F2). Needs a dev DB reset.
+- 2026-09-26 · P2-F · `DATA_DIR`, numbered SQL migrations (`001_initial`), demo data only with `SEED_DEMO=1`, JSON backup and restore in Settings, Express serves the built app with SPA fallback, Dockerfile / compose / unraid template (verified: build, health check, data survives a rebuild, works with no internet), self-hosted fonts. **D2 has flipped: schema changes are migrations from here on.**
 - 2026-09-26 · P2-A · Color tokens are CSS variables (RGB channels, so any scale opacity works on every color); `components/ui` has Button, IconButton, Field, Input, Textarea, Select, NumberInput, Segmented, Switch, Badge, StatusChip, Card, EmptyState, StatTile, Modal and Drawer; gallery at `/dev/ui` (dev only).
 - 2026-09-25 · Plan · Expanded the Phase 4 epics into task groups P4-A to P4-I (47 tasks) and added decisions D14 to D17.
 - 2026-09-25 · P1-E · `400 { error, field }` validation on every write, `ON DELETE CASCADE` for records (startup warns about an old DB); every form awaits its save and shows the server's message inline ("Can't reach the server" when it's down); no `alert()`; the last vehicle can be deleted and the app shows an "Add your first vehicle" panel. **Phase 1 complete.**
