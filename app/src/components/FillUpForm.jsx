@@ -1,9 +1,10 @@
 import { useId, useState } from 'react'
 import { CalendarIcon } from './icons'
-import { Card, Field, Input, NumberInput, Segmented } from './ui'
+import { Card, Field, Input, NumberInput, Segmented, Textarea } from './ui'
 import FormActions from './FormActions'
 import { useRecords } from '../context/RecordsContext'
 import { useToast } from '../context/toast'
+import { useStations } from '../hooks/useStations'
 import { computeFillMpg, formatLastReading, getLastReading } from '../lib/vehicleStats'
 import { todayISO } from '../lib/dates'
 import { fillUpSavedDetail } from '../lib/toastDetails'
@@ -25,6 +26,8 @@ const initialForm = (fill) => ({
   priceMode: 'perGallon',
   priceValue: fill ? String(fill.pricePerGal) : '',
   isFull: fill?.isFull ?? true,
+  station: fill?.station ?? '',
+  notes: fill?.notes ?? '',
 })
 
 /**
@@ -53,6 +56,8 @@ export default function FillUpForm({ vehicle, editingFillUp = null, onSaved, onC
   const [odometerError, setOdometerError] = useState(null)
   const [saveError, setSaveError] = useState(null)
   const tankLabelId = useId()
+  const stationListId = useId()
+  const stations = useStations(vehicle?.id)
 
   const handleChange = (e) => {
     const { name, value } = e.target
@@ -100,6 +105,8 @@ export default function FillUpForm({ vehicle, editingFillUp = null, onSaved, onC
       gallons,
       pricePerGal,
       isFull: formData.isFull,
+      station: formData.station.trim() || null,
+      notes: formData.notes.trim() || null,
     }
     setSaving(true)
     setOdometerError(null)
@@ -167,6 +174,25 @@ export default function FillUpForm({ vehicle, editingFillUp = null, onSaved, onC
           onChange={(isFull) => setFormData({ ...formData, isFull })}
         />
       </div>
+
+      <Field label="Station">
+        <Input
+          name="station"
+          value={formData.station}
+          onChange={handleChange}
+          list={stationListId}
+          maxLength={80}
+          autoComplete="off"
+          placeholder="Optional, e.g. Costco"
+        />
+      </Field>
+      <datalist id={stationListId}>
+        {stations.map((station) => <option key={station} value={station} />)}
+      </datalist>
+
+      <Field label="Notes">
+        <Textarea name="notes" rows={2} value={formData.notes} onChange={handleChange} maxLength={1000} placeholder="Optional" />
+      </Field>
 
       {vehicle?.tankSize > 0 && gallons > vehicle.tankSize && (
         <Card tone="red" padding="sm">

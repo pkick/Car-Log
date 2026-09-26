@@ -97,6 +97,19 @@ function list(label) {
   return (value) => (value === undefined || value === null || Array.isArray(value) ? null : `${label} must be a list.`)
 }
 
+/**
+ * @param {string} label The field as it reads at the start of a sentence.
+ * @param {number} max The most characters allowed.
+ * @returns {Rule} Passes a string of at most `max` characters, or an omitted or `null` value.
+ */
+function optionalText(label, max) {
+  return (value) => {
+    if (value === undefined || value === null) return null
+    if (typeof value !== 'string') return `${label} must be text.`
+    return value.length > max ? `${label} must be ${max.toLocaleString('en-US')} characters or fewer.` : null
+  }
+}
+
 /** @type {Rule} */
 function serviceNames(value) {
   if (!Array.isArray(value) || value.length === 0) return 'Choose at least one service.'
@@ -144,6 +157,13 @@ const FILL_UP_RULES = {
   gallons: number('Gallons', { noun: 'the gallons', positive: true }),
   pricePerGal: number('Price per gallon', { noun: 'the price per gallon', positive: true }),
   isFull: boolean('Full tank'),
+  station: optionalText('Station', 80),
+  notes: optionalText('Notes', 1000),
+}
+
+const IMPORTED_FILL_UP_RULES = {
+  ...FILL_UP_RULES,
+  total: number('Total', { positive: true }),
 }
 
 const SERVICE_RECORD_RULES = {
@@ -176,6 +196,41 @@ export const validateVehicle = (vehicle) => validate(vehicle, VEHICLE_RULES)
  * @returns {{ error: string, field: string } | null} The first failure, or `null`.
  */
 export const validateFillUp = (fillUp) => validate(fillUp, FILL_UP_RULES)
+
+/**
+ * Checks a fill-up from a CSV import: the rules of {@link validateFillUp}, plus an optional `total` that must be
+ * gallons × price per gallon give or take rounding (5 cents, or 1% on a large total), since the file may carry all three.
+ * @param {object} fillUp The row, with `vehicleId` set.
+ * @returns {{ error: string, field: string } | null} The first failure, or `null`.
+ */
+export function validateImportedFillUp(fillUp) {
+  const invalid = validate(fillUp, IMPORTED_FILL_UP_RULES)
+  if (invalid || fillUp.total == null) return invalid
+  const expected = fillUp.gallons * fillUp.pricePerGal
+  if (Math.abs(fillUp.total - expected) <= Math.max(0.05, fillUp.total * 0.01)) return null
+  return {
+    error: `Total $${fillUp.total.toFixed(2)} doesn't match ${fillUp.gallons} gal at $${fillUp.pricePerGal}/gal ($${expected.toFixed(2)}).`,
+    field: 'total',
+  }
+}
+
+/**
+ * Trims a fill-up's optional text fields and turns blank ones into `null`, so "  " isn't stored as a station.
+ * Values that aren't strings are left for {@link validateFillUp} to reject.
+ * @param {object} fillUp The request body, or for a PATCH the existing fill-up merged with it.
+ * @returns {object} A copy with `station` and `notes` cleaned up.
+ */
+export function trimFillUpText(fillUp) {
+  const trim = (value) => (typeof value === 'string' ? value.trim() || null : value ?? null)
+  return { ...fillUp, station: trim(fillUp.station), notes: trim(fillUp.notes) }
+}
+
+/**
+ * Checks that `vehicleId` names an existing vehicle, for requests that act on one vehicle's records.
+ * @param {unknown} vehicleId
+ * @returns {{ error: string, field: string } | null} The failure, or `null`.
+ */
+export const validateVehicleId = (vehicleId) => validate({ vehicleId }, { vehicleId: existingVehicle })
 
 /**
  * Checks a service record for POST or PATCH, including that `vehicleId` names an existing vehicle.

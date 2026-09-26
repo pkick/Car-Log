@@ -33,6 +33,13 @@ const ENDPOINTS = {
   policyRecords: '/api/policy-records',
 }
 
+async function fetchAllRecords() {
+  const [fillUps, serviceRecords, policyRecords] = await Promise.all([
+    api(ENDPOINTS.fillUps), api(ENDPOINTS.serviceRecords), api(ENDPOINTS.policyRecords),
+  ])
+  return { fillUps, serviceRecords, policyRecords }
+}
+
 // "Fill-up deleted", "Couldn't delete the fill-up".
 const NOUNS = {
   fillUps: 'Fill-up',
@@ -53,9 +60,9 @@ export function RecordsProvider({ children }) {
   const [error, setError] = useState(null)
 
   useEffect(() => {
-    Promise.all([api(ENDPOINTS.fillUps), api(ENDPOINTS.serviceRecords), api(ENDPOINTS.policyRecords)])
-      .then(([fillUps, serviceRecords, policyRecords]) => {
-        dispatch({ type: 'load', records: { fillUps, serviceRecords, policyRecords } })
+    fetchAllRecords()
+      .then((records) => {
+        dispatch({ type: 'load', records })
         setLoading(false)
       })
       .catch((err) => {
@@ -63,6 +70,14 @@ export function RecordsProvider({ children }) {
         setLoading(false)
       })
   }, [])
+
+  /**
+   * Loads every list again, for a change made outside this context such as a CSV import. Rejects when a request
+   * fails, leaving the lists as they were.
+   */
+  const reload = async () => {
+    dispatch({ type: 'load', records: await fetchAllRecords() })
+  }
 
   // Records whose delete is pending are left out here, so every page, stat and count skips them.
   const fillUps = useMemo(() => visibleRecords(state, 'fillUps'), [state])
@@ -172,6 +187,7 @@ export function RecordsProvider({ children }) {
       value={{
         loading,
         error,
+        reload,
         fillUps,
         serviceRecords,
         policyRecords,

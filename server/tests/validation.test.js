@@ -52,6 +52,9 @@ const REJECTED_POSTS = [
   ['/api/fill-ups', 'a negative price', { pricePerGal: -3.5 }, 'pricePerGal', 'Price per gallon must be more than 0.'],
   ['/api/fill-ups', 'a non-boolean isFull', { isFull: 'yes' }, 'isFull', 'Full tank must be true or false.'],
   ['/api/fill-ups', 'two bad fields, naming only the first', { date: undefined, gallons: 0 }, 'date', 'Enter a date.'],
+  ['/api/fill-ups', 'a station that is not text', { station: 42 }, 'station', 'Station must be text.'],
+  ['/api/fill-ups', 'a station over 80 characters', { station: 'x'.repeat(81) }, 'station', 'Station must be 80 characters or fewer.'],
+  ['/api/fill-ups', 'notes over 1,000 characters', { notes: 'x'.repeat(1001) }, 'notes', 'Notes must be 1,000 characters or fewer.'],
 
   ['/api/service-records', 'a missing vehicleId', { vehicleId: undefined }, 'vehicleId', 'Choose a vehicle.'],
   ['/api/service-records', 'an unknown vehicleId', { vehicleId: 999999 }, 'vehicleId', 'Vehicle not found.'],

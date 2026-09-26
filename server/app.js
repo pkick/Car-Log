@@ -12,6 +12,8 @@ import backupRouter from './routes/backup.js'
 import vinRouter from './routes/vin.js'
 import demoRouter from './routes/demo.js'
 import receiptsRouter from './routes/receipts.js'
+import importRouter from './routes/import.js'
+import stationsRouter from './routes/stations.js'
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url))
 
@@ -22,19 +24,23 @@ const ASSETS_DIR = path.join(STATIC_DIR, 'assets') + path.sep
 
 const app = express()
 
-// A restore sends the whole backup at once. This parser runs first, so the default 100 kB one skips the request.
+// A restore sends the whole backup at once, and a CSV import up to 5,000 fill-ups. These parsers run first, so the
+// default 100 kB one skips those requests; the first one to match a request parses it.
+app.use('/api/import/fill-ups', express.json({ limit: '5mb' }))
 app.use('/api/import', express.json({ limit: '20mb' }))
 app.use(express.json())
 
 app.get('/api/health', (req, res) => res.json({ status: 'ok' }))
 app.use('/api/vehicles', vehiclesRouter)
 app.use('/api/fill-ups', fillUpsRouter)
+app.use('/api/stations', stationsRouter)
 app.use('/api/service-records', serviceRecordsRouter)
 app.use('/api/policy-records', policyRecordsRouter)
 app.use('/api/defaults', defaultsRouter)
 app.use('/api/vin', vinRouter)
 app.use('/api/demo', demoRouter)
 app.use('/api/receipts', receiptsRouter)
+app.use('/api/import', importRouter)
 app.use('/api', backupRouter)
 app.use('/api', (req, res) => res.status(404).json({ error: 'Not found' }))
 

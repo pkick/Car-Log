@@ -75,6 +75,7 @@ export function VehicleProvider({ children }) {
     const created = await api('/api/vehicles', { method: 'POST', body: JSON.stringify(vehicleData) })
     setVehicles((vs) => [...vs, created])
     rememberVehicle(created.id)
+    return created
   }
 
   const getDefaultIntervals = () => api('/api/defaults/intervals')

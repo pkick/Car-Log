@@ -169,13 +169,14 @@ function replaceAllData(backup) {
   ))
 
   const insertFillUp = db.prepare(`
-    INSERT INTO fill_ups (id, vehicleId, date, odometer, gallons, pricePerGal, total, isFull)
-    VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+    INSERT INTO fill_ups (id, vehicleId, date, odometer, gallons, pricePerGal, total, isFull, station, notes)
+    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
   `)
+  // Backups from before schema 4 have no station or notes.
   insertAll(backup.fillUps, 'Fill-up', validateFillUp, (f) => insertFillUp.run(
     f.id, f.vehicleId, f.date, f.odometer, f.gallons, f.pricePerGal,
     Number.isFinite(f.total) && f.total >= 0 ? f.total : Math.round(f.gallons * f.pricePerGal * 100) / 100,
-    f.isFull === false ? 0 : 1
+    f.isFull === false ? 0 : 1, f.station ?? null, f.notes ?? null
   ))
 
   const insertServiceRecord = db.prepare(`

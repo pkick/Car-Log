@@ -224,3 +224,21 @@ test('003_receipts applies on top of a database at 002, and receipt rows go with
   db.exec('DELETE FROM vehicles WHERE id = 1')
   assert.deepEqual(db.prepare('SELECT vehicleId FROM receipts').all().map((r) => r.vehicleId), [2])
 })
+
+test('004_fillup_station_notes adds station and notes, leaving existing fill-ups without them, and indexes fill-ups by date', () => {
+  const db = new DatabaseSync(':memory:')
+  db.exec('PRAGMA foreign_keys = ON')
+  runMigrations(db, shippedUpTo(3))
+  db.exec(`
+    INSERT INTO vehicles (id, nickname, intervals) VALUES (1, 'Existing', '[]');
+    INSERT INTO fill_ups (vehicleId, date, odometer, gallons, pricePerGal, total) VALUES (1, '2026-09-01', 1000, 10, 3.5, 35);
+  `)
+
+  assert.deepEqual(runMigrations(db, shippedUpTo(4)).map((m) => m.file), ['004_fillup_station_notes.sql'])
+
+  assert.ok(columns(db, 'fill_ups').includes('station'))
+  assert.ok(columns(db, 'fill_ups').includes('notes'))
+  assert.deepEqual({ ...db.prepare('SELECT odometer, station, notes FROM fill_ups').get() }, { odometer: 1000, station: null, notes: null })
+  const plan = db.prepare("EXPLAIN QUERY PLAN SELECT * FROM fill_ups WHERE vehicleId = 1 AND date < '2026-10-01' ORDER BY date DESC, id DESC LIMIT 1").all()
+  assert.ok(plan.some((step) => step.detail.includes('fill_ups_vehicle_date')), 'order checks use the index')
+})

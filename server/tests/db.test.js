@@ -16,6 +16,7 @@ test('the database is migrated and records each migration', () => {
     { version: 1, name: 'initial' },
     { version: 2, name: 'demo_flag' },
     { version: 3, name: 'receipts' },
+    { version: 4, name: 'fillup_station_notes' },
   ])
   assert.match(rows[0].appliedAt, /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}Z$/)
 })

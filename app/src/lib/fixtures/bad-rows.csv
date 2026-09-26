@@ -1,0 +1,8 @@
+Date,Odometer,Gallons,Price per gallon,Station,Notes
+2025-07-01,30100,10.2,3.299,Shell,
+2025-07-09,30420,9.8,3.349,Costco,
+2025-02-30,30700,10.1,3.199,Arco,Bad date
+2025-07-25,29000,9.9,3.259,Shell,Typo in the odometer
+2025-08-02,31050,10.4,3.199,Costco,
+2025-08-02,31050,10.4,3.199,Costco,The same fill-up twice
+2025-08-11,31390,10,3.249,Chevron,

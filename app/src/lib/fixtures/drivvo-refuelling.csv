@@ -1,0 +1,7 @@
+Odometer,Date,Fuel,Price,Total cost,Gallons,Full tank,Running out of fuel,Gas station,Payment method,Reason,Notes
+48210,03/02/2025 08:30,Regular,3.459,45.66,13.2,Yes,No,Shell Main St,Credit card,Commute,
+48562,03/11/2025 17:05,Regular,3.399,46.19,13.59,Yes,No,Costco,Debit card,Commute,
+48701,03/15/2025 12:40,Regular,3.519,21.11,6,No,No,Chevron,Credit card,Trip,"Half tank, in a hurry"
+49030,03/24/2025 07:55,Regular,3.379,44.73,13.237,Yes,No,Costco,Debit card,Commute,
+49377,04/02/2025 18:20,Regular,3.299,43.95,13.322,Yes,No,Shell Main St,Credit card,Commute,Car wash too
+49712,04/13/2025 09:10,Regular,3.349,43.18,12.893,Yes,No,Arco,Cash,Commute,

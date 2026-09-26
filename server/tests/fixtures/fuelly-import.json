@@ -1,0 +1,202 @@
+[
+  {
+    "date": "2025-01-04",
+    "odometer": 23114,
+    "gallons": 9.617,
+    "pricePerGal": 3.199,
+    "total": 30.76,
+    "isFull": true,
+    "station": "Costco",
+    "notes": null
+  },
+  {
+    "date": "2025-01-16",
+    "odometer": 23434,
+    "gallons": 9.301,
+    "pricePerGal": 3.159,
+    "total": 29.38,
+    "isFull": true,
+    "station": "Shell",
+    "notes": null
+  },
+  {
+    "date": "2025-01-22",
+    "odometer": 23772,
+    "gallons": 10.88,
+    "pricePerGal": 3.579,
+    "total": 38.94,
+    "isFull": true,
+    "station": "Chevron",
+    "notes": "Winter blend"
+  },
+  {
+    "date": "2025-01-31",
+    "odometer": 24106,
+    "gallons": 10.507,
+    "pricePerGal": 3.159,
+    "total": 33.19,
+    "isFull": true,
+    "station": "Arco",
+    "notes": null
+  },
+  {
+    "date": "2025-02-10",
+    "odometer": 24429,
+    "gallons": 10.447,
+    "pricePerGal": 3.159,
+    "total": 33,
+    "isFull": true,
+    "station": "Costco",
+    "notes": null
+  },
+  {
+    "date": "2025-02-16",
+    "odometer": 24753,
+    "gallons": 10.501,
+    "pricePerGal": 3.579,
+    "total": 37.58,
+    "isFull": true,
+    "station": "Costco",
+    "notes": null
+  },
+  {
+    "date": "2025-02-26",
+    "odometer": 24877,
+    "gallons": 5.666,
+    "pricePerGal": 3.099,
+    "total": 17.56,
+    "isFull": false,
+    "station": "76",
+    "notes": "Only half a tank, station was cash only"
+  },
+  {
+    "date": "2025-03-04",
+    "odometer": 25221,
+    "gallons": 10.462,
+    "pricePerGal": 3.249,
+    "total": 33.99,
+    "isFull": true,
+    "station": "Costco",
+    "notes": null
+  },
+  {
+    "date": "2025-03-13",
+    "odometer": 25562,
+    "gallons": 9.565,
+    "pricePerGal": 3.299,
+    "total": 31.55,
+    "isFull": true,
+    "station": "Shell",
+    "notes": null
+  },
+  {
+    "date": "2025-03-19",
+    "odometer": 25850,
+    "gallons": 7.539,
+    "pricePerGal": 3.519,
+    "total": 26.53,
+    "isFull": true,
+    "station": "Chevron",
+    "notes": "Road trip to Tahoe, mostly highway"
+  },
+  {
+    "date": "2025-03-25",
+    "odometer": 26193,
+    "gallons": 10.602,
+    "pricePerGal": 3.199,
+    "total": 33.92,
+    "isFull": true,
+    "station": "Arco",
+    "notes": null
+  },
+  {
+    "date": "2025-04-02",
+    "odometer": 26537,
+    "gallons": 10.139,
+    "pricePerGal": 3.249,
+    "total": 32.94,
+    "isFull": true,
+    "station": "Costco",
+    "notes": null
+  },
+  {
+    "date": "2025-04-12",
+    "odometer": 26819,
+    "gallons": 8.347,
+    "pricePerGal": 3.159,
+    "total": 26.37,
+    "isFull": true,
+    "station": "Costco",
+    "notes": null
+  },
+  {
+    "date": "2025-04-21",
+    "odometer": 26932,
+    "gallons": 5.493,
+    "pricePerGal": 3.519,
+    "total": 19.33,
+    "isFull": false,
+    "station": "76",
+    "notes": "Topped off before the pass"
+  },
+  {
+    "date": "2025-04-29",
+    "odometer": 27242,
+    "gallons": 9.311,
+    "pricePerGal": 3.459,
+    "total": 32.21,
+    "isFull": true,
+    "station": "Costco",
+    "notes": null
+  },
+  {
+    "date": "2025-05-10",
+    "odometer": 27550,
+    "gallons": 9.628,
+    "pricePerGal": 3.199,
+    "total": 30.8,
+    "isFull": true,
+    "station": "Shell",
+    "notes": null
+  },
+  {
+    "date": "2025-05-20",
+    "odometer": 27851,
+    "gallons": 9.712,
+    "pricePerGal": 3.299,
+    "total": 32.04,
+    "isFull": true,
+    "station": "Chevron",
+    "notes": null
+  },
+  {
+    "date": "2025-05-28",
+    "odometer": 28184,
+    "gallons": 9.314,
+    "pricePerGal": 3.459,
+    "total": 32.22,
+    "isFull": true,
+    "station": "Arco",
+    "notes": "New tires last week"
+  },
+  {
+    "date": "2025-06-07",
+    "odometer": 28531,
+    "gallons": 9.538,
+    "pricePerGal": 3.159,
+    "total": 30.13,
+    "isFull": true,
+    "station": "Costco",
+    "notes": null
+  },
+  {
+    "date": "2025-06-19",
+    "odometer": 28854,
+    "gallons": 8.455,
+    "pricePerGal": 3.199,
+    "total": 27.05,
+    "isFull": true,
+    "station": "Costco",
+    "notes": null
+  }
+]

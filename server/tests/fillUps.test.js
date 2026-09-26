@@ -222,3 +222,44 @@ test('PATCH and DELETE of a missing fill-up return 404', async () => {
   assert.equal(deleted.status, 404)
   assert.equal(typeof deleted.body.error, 'string')
 })
+
+test('station and notes are trimmed, stored and returned; blank ones are null', async () => {
+  const vehicle = await createVehicle()
+
+  const { status, body } = await request('POST', '/api/fill-ups', {
+    vehicleId: vehicle.id, date: '2026-08-28', odometer: 10500, gallons: 10, pricePerGal: 3.5, station: '  Costco  ', notes: ' Road trip ',
+  })
+  assert.equal(status, 201)
+  assert.equal(body.fillUp.station, 'Costco')
+  assert.equal(body.fillUp.notes, 'Road trip')
+
+  const blank = await request('POST', '/api/fill-ups', {
+    vehicleId: vehicle.id, date: '2026-09-02', odometer: 10800, gallons: 10, pricePerGal: 3.5, station: '   ',
+  })
+  assert.equal(blank.body.fillUp.station, null)
+  assert.equal(blank.body.fillUp.notes, null)
+
+  const { body: fills } = await request('GET', `/api/fill-ups?vehicleId=${vehicle.id}`)
+  assert.deepEqual(fills.map((f) => [f.station, f.notes]), [['Costco', 'Road trip'], [null, null]])
+})
+
+test('PATCH changes station and notes, keeps them when not sent, and clears them with a blank', async () => {
+  const vehicle = await createVehicle()
+  const { body: added } = await request('POST', '/api/fill-ups', {
+    vehicleId: vehicle.id, date: '2026-08-28', odometer: 10500, gallons: 10, pricePerGal: 3.5, station: 'Shell', notes: 'Cold day',
+  })
+  const path = `/api/fill-ups/${added.fillUp.id}`
+
+  const kept = await request('PATCH', path, { gallons: 11 })
+  assert.equal(kept.body.fillUp.station, 'Shell')
+  assert.equal(kept.body.fillUp.notes, 'Cold day')
+
+  const changed = await request('PATCH', path, { station: 'Arco ', notes: '' })
+  assert.equal(changed.status, 200)
+  assert.equal(changed.body.fillUp.station, 'Arco')
+  assert.equal(changed.body.fillUp.notes, null)
+
+  const tooLong = await request('PATCH', path, { notes: 'x'.repeat(1001) })
+  assert.equal(tooLong.status, 400)
+  assert.deepEqual(tooLong.body, { error: 'Notes must be 1,000 characters or fewer.', field: 'notes' })
+})

@@ -6,6 +6,7 @@ import { buildCsv, downloadBlob, downloadCsv } from '../lib/exportCsv'
 import { filenameFromDisposition, restoreWarning, summarizeBackup } from '../lib/backup'
 import { todayISO } from '../lib/dates'
 import { ExportIcon, TextSizeIcon, ServerIcon } from '../components/icons'
+import CsvImportPanel from '../components/CsvImportPanel'
 
 const UNREACHABLE = "Can't reach the server. Check that it's running and try again."
 const GATEWAY_STATUSES = [502, 503, 504]
@@ -217,6 +218,10 @@ export default function Settings() {
           )}
 
           {backupError && <p className="text-xs text-red mt-3">{backupError}</p>}
+        </div>
+
+        <div className="px-6 py-4">
+          <CsvImportPanel />
         </div>
       </div>
     </main>

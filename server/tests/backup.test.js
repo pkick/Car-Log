@@ -1,6 +1,10 @@
 import { test } from 'node:test'
 import assert from 'node:assert/strict'
+import { fileURLToPath } from 'node:url'
 import { request, baseUrl, createVehicle, addFillUp, addServiceRecord, addPolicyRecord } from './helpers.js'
+import { listMigrations } from '../migrate.js'
+
+const SCHEMA_VERSION = listMigrations(fileURLToPath(new URL('../migrations', import.meta.url))).at(-1).version
 
 const LIST_PATHS = {
   vehicles: '/api/vehicles',
@@ -37,7 +41,7 @@ test('GET /api/export sends every table as a dated attachment, in the shapes the
   assert.match(res.headers.get('content-type'), /^application\/json/)
   assert.equal(res.headers.get('content-disposition'), `attachment; filename="odometer-backup-${today}.json"`)
   assert.equal(backup.app, 'odometer')
-  assert.equal(backup.schemaVersion, 3)
+  assert.equal(backup.schemaVersion, SCHEMA_VERSION)
   assert.match(backup.exportedAt, new RegExp(`^${today}T\\d{2}:\\d{2}:\\d{2}[+-]\\d{2}:\\d{2}$`))
 
   const current = await snapshot()
@@ -108,6 +112,31 @@ test('isDemo survives a round trip, and a backup from before it existed restores
   assert.ok(imported.every((v) => v.isDemo === false))
 })
 
+test('fill-up station and notes survive a round trip, and a backup from before them restores them as null', async () => {
+  const vehicle = await createVehicle({ nickname: 'With stations' })
+  const { body: added } = await request('POST', '/api/fill-ups', {
+    vehicleId: vehicle.id, date: '2026-08-01', odometer: 10400, gallons: 11, pricePerGal: 3.4, station: 'Costco', notes: 'Road trip',
+  })
+  const { backup } = await exportBackup()
+  const exported = backup.fillUps.find((f) => f.id === added.fillUp.id)
+  assert.equal(exported.station, 'Costco')
+  assert.equal(exported.notes, 'Road trip')
+
+  assert.equal((await request('POST', '/api/import', backup)).status, 200)
+  const restored = (await request('GET', '/api/fill-ups')).body.find((f) => f.id === added.fillUp.id)
+  assert.equal(restored.station, 'Costco')
+  assert.equal(restored.notes, 'Road trip')
+
+  const old = { ...backup, schemaVersion: 2, fillUps: backup.fillUps.map(({ station, notes, ...fillUp }) => fillUp) }
+  const { status, body } = await request('POST', '/api/import', old)
+
+  assert.equal(status, 200)
+  assert.equal(body.fillUps, backup.fillUps.length)
+  const fills = (await request('GET', '/api/fill-ups')).body
+  assert.ok(fills.length > 0)
+  assert.ok(fills.every((f) => f.station === null && f.notes === null))
+})
+
 test('import rejects files it cannot restore and changes nothing', async () => {
   await createVehicle({ nickname: 'Keep me' })
   const before = await snapshot()
@@ -116,7 +145,8 @@ test('import rejects files it cannot restore and changes nothing', async () => {
   const cases = [
     [{ ...backup, app: 'something-else' }, /isn't an Odometer backup/],
     [[backup], /isn't an Odometer backup/],
-    [{ ...backup, schemaVersion: backup.schemaVersion + 1 }, /newer version of Odometer \(schema 4; this server is on 3\)/],
+    [{ ...backup, schemaVersion: backup.schemaVersion + 1 },
+      new RegExp(`newer version of Odometer \\(schema ${SCHEMA_VERSION + 1}; this server is on ${SCHEMA_VERSION}\\)`)],
     [{ ...backup, schemaVersion: '1' }, /doesn't say which schema version/],
     [{ ...backup, policyRecords: undefined }, /no policyRecords list/],
   ]
