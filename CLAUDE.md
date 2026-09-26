@@ -12,10 +12,10 @@ Before starting, find the next unchecked task group whose dependencies are merge
 ## Stack and layout
 
 - `app/`: React 19 + Vite 8 + Tailwind 3.4 + `react-router` 7 (library mode). Contexts in `src/context`, pages in
-  `src/pages`, modals and shared pieces in `src/components`, pure logic in `src/lib`. Routes live in `App.jsx`
+  `src/pages`, modals and shared pieces in `src/components`, hooks in `src/hooks`, pure logic in `src/lib`. Routes live in `App.jsx`
   (URL helpers in `lib/routes.js`); pages receive the route's `vehicle` as a prop.
 - `server/`: Express 4 + `node:sqlite`. Routes in `routes/`, schema in `migrations/` (run by `migrate.js` from `db.js`),
-  demo data in `seed.js`. `index.js` starts the server; `docker-entrypoint.js` is the container's start command.
+  demo data in `seed.js`. Uploaded receipts are files under `DATA_DIR/receipts` (D17), served by `routes/receipts.js`. `index.js` starts the server; `docker-entrypoint.js` is the container's start command.
 - `design_handoff_car_tracker/README.md`: the original design spec (tokens, screens, behavior). Treat it as
   the source of truth for visual details unless PLAN.md says otherwise.
 
@@ -84,6 +84,8 @@ primitive in every state, run the dev server and open http://localhost:5173/dev/
 - `Toast` (through `useToast()` from `context/toast.js`): `success(message, detail)` after a save, `error(message)`,
   and `undo(message, { onUndo, onExpire })`, which record deletes use for their 5-second window.
 - `Skeleton`: grey placeholder blocks while data loads.
+- `DropZone`, `FileThumb`: the file drop target (drag and drop, click, paste) and a file's thumbnail or type tile.
+  Receipts use them through `components/ReceiptDropZone.jsx`, `ReceiptThumbs.jsx` and `ReceiptViewer.jsx`.
 - `Menu`, `MenuItem`, `MenuLabel`, `MenuSeparator`: a menu button (row More, vehicle switcher); arrows, Home / End,
   Esc and Tab close it and return focus.
 - `Modal`, `Drawer`: every dialog. Focus trap, Esc and backdrop close, focus return, sticky header and footer.

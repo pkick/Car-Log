@@ -232,6 +232,18 @@ test('deleting a payment removes its receipts and their files', async () => {
   assert.deepEqual((await request('GET', `/api/receipts?recordType=policy&recordId=${payment.id}`)).body, [])
 })
 
+test('a payment moved to another vehicle takes its receipts with it', async () => {
+  const from = await createVehicle()
+  const to = await createVehicle()
+  const { body: payment } = await addPolicyRecord(from.id)
+  const { body: receipt } = await upload({ recordType: 'policy', recordId: payment.id }, [pdf()])
+
+  assert.equal((await request('PATCH', `/api/policy-records/${payment.id}`, { vehicleId: to.id })).status, 200)
+
+  assert.deepEqual((await request('GET', `/api/receipts?vehicleId=${from.id}`)).body, [])
+  assert.deepEqual((await request('GET', `/api/receipts?vehicleId=${to.id}`)).body, [{ ...receipt, vehicleId: to.id }])
+})
+
 test('deleting a vehicle removes every receipt on it and on its records', async () => {
   const other = await serviceWithReceipt()
   const before = storedFiles()
@@ -318,4 +330,17 @@ test('a backup whose receipt rows are wrong is refused whole, and one from befor
   assert.equal(status, 200)
   assert.equal(body.receipts, 0)
   assert.deepEqual((await request('GET', '/api/receipts')).body, [])
+})
+
+test('Clear demo data removes the demo vehicles\' receipt files and keeps everyone else\'s', async () => {
+  const kept = await serviceWithReceipt()
+  const demo = (await request('GET', '/api/vehicles')).body.find((vehicle) => vehicle.isDemo)
+  const before = storedFiles()
+  await upload({ recordType: 'vehicle', recordId: demo.id, label: 'Insurance card' }, [png(), thumb()])
+  assert.equal(storedFiles().length, before.length + 2)
+
+  assert.equal((await request('DELETE', '/api/demo')).status, 200)
+
+  assert.deepEqual(storedFiles(), before)
+  assert.deepEqual((await request('GET', `/api/receipts?vehicleId=${kept.vehicle.id}`)).body, [kept.receipt])
 })

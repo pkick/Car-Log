@@ -433,18 +433,18 @@ Acceptance
 ### P4-C · Receipts and documents
 Branch `feat/p4c-receipts`. Depends on P2-F, P3-D, P3-G. See D17.
 
-- [ ] **P4-C1** Migration: `receipts` table (`id, recordType, recordId, storedName, filename, mimeType, size,
+- [x] **P4-C1** Migration: `receipts` table (`id, recordType, recordId, storedName, filename, mimeType, size,
       thumbName, createdAt`). `recordType` is `service`, `policy` or `vehicle`.
-- [ ] **P4-C2** API with `multer`: `POST /api/receipts` (10 MB limit; JPEG, PNG, WebP, HEIC, PDF), `GET
+- [x] **P4-C2** API with `multer`: `POST /api/receipts` (10 MB limit; JPEG, PNG, WebP, HEIC, PDF), `GET
       /api/receipts/:id` and `/thumb`, `DELETE`. Files get random names under `DATA_DIR/receipts`.
-- [ ] **P4-C3** Drop zone back in Log service and on Log payment: drag and drop, click, paste; upload progress;
+- [x] **P4-C3** Drop zone back in Log service and on Log payment: drag and drop, click, paste; upload progress;
       remove. The browser makes the thumbnail before upload.
-- [ ] **P4-C4** Thumbnails on service history and payment rows; a viewer (Modal lg) with next / previous, PDFs
+- [x] **P4-C4** Thumbnails on service history and payment rows; a viewer (Modal lg) with next / previous, PDFs
       embedded, and a download link.
-- [ ] **P4-C5** Documents page: vehicle documents not tied to a payment (insurance card, registration).
-- [ ] **P4-C6** Deleting a record, vehicle or receipt removes its files. JSON backup includes receipt metadata;
+- [x] **P4-C5** Documents page: vehicle documents not tied to a payment (insurance card, registration).
+- [x] **P4-C6** Deleting a record, vehicle or receipt removes its files. JSON backup includes receipt metadata;
       README says files are covered by the appdata backup, not by the JSON export.
-- [ ] **P4-C7** Route tests: type and size limits, cascade file removal, missing file handling.
+- [x] **P4-C7** Route tests: type and size limits, cascade file removal, missing file handling.
 
 Acceptance
 - A photo attached to a service shows as a thumbnail in history and opens in the viewer.
@@ -545,6 +545,7 @@ Backlog (not scheduled): units and currency settings (L/100 km, km, liters), hou
 
 Newest first. One line per merged PR: date, group, PR link, one-sentence summary.
 
+- 2026-09-26 · P4-C · Receipts (migration `003_receipts`, `multer`, random names under `DATA_DIR/receipts`, extension, MIME and signature checks): drop zones in Log service and Log payment with browser-made thumbnails and per-file progress, thumbnails on history and payment rows, a viewer with next / previous, embedded PDFs and download, and a Vehicle documents card on Documents. Deleting a record, a vehicle, a receipt or the demo data removes the files; a payment moved to another vehicle takes its receipts along; the JSON backup carries receipt rows.
 - 2026-09-25 · P1-C · Intervals list the services that reset them (D10); the server owns the defaults (`GET /api/defaults/intervals`); due items carry `progress`, `dueDate` and `dueOdometer`, labels follow whichever limit is closer, and the Coming up bars use `progress` (finishes P1-F2). Needs a dev DB reset.
 - 2026-09-26 · P3-B · Dashboard 2.0: vehicle switcher in the sidebar, an attention banner for the single most urgent service or renewal (Snooze 2 wks), sparkline stat tiles with a 90 days / 1 year / All time range, an MPG line chart, Up next with progress tracks and projected dates, and a month-grouped activity timeline with Edit and a More menu. New `Menu` primitive.
 - 2026-09-26 · P3-D · Maintenance schedule: progress tracks, status filter chips, projected due dates from the driving pace (`lib/projections.js`), one-click Mark done with Undo, Set last done baselines for intervals with no history, searchable history with category chips and a yearly spend card; Log service shows the next milestone.

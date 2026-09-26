@@ -3,6 +3,7 @@ import { db } from '../db.js'
 import { rollback } from '../migrate.js'
 import { seedDemoData } from '../seed.js'
 import { rowToVehicle } from '../vehicles.js'
+import { removeReceiptFiles } from './receipts.js'
 
 const router = Router()
 
@@ -19,10 +20,13 @@ router.post('/', (req, res) => {
   res.status(201).json(rows.map(rowToVehicle))
 })
 
-// "Clear demo data": removes every demo vehicle and, through ON DELETE CASCADE, everything logged on it.
+// "Clear demo data": removes every demo vehicle and, through ON DELETE CASCADE, everything logged on it. Receipt files
+// go once the rows are gone.
 router.delete('/', (req, res) => {
   db.exec('BEGIN')
+  let receipts
   try {
+    receipts = db.prepare('SELECT * FROM receipts WHERE vehicleId IN (SELECT id FROM vehicles WHERE isDemo = 1)').all()
     const counts = Object.fromEntries(Object.entries(RECORD_TABLES).map(([key, table]) => [
       key,
       db.prepare(`SELECT COUNT(*) AS n FROM ${table} WHERE vehicleId IN (SELECT id FROM vehicles WHERE isDemo = 1)`).get().n,
@@ -34,6 +38,7 @@ router.delete('/', (req, res) => {
     rollback(db)
     throw err
   }
+  removeReceiptFiles(receipts)
 })
 
 export default router

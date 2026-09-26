@@ -36,10 +36,19 @@ router.patch('/:id', (req, res) => {
   const invalid = validatePolicyRecord(merged)
   if (invalid) return res.status(400).json(invalid)
 
-  db.prepare(`
-    UPDATE policy_records SET vehicleId=?, type=?, date=?, cost=?, renewalDate=?, provider=?, notes=?
-    WHERE id=?
-  `).run(merged.vehicleId, merged.type, merged.date, merged.cost ?? 0, merged.renewalDate, merged.provider, merged.notes, id)
+  // A payment moved to another vehicle takes its receipts with it.
+  db.exec('BEGIN')
+  try {
+    db.prepare(`
+      UPDATE policy_records SET vehicleId=?, type=?, date=?, cost=?, renewalDate=?, provider=?, notes=?
+      WHERE id=?
+    `).run(merged.vehicleId, merged.type, merged.date, merged.cost ?? 0, merged.renewalDate, merged.provider, merged.notes, id)
+    db.prepare("UPDATE receipts SET vehicleId = ? WHERE recordType = 'policy' AND recordId = ?").run(merged.vehicleId, id)
+    db.exec('COMMIT')
+  } catch (err) {
+    rollback(db)
+    throw err
+  }
   const row = db.prepare('SELECT * FROM policy_records WHERE id = ?').get(id)
   res.json(row)
 })
