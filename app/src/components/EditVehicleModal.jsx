@@ -3,6 +3,7 @@ import { VehicleContext } from '../context/VehicleContext'
 import { FuelIcon, CheckIcon, WrenchIcon, TrashIcon } from './icons'
 import { Button, Card, Chip, Field, IconButton, Input, Modal, NumberInput, Select, Switch } from './ui'
 import FormActions from './FormActions'
+import { VinField } from './AddVehicleModal'
 import { VEHICLE_COLORS, VEHICLE_COLOR_SWATCH_CLASS } from '../lib/vehicleColors'
 import {
   SERVICE_CATEGORIES,
@@ -52,6 +53,11 @@ export default function EditVehicleModal({ vehicleId, onClose }) {
     const { name, value } = e.target
     setFormData({ ...formData, [name]: value })
     setFieldErrors({ ...fieldErrors, [name]: null })
+  }
+
+  const handleFill = (fields) => {
+    setFormData((prev) => ({ ...prev, ...fields }))
+    setFieldErrors((prev) => ({ ...prev, ...Object.fromEntries(Object.keys(fields).map((name) => [name, null])) }))
   }
 
   const updateInterval = (id, field, value) => {
@@ -143,9 +149,7 @@ export default function EditVehicleModal({ vehicleId, onClose }) {
         </div>
 
         <div className="grid grid-cols-2 gap-6">
-          <Field label="VIN">
-            <Input name="vin" value={formData.vin || ''} onChange={handleChange} />
-          </Field>
+          <VinField value={formData.vin || ''} onChange={handleChange} vehicle={formData} onFill={handleFill} />
           <Field label="Plate">
             <Input name="plate" value={formData.plate || ''} onChange={handleChange} />
           </Field>
