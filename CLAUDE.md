@@ -5,29 +5,32 @@ Runs on the owner's unraid NAS. Goal: SaaS-quality polish without accounts or mu
 
 ## Current work
 
-**Follow [`docs/PLAN.md`](docs/PLAN.md).** It holds the phased task list, the decisions (D1 to D13) and the
+**Follow [`docs/PLAN.md`](docs/PLAN.md).** It holds the phased task list, the decisions (D1 to D17) and the
 definition of done. [`docs/roadmap.html`](docs/roadmap.html) has the audit and wireframes behind it.
 Before starting, find the next unchecked task group whose dependencies are merged.
 
 ## Stack and layout
 
-- `app/`: React 19 + Vite 8 + Tailwind 3.4. Contexts in `src/context`, pages in `src/pages`,
-  modals and shared pieces in `src/components`, pure logic in `src/lib`.
-- `server/`: Express 4 + Node's built-in `node:sqlite`. Routes in `routes/`, schema and seed in `db.js` / `seed.js`.
+- `app/`: React 19 + Vite 8 + Tailwind 3.4 + `react-router` 7 (library mode). Contexts in `src/context`, pages in
+  `src/pages`, modals and shared pieces in `src/components`, hooks in `src/hooks`, pure logic in `src/lib`. Routes live in `App.jsx`
+  (URL helpers in `lib/routes.js`); pages receive the route's `vehicle` as a prop.
+- `server/`: Express 4 + `node:sqlite`. Routes in `routes/`, schema in `migrations/` (run by `migrate.js` from `db.js`),
+  demo data in `seed.js`. Uploaded receipts are files under `DATA_DIR/receipts` (D17), served by `routes/receipts.js`. `index.js` starts the server; `docker-entrypoint.js` is the container's start command.
 - `design_handoff_car_tracker/README.md`: the original design spec (tokens, screens, behavior). Treat it as
   the source of truth for visual details unless PLAN.md says otherwise.
 
 ## Running
 
-Requires Node 22.5+.
+Requires Node 22.13+ (`node:sqlite` needs a flag before that).
 
 ```bash
 cd server && npm install && npm run dev   # API on :3001
 cd app && npm install && npm run dev      # Vite on :5173, proxies /api to :3001
 ```
 
-Dev data is disposable until PLAN.md task P2-F lands: `rm server/data/odometer.db` and restart the server to
-reseed. After P2-F, schema changes must be migrations.
+`npm run dev` in `server/` sets `SEED_DEMO=1`, so an empty dev DB gets the two demo vehicles (flagged `isDemo`, so the
+"Clear demo data" banner shows); `npm start` starts empty, on the first-run screen. Data lives in `DATA_DIR` (default `server/data`). For a clean slate: stop the server,
+`rm server/data/odometer.db`, and start it again. For production (Docker, unraid, backups, upgrades) see README.md.
 
 ## Conventions
 
@@ -35,13 +38,68 @@ reseed. After P2-F, schema changes must be migrations.
   use `app/src/lib/dates.js` (added in P1-A).
 - **Tailwind opacity modifiers** like `bg-ink/42` only work if the value is in `theme.opacity`
   (steps of 5 by default). Check `tailwind.config.js` before using a new one.
-- **Design tokens** live in `tailwind.config.js` (and CSS variables in `index.css` after P2-A). Use `ink`,
-  `slate`, `accent`, `teal`, `amber`, `green`, `red`, `page`. Archivo for UI text, IBM Plex Mono for data and labels.
-- **UI primitives** (after P2-A) live in `app/src/components/ui`. Use them; don't restyle buttons, inputs or
-  modals inline.
+- **Design tokens** are CSS variables in `index.css`, read by `tailwind.config.js` (see [UI primitives](#ui-primitives)).
+  Use `page`, `surface`, `ink`, `slate`, `accent`, `teal`, `amber`, `green`, `red`. Archivo for UI text, IBM Plex
+  Mono for data and labels.
+- **UI primitives** live in `app/src/components/ui`; see [UI primitives](#ui-primitives) below.
 - **Icons** go in `app/src/components/icons.jsx` on the 24px, 2px-stroke grid.
+- **Shared form pieces:** `components/FillUpForm.jsx` (fill-up fields, preview and save, used by the modal and the
+  Fuel panel) and `components/FormActions.jsx` (save error line plus Save and Cancel for every form footer).
+- **Schema changes are migrations** (D2 flipped at P2-F). Add `server/migrations/NNN_name.sql` with the next number
+  and never edit one that has shipped. Each runs once, in its own transaction, with foreign keys off, and
+  `foreign_key_check` must pass. Don't put `BEGIN`/`COMMIT` in a migration. If a new column belongs in backups,
+  update `routes/backup.js` (it inserts every column explicitly) and extend `tests/backup.test.js`.
+- **Server tests** run against `:memory:` with `SEED_DEMO=1`. Each test file runs in its own process, so a file can
+  set `process.env` (e.g. `STATIC_DIR`) before importing `./helpers.js`.
 - Keep `lib/` functions pure, documented with JSDoc, and covered by tests.
 - Match the surrounding code style; no comments that restate the code.
+
+## UI primitives
+
+Build screens from `app/src/components/ui` (`import { Button, Field } from '../components/ui'`). To see every
+primitive in every state, run the dev server and open http://localhost:5173/dev/ui (dev only; never in the build).
+
+- `Button`: every text button. `primary` (slate) for the main action, `secondary` (accent tint) for a lighter one,
+  `ghost` (hairline border) for Cancel and neutral actions, `danger` to confirm a delete, `dashed` for "add"
+  tiles, and borderless `link` / `link-muted` / `link-danger` for row actions. `sm` / `md`, `loading` while saving,
+  `tone="dark"` on slate panels.
+- `IconButton`: icon-only buttons; `aria-label` is required. Its `danger` is the neutral-until-hover row delete.
+- `Field`: label plus hint or error around one control; wires `id`, `aria-describedby` and `aria-invalid`.
+  `FieldGroup` gives a group of controls (such as chip pickers) the same label, as a `role="group"`.
+- `Input`, `Textarea`, `Select`: text, multi-line and native select controls (`Select` has `size="sm"` and
+  `tone="dark"` for dark cards). A width class such as `w-24` works on all of them.
+- `NumberInput`: every numeric field (`type="text"`, `inputMode`, optional `unit`); the value stays a string.
+- `Segmented`: pick one of a few (filters, ranges, $/gal vs total, Shop / DIY). `sm` sits in a label row, `md`
+  is the filter track; `fullWidth`, `tone="dark"`.
+- `Chip`: toggle chips for multi-select pickers (service categories and services), with an optional icon.
+- `Switch`: on / off settings, with an optional label and description.
+- `Badge`, `StatusChip`: small labels. `Badge` variants `tag` (tinted), `solid` (counts such as "4 DUE") and `pill`
+  (deltas). `StatusChip` maps an interval `status` to green, amber or red.
+- `Card`: any bordered surface; `padding` none / sm / md / lg; `tone` `dark` (slate panels), `muted` (sunken rows),
+  `accent` (callouts) or `red` (warnings, overdue). `CardLink` makes a whole card open a route while its own buttons
+  stay clickable.
+- `PageHeader`: eyebrow, title, optional subtitle and the page's primary action; every page starts with one.
+- `EmptyState`: "nothing here yet" and "turned off" panels with one action.
+- `StatTile`: one stat-rail number with unit, delta and `deltaTone` (good / bad / neutral news).
+- `Toast` (through `useToast()` from `context/toast.js`): `success(message, detail)` after a save, `error(message)`,
+  and `undo(message, { onUndo, onExpire })`, which record deletes use for their 5-second window.
+- `Skeleton`: grey placeholder blocks while data loads.
+- `DropZone`, `FileThumb`: the file drop target (drag and drop, click, paste) and a file's thumbnail or type tile.
+  Receipts use them through `components/ReceiptDropZone.jsx`, `ReceiptThumbs.jsx` and `ReceiptViewer.jsx`.
+- `Menu`, `MenuItem`, `MenuLabel`, `MenuSeparator`: a menu button (row More, vehicle switcher); arrows, Home / End,
+  Esc and Tab close it and return focus.
+- `Modal`, `Drawer`: every dialog. Focus trap, Esc and backdrop close, focus return, sticky header and footer.
+  Modal `sm` 440 / `md` 600 / `lg` 760px; Drawer slides in from the right at 400 / 480 / 640px.
+
+**No one-off styling** of buttons, inputs, selects, toggles, cards or modals outside `components/ui`. If a
+primitive doesn't fit, extend it with a variant or prop (and show it in `src/dev/UiGallery.jsx`). `className`
+on a primitive is for layout only: width, flex, margins.
+
+**Colors** are CSS variables holding RGB channels on `:root` in `app/src/index.css` (`--accent: 26 111 225`),
+and Tailwind reads them as `rgb(var(--accent) / <alpha-value>)`. So every token takes an opacity modifier
+(`bg-accent/12`), as long as the value is in `theme.opacity`. Don't put hex, `rgba()` or `oklch()` in class
+names; use a token, or add one in both files. Radii: `rounded-control` 8px, `rounded-card` 10px,
+`rounded-modal` 14px. Shadows: `shadow-button`, `shadow-dropdown`, `shadow-modal`, `shadow-drawer`, `shadow-knob`.
 
 ## Workflow
 

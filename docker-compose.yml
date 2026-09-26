@@ -1,0 +1,16 @@
+services:
+  odometer:
+    build: .
+    image: odometer:latest
+    container_name: odometer
+    ports:
+      - "3001:3001"
+    volumes:
+      - ./data:/data
+    environment:
+      # The server's local date names backup files. Match your own time zone.
+      TZ: America/Los_Angeles
+      # The user the server runs as, and who owns ./data. 1000:1000 is the first user on most Linux machines.
+      PUID: "1000"
+      PGID: "1000"
+    restart: unless-stopped

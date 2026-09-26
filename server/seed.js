@@ -1,8 +1,14 @@
+import { rollback } from './migrate.js'
+
+/**
+ * Intervals every new vehicle starts with. Each interval is reset by a service record that includes any of
+ * its `services` (D10); `categoryId` is the category of its first service and picks the icon.
+ */
 export const DEFAULT_INTERVALS = [
-  { id: 1, categoryId: 'oil', name: 'Oil + filter', trackBy: 'both', miles: 5000, months: 12, warnMiles: 500, warnDays: 14 },
-  { id: 2, categoryId: 'tires', name: 'Tire rotation', trackBy: 'miles', miles: 5000, months: null, warnMiles: 500, warnDays: 14 },
-  { id: 3, categoryId: 'brakes', name: 'Brake fluid', trackBy: 'both', miles: 30000, months: 36, warnMiles: 1000, warnDays: 30 },
-  { id: 4, categoryId: 'filters', name: 'Cabin air filter', trackBy: 'months', miles: null, months: 24, warnMiles: 750, warnDays: 21 },
+  { id: 1, categoryId: 'oil', name: 'Oil + filter', services: ['Oil + filter change'], trackBy: 'both', miles: 5000, months: 12, warnMiles: 500, warnDays: 14 },
+  { id: 2, categoryId: 'tires', name: 'Tire rotation', services: ['Tire rotation'], trackBy: 'miles', miles: 5000, months: null, warnMiles: 500, warnDays: 14 },
+  { id: 3, categoryId: 'brakes', name: 'Brake fluid', services: ['Brake fluid'], trackBy: 'both', miles: 30000, months: 36, warnMiles: 1000, warnDays: 30 },
+  { id: 4, categoryId: 'filters', name: 'Cabin air filter', services: ['Cabin air filter'], trackBy: 'months', miles: null, months: 24, warnMiles: 750, warnDays: 21 },
 ]
 
 export const SEED_VEHICLES = [
@@ -23,7 +29,7 @@ export const SEED_VEHICLES = [
     tracksFuel: true,
     tracksService: true,
     odometer: 84210,
-    intervals: DEFAULT_INTERVALS.map((i) => ({ ...i })),
+    intervals: structuredClone(DEFAULT_INTERVALS),
     color: 'accent',
   },
   {
@@ -43,7 +49,7 @@ export const SEED_VEHICLES = [
     tracksFuel: true,
     tracksService: true,
     odometer: 47850,
-    intervals: DEFAULT_INTERVALS.map((i) => ({ ...i })),
+    intervals: structuredClone(DEFAULT_INTERVALS),
     color: 'teal',
   },
 ]
@@ -94,13 +100,14 @@ export const SEED_FILL_UPS = [
 ]
 
 export const SEED_SERVICE_RECORDS = [
-  // The Wagon — tires overdue, oil coming up, brakes/filters fresh
+  // The Wagon — tires overdue, oil coming up. The brake pads and engine air filter don't reset Brake fluid or
+  // Cabin air filter (D10), so both are overdue from the purchase date.
   serviceRecord(1, 1, '2026-02-01', 76800, 'tires', ['Tire rotation'], 0, 'shop', 'Costco'),
   serviceRecord(2, 1, '2026-04-22', 79630, 'oil', ['Oil + filter change'], 58.0, 'shop', 'Ridge Auto', 'Mobil 1 0W-20 · Volvo 31372212 filter'),
   serviceRecord(3, 1, '2026-05-01', 80105, 'filters', ['Air filter'], 28.5, 'diy', 'DIY'),
   serviceRecord(4, 1, '2026-06-10', 81890, 'brakes', ['Brake pads'], 285.0, 'shop', 'Ridge Auto'),
 
-  // The Truck — oil & brake-fluid interval coming up, tires/filters fresh
+  // The Truck — oil coming up, Brake fluid overdue by date (36 months since purchase), tires/cabin filter fresh
   serviceRecord(5, 2, '2026-04-10', 43230, 'oil', ['Oil + filter change'], 74.0, 'shop', 'Ford Quick Lane', 'Motorcraft 5W-30 · FL-820-S filter'),
   serviceRecord(6, 2, '2026-06-01', 45300, 'filters', ['Cabin air filter'], 24.0, 'diy', 'DIY'),
   serviceRecord(7, 2, '2026-07-20', 46700, 'tires', ['Tire rotation'], 0, 'shop', 'Discount Tire'),
@@ -119,3 +126,63 @@ export const SEED_POLICY_RECORDS = [
   policyRecord(3, 2, 'insurance', '2026-08-01', 780.0, '2027-02-01', 'Progressive'),
   policyRecord(4, 2, 'registration', '2026-01-15', 168.0, '2027-01-15', 'DMV'),
 ]
+
+/**
+ * Loads the demo vehicles and their records in one transaction, with every vehicle flagged `isDemo` so
+ * `DELETE /api/demo` removes exactly them. The database assigns the ids, so demo data never reuses the id of a
+ * vehicle or record that was deleted; on an empty database they match the ids above. `POST /api/demo` calls it,
+ * and so does `db.js` on start when `SEED_DEMO=1` and the database has no vehicles.
+ * @param {import('node:sqlite').DatabaseSync} database A migrated database, not inside a transaction.
+ * @returns {number[]} The new vehicles' ids, in `SEED_VEHICLES` order.
+ */
+export function seedDemoData(database) {
+  const insertVehicle = database.prepare(`
+    INSERT INTO vehicles (nickname, year, make, model, trim, vin, plate, purchaseDate, purchaseOdometer, registrationRenewal, insuranceRenewal, tankSize, tracksFuel, tracksService, odometer, intervals, color, isDemo)
+    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 1)
+  `)
+  const insertFillUp = database.prepare(`
+    INSERT INTO fill_ups (vehicleId, date, odometer, gallons, pricePerGal, total, isFull)
+    VALUES (?, ?, ?, ?, ?, ?, ?)
+  `)
+  const insertServiceRecord = database.prepare(`
+    INSERT INTO service_records (vehicleId, date, odometer, categoryId, services, cost, performedBy, shopName, partsUsed, notes)
+    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+  `)
+  const insertPolicyRecord = database.prepare(`
+    INSERT INTO policy_records (vehicleId, type, date, cost, renewalDate, provider, notes)
+    VALUES (?, ?, ?, ?, ?, ?, ?)
+  `)
+
+  database.exec('BEGIN')
+  try {
+    const vehicleIds = new Map()
+    for (const v of SEED_VEHICLES) {
+      const { lastInsertRowid } = insertVehicle.run(
+        v.nickname, v.year, v.make, v.model, v.trim, v.vin, v.plate,
+        v.purchaseDate, v.purchaseOdometer, v.registrationRenewal, v.insuranceRenewal,
+        v.tankSize, v.tracksFuel ? 1 : 0, v.tracksService ? 1 : 0, v.odometer, JSON.stringify(v.intervals),
+        v.color ?? null
+      )
+      vehicleIds.set(v.id, Number(lastInsertRowid))
+    }
+    for (const f of SEED_FILL_UPS) {
+      insertFillUp.run(vehicleIds.get(f.vehicleId), f.date, f.odometer, f.gallons, f.pricePerGal, f.total, f.isFull ? 1 : 0)
+    }
+    for (const r of SEED_SERVICE_RECORDS) {
+      insertServiceRecord.run(
+        vehicleIds.get(r.vehicleId), r.date, r.odometer, r.categoryId, JSON.stringify(r.services), r.cost, r.performedBy,
+        r.shopName, r.partsUsed, r.notes
+      )
+    }
+    for (const p of SEED_POLICY_RECORDS) {
+      insertPolicyRecord.run(vehicleIds.get(p.vehicleId), p.type, p.date, p.cost, p.renewalDate, p.provider, p.notes)
+    }
+    database.exec('COMMIT')
+
+    console.log(`Seeded demo data: ${SEED_VEHICLES.length} vehicles, ${SEED_FILL_UPS.length} fill-ups, ${SEED_SERVICE_RECORDS.length} service records, ${SEED_POLICY_RECORDS.length} policy records`)
+    return [...vehicleIds.values()]
+  } catch (err) {
+    rollback(database)
+    throw err
+  }
+}

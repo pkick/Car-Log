@@ -1,5 +1,8 @@
 import { Router } from 'express'
 import { db } from '../db.js'
+import { validatePolicyRecord } from '../validate.js'
+import { rollback } from '../migrate.js'
+import { deleteRecordReceipts, removeReceiptFiles } from './receipts.js'
 
 const router = Router()
 
@@ -13,6 +16,9 @@ router.get('/', (req, res) => {
 
 router.post('/', (req, res) => {
   const p = req.body
+  const invalid = validatePolicyRecord(p)
+  if (invalid) return res.status(400).json(invalid)
+
   const info = db.prepare(`
     INSERT INTO policy_records (vehicleId, type, date, cost, renewalDate, provider, notes)
     VALUES (?, ?, ?, ?, ?, ?, ?)
@@ -27,16 +33,39 @@ router.patch('/:id', (req, res) => {
   if (!existing) return res.status(404).json({ error: 'Policy record not found' })
 
   const merged = { ...existing, ...req.body }
-  db.prepare(`
-    UPDATE policy_records SET vehicleId=?, type=?, date=?, cost=?, renewalDate=?, provider=?, notes=?
-    WHERE id=?
-  `).run(merged.vehicleId, merged.type, merged.date, merged.cost, merged.renewalDate, merged.provider, merged.notes, id)
+  const invalid = validatePolicyRecord(merged)
+  if (invalid) return res.status(400).json(invalid)
+
+  // A payment moved to another vehicle takes its receipts with it.
+  db.exec('BEGIN')
+  try {
+    db.prepare(`
+      UPDATE policy_records SET vehicleId=?, type=?, date=?, cost=?, renewalDate=?, provider=?, notes=?
+      WHERE id=?
+    `).run(merged.vehicleId, merged.type, merged.date, merged.cost ?? 0, merged.renewalDate, merged.provider, merged.notes, id)
+    db.prepare("UPDATE receipts SET vehicleId = ? WHERE recordType = 'policy' AND recordId = ?").run(merged.vehicleId, id)
+    db.exec('COMMIT')
+  } catch (err) {
+    rollback(db)
+    throw err
+  }
   const row = db.prepare('SELECT * FROM policy_records WHERE id = ?').get(id)
   res.json(row)
 })
 
 router.delete('/:id', (req, res) => {
-  db.prepare('DELETE FROM policy_records WHERE id = ?').run(Number(req.params.id))
+  const id = Number(req.params.id)
+  db.exec('BEGIN')
+  let receipts
+  try {
+    receipts = deleteRecordReceipts('policy', id)
+    db.prepare('DELETE FROM policy_records WHERE id = ?').run(id)
+    db.exec('COMMIT')
+  } catch (err) {
+    rollback(db)
+    throw err
+  }
+  removeReceiptFiles(receipts)
   res.status(204).end()
 })
 

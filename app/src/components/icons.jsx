@@ -6,6 +6,22 @@ export function PencilIcon({ size = 20, className = '', ...props }) {
   )
 }
 
+export function ChevronDownIcon({ size = 20, className = '', ...props }) {
+  return (
+    <svg viewBox="0 0 24 24" width={size} height={size} fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true" className={className} {...props}>
+      <path d="M6 9L12 15L18 9" />
+    </svg>
+  )
+}
+
+export function MoreIcon({ size = 20, className = '', ...props }) {
+  return (
+    <svg viewBox="0 0 24 24" width={size} height={size} fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true" className={className} {...props}>
+      <path d="M5 12H5.01M12 12H12.01M19 12H19.01" />
+    </svg>
+  )
+}
+
 export function ServerIcon({ size = 20, className = '', ...props }) {
   return (
     <svg viewBox="0 0 24 24" width={size} height={size} fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true" className={className} {...props}>
@@ -392,6 +408,71 @@ export function PaintbrushIcon({ size = 20, className = '', ...props }) {
   return (
     <svg viewBox="0 0 24 24" width={size} height={size} fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true" className={className} {...props}>
       <path d="M11.7935 10.7934L20.4603 3.45681C20.7653 3.19859 21.2173 3.21734 21.5 3.49992C21.7826 3.78253 21.8013 4.23461 21.5431 4.53966L14.2065 13.2064M11.7935 10.7934L9.58785 12.6605C8.7162 13.3984 8.66122 14.7236 9.46875 15.5311C10.2763 16.3386 11.6015 16.2837 12.3393 15.412L14.2065 13.2064M11.7935 10.7934L14.2065 13.2064M10.3398 17.75C10.3398 19.5449 8.88477 21 7.08984 21H2.5L2.7103 20.8948C3.74629 20.3768 4.26276 19.1914 3.93667 18.0799C3.87245 17.8611 3.83395 17.6334 3.85777 17.4066C4.02929 15.7731 5.41089 14.5 7.08984 14.5C8.88477 14.5 10.3398 15.955 10.3398 17.75Z" />
+    </svg>
+  )
+}
+
+export function CloseIcon({ size = 20, className = '', ...props }) {
+  return (
+    <svg viewBox="0 0 24 24" width={size} height={size} fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true" className={className} {...props}>
+      <path d="M18 6L6 18M6 6L18 18" />
+    </svg>
+  )
+}
+
+export function SpinnerIcon({ size = 20, className = '', ...props }) {
+  return (
+    <svg viewBox="0 0 24 24" width={size} height={size} fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true" className={className} {...props}>
+      <circle cx="12" cy="12" r="9" opacity="0.25" />
+      <path d="M21 12C21 7.02944 16.9706 3 12 3" />
+    </svg>
+  )
+}
+
+export function UndoIcon({ size = 20, className = '', ...props }) {
+  return (
+    <svg viewBox="0 0 24 24" width={size} height={size} fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true" className={className} {...props}>
+      <path d="M9 14L4 9L9 4M4 9H14.5C17.5376 9 20 11.4624 20 14.5C20 17.5376 17.5376 20 14.5 20H11" />
+    </svg>
+  )
+}
+
+export function AlertIcon({ size = 20, className = '', ...props }) {
+  return (
+    <svg viewBox="0 0 24 24" width={size} height={size} fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true" className={className} {...props}>
+      <path d="M12 5V14M12 19H12.01" />
+    </svg>
+  )
+}
+
+export function ChevronLeftIcon({ size = 20, className = '', ...props }) {
+  return (
+    <svg viewBox="0 0 24 24" width={size} height={size} fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true" className={className} {...props}>
+      <path d="M15 18L9 12L15 6" />
+    </svg>
+  )
+}
+
+export function ChevronRightIcon({ size = 20, className = '', ...props }) {
+  return (
+    <svg viewBox="0 0 24 24" width={size} height={size} fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true" className={className} {...props}>
+      <path d="M9 18L15 12L9 6" />
+    </svg>
+  )
+}
+
+export function FileIcon({ size = 20, className = '', ...props }) {
+  return (
+    <svg viewBox="0 0 24 24" width={size} height={size} fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true" className={className} {...props}>
+      <path d="M14 3V7C14 7.55228 14.4477 8 15 8H19M14 3H7C5.89543 3 5 3.89543 5 5V19C5 20.1046 5.89543 21 7 21H17C18.1046 21 19 20.1046 19 19V8M14 3L19 8M9 13H15M9 17H13" />
+    </svg>
+  )
+}
+
+export function DownloadIcon({ size = 20, className = '', ...props }) {
+  return (
+    <svg viewBox="0 0 24 24" width={size} height={size} fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true" className={className} {...props}>
+      <path d="M12 3V15M12 15L8 11M12 15L16 11M4 17V18C4 19.6569 5.34315 21 7 21H17C18.6569 21 20 19.6569 20 18V17" />
     </svg>
   )
 }

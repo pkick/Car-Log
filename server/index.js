@@ -1,26 +1,26 @@
-import express from 'express'
-import './db.js'
-import vehiclesRouter from './routes/vehicles.js'
-import fillUpsRouter from './routes/fillUps.js'
-import serviceRecordsRouter from './routes/serviceRecords.js'
-import policyRecordsRouter from './routes/policyRecords.js'
+import { StartupError } from './errors.js'
 
-const app = express()
+let app, db, DB_PATH
+try {
+  ;({ default: app } = await import('./app.js'))
+  ;({ db, DB_PATH } = await import('./db.js'))
+} catch (err) {
+  if (!(err instanceof StartupError)) throw err
+  console.error(`Odometer can't start: ${err.message}`)
+  process.exit(1)
+}
+
 const PORT = process.env.PORT || 3001
 
-app.use(express.json())
-
-app.get('/api/health', (req, res) => res.json({ status: 'ok' }))
-app.use('/api/vehicles', vehiclesRouter)
-app.use('/api/fill-ups', fillUpsRouter)
-app.use('/api/service-records', serviceRecordsRouter)
-app.use('/api/policy-records', policyRecordsRouter)
-
-app.use((err, req, res, next) => {
-  console.error(err)
-  res.status(500).json({ error: 'Internal server error' })
-})
-
 app.listen(PORT, () => {
-  console.log(`Odometer API listening on http://localhost:${PORT}`)
+  console.log(`Odometer listening on http://localhost:${PORT} (database: ${DB_PATH})`)
 })
+
+// `docker stop` sends SIGTERM, which Node ignores when it runs as PID 1 unless it has a handler. Every write is
+// synchronous, so none is in flight when a handler runs.
+for (const signal of ['SIGTERM', 'SIGINT']) {
+  process.on(signal, () => {
+    db.close()
+    process.exit(0)
+  })
+}

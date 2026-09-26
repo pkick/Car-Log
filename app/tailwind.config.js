@@ -1,3 +1,5 @@
+const token = (name) => `rgb(var(--${name}) / <alpha-value>)`
+
 /** @type {import('tailwindcss').Config} */
 export default {
   content: [
@@ -6,41 +8,46 @@ export default {
   ],
   theme: {
     extend: {
+      // Every color is a CSS variable holding RGB channels (see :root in src/index.css), so
+      // opacity modifiers like bg-accent/12 work on all of them.
       colors: {
-        page: '#f1f1ef',
-        surface: '#ffffff',
-        ink: {
-          DEFAULT: '#121212',
-          3: 'rgba(18, 18, 18, 0.03)',
-          4: 'rgba(18, 18, 18, 0.04)',
-          6: 'rgba(18, 18, 18, 0.06)',
-          8: 'rgba(18, 18, 18, 0.08)',
-          9: 'rgba(18, 18, 18, 0.09)',
-          10: 'rgba(18, 18, 18, 0.1)',
-          12: 'rgba(18, 18, 18, 0.12)',
-          14: 'rgba(18, 18, 18, 0.14)',
-          18: 'rgba(18, 18, 18, 0.18)',
-          40: 'rgba(18, 18, 18, 0.4)',
-          45: 'rgba(18, 18, 18, 0.45)',
-          50: 'rgba(18, 18, 18, 0.5)',
-          55: 'rgba(18, 18, 18, 0.55)',
-          75: 'rgba(18, 18, 18, 0.75)',
+        page: token('page'),
+        surface: token('surface'),
+        ink: token('ink'),
+        slate: token('slate'),
+        accent: {
+          DEFAULT: token('accent'),
+          hover: token('accent-hover'),
+          'on-dark': token('accent-on-dark'),
         },
-        slate: '#1b1e24',
-        accent: 'oklch(0.56 0.19 258)',
-        teal: 'oklch(0.56 0.13 195)',
-        amber: 'oklch(0.66 0.14 68)',
-        green: 'oklch(0.5 0.14 150)',
-        red: 'oklch(0.55 0.17 28)',
-        white: {
-          DEFAULT: '#ffffff',
-          8: 'rgba(255, 255, 255, 0.08)',
-          12: 'rgba(255, 255, 255, 0.12)',
-          14: 'rgba(255, 255, 255, 0.14)',
-          16: 'rgba(255, 255, 255, 0.16)',
-          55: 'rgba(255, 255, 255, 0.55)',
-          62: 'rgba(255, 255, 255, 0.62)',
+        teal: token('teal'),
+        amber: token('amber'),
+        green: {
+          DEFAULT: token('green'),
+          'on-dark': token('green-on-dark'),
         },
+        red: token('red'),
+        white: token('white'),
+      },
+      // Color opacity modifiers (bg-ink/42, text-page/62, ...) only generate CSS for keys in
+      // theme.opacity, and the default scale is steps of 5. These are the off-scale values the
+      // design uses; add any new one here or the class silently renders nothing.
+      opacity: {
+        '2.5': '0.025',
+        3: '0.03',
+        4: '0.04',
+        '4.5': '0.045',
+        6: '0.06',
+        8: '0.08',
+        9: '0.09',
+        12: '0.12',
+        14: '0.14',
+        16: '0.16',
+        18: '0.18',
+        24: '0.24',
+        42: '0.42',
+        52: '0.52',
+        62: '0.62',
       },
       fontFamily: {
         archivo: ['Archivo', 'system-ui', 'sans-serif'],
@@ -103,12 +110,49 @@ export default {
         10: '10px',
         12: '12px',
         14: '14px',
+        control: '8px',
+        card: '10px',
+        modal: '14px',
       },
       boxShadow: {
         btn: '0 8px 20px -10px rgba(18, 18, 18, 0.6)',
+        button: '0 8px 20px -10px rgba(18, 18, 18, 0.6)',
         dropdown: '0 22px 48px -18px rgba(18, 18, 18, 0.34)',
         modal: '0 40px 90px -30px rgba(18, 18, 18, 0.6)',
+        drawer: '-24px 0 48px -24px rgba(18, 18, 18, 0.35)',
         fab: '0 12px 24px -12px rgba(47, 107, 216, 0.8)',
+        knob: '0 1px 3px rgba(18, 18, 18, 0.3)',
+      },
+      // Above modals (z-50), so a toast fired while a dialog is open stays visible.
+      zIndex: {
+        toast: '60',
+      },
+      // Dialog and toast motion, used with the motion-safe: variant so prefers-reduced-motion turns it off.
+      keyframes: {
+        'fade-in': {
+          from: { opacity: '0' },
+          to: { opacity: '1' },
+        },
+        'dialog-in': {
+          from: { opacity: '0', transform: 'translateY(8px)' },
+          to: { opacity: '1', transform: 'none' },
+        },
+        'drawer-in': {
+          from: { transform: 'translateX(100%)' },
+          to: { transform: 'none' },
+        },
+        // An undo toast's time bar; the toast sets the duration.
+        countdown: {
+          from: { transform: 'scaleX(1)' },
+          to: { transform: 'scaleX(0)' },
+        },
+      },
+      animation: {
+        'fade-in': 'fade-in 0.18s ease both',
+        'dialog-in': 'dialog-in 0.18s ease both',
+        'drawer-in': 'drawer-in 0.22s cubic-bezier(0.2, 0.8, 0.2, 1) both',
+        'toast-in': 'dialog-in 0.2s ease both',
+        countdown: 'countdown linear both',
       },
     },
   },

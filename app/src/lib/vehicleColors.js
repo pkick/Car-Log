@@ -18,14 +18,12 @@ export const VEHICLE_COLOR_SWATCH_CLASS = {
   red: 'bg-red',
 }
 
-// Light tint for the card background behind the car icon. Tailwind can't derive an alpha channel
-// from these colors' oklch() values (slate is a plain hex and is fine with the normal /NN syntax),
-// so the tint bakes the alpha into the oklch() string itself via an arbitrary-value class.
+// Light tint for the card background behind the car icon.
 export const VEHICLE_COLOR_TILE_CLASS = {
   slate: 'bg-slate/8',
-  accent: 'bg-[oklch(0.56_0.19_258/10%)]',
-  teal: 'bg-[oklch(0.56_0.13_195/10%)]',
-  green: 'bg-[oklch(0.5_0.14_150/10%)]',
-  amber: 'bg-[oklch(0.66_0.14_68/10%)]',
-  red: 'bg-[oklch(0.55_0.17_28/10%)]',
+  accent: 'bg-accent/10',
+  teal: 'bg-teal/10',
+  green: 'bg-green/10',
+  amber: 'bg-amber/10',
+  red: 'bg-red/10',
 }

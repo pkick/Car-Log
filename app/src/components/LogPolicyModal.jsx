@@ -1,30 +1,58 @@
 import { useState, useContext } from 'react'
 import { CalendarIcon } from './icons'
+import { Field, Input, Modal, NumberInput, Segmented, Textarea } from './ui'
+import FormActions from './FormActions'
+import ReceiptDropZone from './ReceiptDropZone'
 import { useRecords } from '../context/RecordsContext'
 import { VehicleContext } from '../context/VehicleContext'
+import { useToast } from '../context/toast'
+import { useReceiptQueue } from '../hooks/useReceiptQueue'
+import { useVehicleReceipts } from '../hooks/useReceipts'
+import { todayISO } from '../lib/dates'
+import { failedUploadMessage } from '../lib/receipts'
+import { paymentSavedDetail } from '../lib/toastDetails'
+
+// Fields with an error line under their input. Errors for any other field show above the buttons.
+const FORM_FIELDS = ['date', 'cost', 'renewalDate']
+
+const TYPES = [
+  { value: 'insurance', label: 'Insurance' },
+  { value: 'registration', label: 'Registration' },
+]
 
 export default function LogPolicyModal({ vehicle, onClose, editingRecord = null, defaultType = 'insurance' }) {
   const { addPolicyRecord, updatePolicyRecord } = useRecords()
   const { updateVehicle } = useContext(VehicleContext)
+  const toast = useToast()
 
   const [formData, setFormData] = useState({
     type: editingRecord?.type || defaultType,
-    date: editingRecord?.date || new Date().toISOString().split('T')[0],
+    date: editingRecord?.date || todayISO(),
     cost: editingRecord ? String(editingRecord.cost) : '',
     renewalDate: editingRecord?.renewalDate || '',
     provider: editingRecord?.provider || '',
     notes: editingRecord?.notes || '',
   })
+  const [saving, setSaving] = useState(false)
+  const [fieldErrors, setFieldErrors] = useState({})
+  const [saveError, setSaveError] = useState(null)
+  // Set once the record exists, so retrying after the renewal-date update or an upload failed doesn't add it twice.
+  // Its receipts upload straight away from then on.
+  const [recordId, setRecordId] = useState(editingRecord?.id ?? null)
+  const receiptQueue = useReceiptQueue({ recordType: 'policy', recordId })
+  const { receipts: vehicleReceipts } = useVehicleReceipts(vehicle?.id)
+  const attachedReceipts = recordId == null ? [] : vehicleReceipts.filter((r) => r.recordType === 'policy' && r.recordId === recordId)
 
   const handleChange = (e) => {
     const { name, value } = e.target
     setFormData({ ...formData, [name]: value })
+    setFieldErrors({ ...fieldErrors, [name]: null })
   }
 
   const cost = parseFloat(formData.cost) || 0
 
-  const handleSave = () => {
-    if (!vehicle || cost <= 0 || !formData.date) return
+  const handleSave = async () => {
+    if (!vehicle || cost <= 0 || !formData.date || saving) return
     const payload = {
       vehicleId: vehicle.id,
       type: formData.type,
@@ -34,146 +62,93 @@ export default function LogPolicyModal({ vehicle, onClose, editingRecord = null,
       provider: formData.provider,
       notes: formData.notes,
     }
-    if (editingRecord) {
-      updatePolicyRecord(editingRecord.id, payload)
-    } else {
-      addPolicyRecord(payload)
+    setSaving(true)
+    setFieldErrors({})
+    setSaveError(null)
+    try {
+      let id = recordId
+      if (id) {
+        await updatePolicyRecord(id, payload)
+      } else {
+        id = await addPolicyRecord(payload)
+        setRecordId(id)
+      }
+      if (formData.renewalDate) {
+        const field = formData.type === 'insurance' ? 'insuranceRenewal' : 'registrationRenewal'
+        await updateVehicle(vehicle.id, { [field]: formData.renewalDate })
+      }
+      const failed = await receiptQueue.uploadAll(id)
+      if (failed > 0) {
+        setSaveError(failedUploadMessage('Payment', failed))
+        setSaving(false)
+        return
+      }
+      toast.success('Payment saved', paymentSavedDetail({ type: formData.type, cost }))
+      onClose()
+    } catch (err) {
+      if (FORM_FIELDS.includes(err.field)) setFieldErrors({ [err.field]: err.message })
+      else setSaveError(err.message)
+      setSaving(false)
     }
-    if (formData.renewalDate) {
-      const field = formData.type === 'insurance' ? 'insuranceRenewal' : 'registrationRenewal'
-      updateVehicle(vehicle.id, { [field]: formData.renewalDate })
-    }
-    onClose()
   }
 
   return (
-    <div className="fixed inset-0 bg-ink/42 flex items-center justify-center z-50 modal-rise">
-      <div className="bg-page rounded-2xl shadow-modal w-[650px] max-h-[90vh] overflow-y-auto">
-        {/* Header */}
-        <div className="bg-slate text-page px-8 py-6 flex items-center justify-between border-b border-ink/10 sticky top-0">
-          <div>
-            <h2 className="text-2xl font-bold">{editingRecord ? 'Edit payment' : 'Log payment'}</h2>
-            <p className="text-sm text-page/70">{vehicle?.nickname} · {vehicle?.odometer?.toLocaleString()} mi</p>
-          </div>
-          <button onClick={onClose} className="text-3xl font-light hover:opacity-70">×</button>
+    <Modal
+      open
+      onClose={onClose}
+      size="md"
+      title={editingRecord ? 'Edit payment' : 'Log payment'}
+      subtitle={<>{vehicle?.nickname} · {vehicle?.odometer?.toLocaleString()} mi</>}
+      footer={
+        <FormActions
+          submitLabel={recordId ? 'Save changes' : 'Save payment'}
+          onSubmit={handleSave}
+          onCancel={onClose}
+          saving={saving}
+          submitDisabled={cost <= 0 || !formData.date}
+          error={saveError}
+        />
+      }
+    >
+      <div className="space-y-5">
+        <Field label="Type">
+          <Segmented
+            fullWidth
+            options={TYPES}
+            value={formData.type}
+            onChange={(type) => setFormData({ ...formData, type })}
+          />
+        </Field>
+
+        <div className="grid grid-cols-2 gap-4">
+          <Field label={<><CalendarIcon size={14} className="flex-none" />Date paid</>} error={fieldErrors.date}>
+            <Input type="date" name="date" value={formData.date} onChange={handleChange} />
+          </Field>
+          <Field label="Cost" error={fieldErrors.cost}>
+            <NumberInput name="cost" value={formData.cost} onChange={handleChange} placeholder="0.00" />
+          </Field>
         </div>
 
-        {/* Content */}
-        <div className="p-6 space-y-5">
-          {/* Type */}
-          <div>
-            <label className="text-xs font-mono font-semibold tracking-widest uppercase text-ink/45 block mb-2.5">Type</label>
-            <div className="flex gap-2.5">
-              <button
-                type="button"
-                onClick={() => setFormData({ ...formData, type: 'insurance' })}
-                className={`flex-1 px-4 py-2 rounded-lg font-semibold text-sm transition-colors ${
-                  formData.type === 'insurance' ? 'bg-slate text-white' : 'bg-white border border-ink/10 text-ink hover:bg-ink/3'
-                }`}
-              >
-                Insurance
-              </button>
-              <button
-                type="button"
-                onClick={() => setFormData({ ...formData, type: 'registration' })}
-                className={`flex-1 px-4 py-2 rounded-lg font-semibold text-sm transition-colors ${
-                  formData.type === 'registration' ? 'bg-slate text-white' : 'bg-white border border-ink/10 text-ink hover:bg-ink/3'
-                }`}
-              >
-                Registration
-              </button>
-            </div>
-          </div>
-
-          {/* Date & Cost */}
-          <div className="grid grid-cols-2 gap-4">
-            <div>
-              <label className="text-xs font-mono font-semibold tracking-widest uppercase text-ink/45 mb-2 flex items-center gap-1.5">
-                <CalendarIcon size={14} className="flex-none" />
-                Date paid
-              </label>
-              <input
-                type="date"
-                name="date"
-                value={formData.date}
-                onChange={handleChange}
-                className="w-full px-3 py-2.5 border border-ink/12 rounded-lg text-base focus:outline-none focus:border-accent"
-              />
-            </div>
-            <div>
-              <label className="text-xs font-mono font-semibold tracking-widest uppercase text-ink/45 block mb-2">Cost</label>
-              <input
-                type="number"
-                step="0.01"
-                name="cost"
-                value={formData.cost}
-                onChange={handleChange}
-                placeholder="0.00"
-                className="w-full px-3 py-2.5 border border-ink/12 rounded-lg text-base focus:outline-none focus:border-accent"
-              />
-            </div>
-          </div>
-
-          {/* Renewal Date & Provider */}
-          <div className="grid grid-cols-2 gap-4">
-            <div>
-              <label className="text-xs font-mono font-semibold tracking-widest uppercase text-ink/45 mb-2 flex items-center gap-1.5">
-                <CalendarIcon size={14} className="flex-none" />
-                Renewal date
-              </label>
-              <input
-                type="date"
-                name="renewalDate"
-                value={formData.renewalDate}
-                onChange={handleChange}
-                className="w-full px-3 py-2.5 border border-ink/12 rounded-lg text-base focus:outline-none focus:border-accent"
-              />
-            </div>
-            <div>
-              <label className="text-xs font-mono font-semibold tracking-widest uppercase text-ink/45 block mb-2">
-                {formData.type === 'insurance' ? 'Insurer' : 'Agency'}
-              </label>
-              <input
-                type="text"
-                name="provider"
-                value={formData.provider}
-                onChange={handleChange}
-                placeholder={formData.type === 'insurance' ? 'State Farm' : 'DMV'}
-                className="w-full px-3 py-2.5 border border-ink/12 rounded-lg text-base focus:outline-none focus:border-accent"
-              />
-            </div>
-          </div>
-
-          {/* Notes */}
-          <div>
-            <label className="text-xs font-mono font-semibold tracking-widest uppercase text-ink/45 block mb-2">Notes</label>
-            <textarea
-              name="notes"
-              value={formData.notes}
+        <div className="grid grid-cols-2 gap-4">
+          <Field label={<><CalendarIcon size={14} className="flex-none" />Renewal date</>} error={fieldErrors.renewalDate}>
+            <Input type="date" name="renewalDate" value={formData.renewalDate} onChange={handleChange} />
+          </Field>
+          <Field label={formData.type === 'insurance' ? 'Insurer' : 'Agency'}>
+            <Input
+              name="provider"
+              value={formData.provider}
               onChange={handleChange}
-              rows={3}
-              className="w-full px-3 py-2.5 border border-ink/12 rounded-lg text-sm focus:outline-none focus:border-accent resize-none"
+              placeholder={formData.type === 'insurance' ? 'State Farm' : 'DMV'}
             />
-          </div>
+          </Field>
         </div>
 
-        {/* Footer */}
-        <div className="border-t border-ink/8 px-6 py-3 flex gap-3 sticky bottom-0 bg-page">
-          <button
-            onClick={handleSave}
-            disabled={cost <= 0 || !formData.date}
-            className="flex-1 py-2.5 bg-slate text-white font-semibold rounded-lg hover:bg-slate/90 transition-colors text-sm disabled:opacity-40 disabled:cursor-default"
-          >
-            {editingRecord ? 'Save changes' : 'Save payment'}
-          </button>
-          <button
-            onClick={onClose}
-            className="flex-1 py-2.5 border border-ink/12 text-ink font-semibold rounded-lg hover:bg-ink/3 transition-colors text-sm"
-          >
-            Cancel
-          </button>
-        </div>
+        <Field label="Notes">
+          <Textarea name="notes" value={formData.notes} onChange={handleChange} rows={3} />
+        </Field>
+
+        <ReceiptDropZone queue={receiptQueue} attached={attachedReceipts} />
       </div>
-    </div>
+    </Modal>
   )
 }

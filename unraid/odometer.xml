@@ -1,0 +1,29 @@
+<?xml version="1.0"?>
+<Container version="2">
+  <Name>odometer</Name>
+  <!-- Placeholder: the tag you build on the NAS (see README, "Deploying on unraid"). Change it if you push the image to a registry. -->
+  <Repository>odometer:latest</Repository>
+  <Registry/>
+  <Network>bridge</Network>
+  <MyIP/>
+  <Shell>sh</Shell>
+  <Privileged>false</Privileged>
+  <Support>https://github.com/pkick/Car-Log</Support>
+  <Project>https://github.com/pkick/Car-Log</Project>
+  <Overview>Odometer: a self-hosted car tracker for fuel fill-ups, maintenance, insurance and registration. One container serves the app and its API; all data lives in the appdata folder. There is no sign-in, so keep it on your LAN or behind your reverse proxy's authentication.</Overview>
+  <Category>Tools: Productivity:</Category>
+  <WebUI>http://[IP]:[PORT:3001]/</WebUI>
+  <TemplateURL/>
+  <Icon/>
+  <ExtraParams/>
+  <PostArgs/>
+  <CPUset/>
+  <DateInstalled/>
+  <DonateText/>
+  <DonateLink/>
+  <Requires/>
+  <Config Name="WebUI port" Target="3001" Default="3001" Mode="tcp" Description="Port for the app and its API." Type="Port" Display="always" Required="true" Mask="false">3001</Config>
+  <Config Name="Appdata" Target="/data" Default="/mnt/user/appdata/odometer" Mode="rw" Description="Holds odometer.db (and receipts later). Back this folder up." Type="Path" Display="always" Required="true" Mask="false">/mnt/user/appdata/odometer</Config>
+  <Config Name="PUID" Target="PUID" Default="99" Mode="" Description="User the server runs as and owner of the appdata folder. 99 is unraid's nobody." Type="Variable" Display="advanced" Required="false" Mask="false">99</Config>
+  <Config Name="PGID" Target="PGID" Default="100" Mode="" Description="Group for the same. 100 is unraid's users." Type="Variable" Display="advanced" Required="false" Mask="false">100</Config>
+</Container>

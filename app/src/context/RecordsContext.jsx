@@ -1,32 +1,61 @@
-import { createContext, useContext, useEffect, useState } from 'react'
+import { createContext, useContext, useEffect, useMemo, useReducer, useState } from 'react'
+import { VehicleContext } from './VehicleContext'
+import { useToast } from './toast'
+import { EMPTY_RECORDS, recordsReducer, visibleRecords } from '../lib/recordsState'
 
 export const RecordsContext = createContext()
 
+const UNREACHABLE = "Can't reach the server. Check that it's running and try again."
+// A proxy in front of the API (Vite in dev, or one on the NAS) answers these when the API is down.
+const GATEWAY_STATUSES = [502, 503, 504]
+
 async function api(path, options) {
-  const res = await fetch(path, {
-    headers: { 'Content-Type': 'application/json' },
-    ...options,
-  })
+  let res
+  try {
+    res = await fetch(path, {
+      headers: { 'Content-Type': 'application/json' },
+      ...options,
+    })
+  } catch (err) {
+    throw new Error(UNREACHABLE, { cause: err })
+  }
   if (!res.ok) {
     const body = await res.json().catch(() => ({}))
-    throw new Error(body.error || `Request failed: ${res.status}`)
+    const message = body.error || (GATEWAY_STATUSES.includes(res.status) ? UNREACHABLE : `Request failed: ${res.status}`)
+    throw Object.assign(new Error(message), { field: body.field, status: res.status })
   }
   return res.status === 204 ? null : res.json()
 }
 
+const ENDPOINTS = {
+  fillUps: '/api/fill-ups',
+  serviceRecords: '/api/service-records',
+  policyRecords: '/api/policy-records',
+}
+
+// "Fill-up deleted", "Couldn't delete the fill-up".
+const NOUNS = {
+  fillUps: 'Fill-up',
+  serviceRecords: 'Service',
+  policyRecords: 'Payment',
+}
+
+/**
+ * Loads every fill-up, service record and payment and keeps them in sync with the server. It renders its
+ * children straight away and reports `loading` and `error`; the app shows one skeleton until this and the
+ * vehicles have loaded.
+ */
 export function RecordsProvider({ children }) {
-  const [fillUps, setFillUps] = useState([])
-  const [serviceRecords, setServiceRecords] = useState([])
-  const [policyRecords, setPolicyRecords] = useState([])
+  const { mergeVehicle } = useContext(VehicleContext)
+  const toast = useToast()
+  const [state, dispatch] = useReducer(recordsReducer, EMPTY_RECORDS)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState(null)
 
   useEffect(() => {
-    Promise.all([api('/api/fill-ups'), api('/api/service-records'), api('/api/policy-records')])
-      .then(([fills, records, policies]) => {
-        setFillUps(fills)
-        setServiceRecords(records)
-        setPolicyRecords(policies)
+    Promise.all([api(ENDPOINTS.fillUps), api(ENDPOINTS.serviceRecords), api(ENDPOINTS.policyRecords)])
+      .then(([fillUps, serviceRecords, policyRecords]) => {
+        dispatch({ type: 'load', records: { fillUps, serviceRecords, policyRecords } })
         setLoading(false)
       })
       .catch((err) => {
@@ -35,74 +64,114 @@ export function RecordsProvider({ children }) {
       })
   }, [])
 
+  // Records whose delete is pending are left out here, so every page, stat and count skips them.
+  const fillUps = useMemo(() => visibleRecords(state, 'fillUps'), [state])
+  const serviceRecords = useMemo(() => visibleRecords(state, 'serviceRecords'), [state])
+  const policyRecords = useMemo(() => visibleRecords(state, 'policyRecords'), [state])
+
   const getFillUpsForVehicle = (vehicleId) => fillUps.filter((f) => f.vehicleId === vehicleId)
   const getServiceRecordsForVehicle = (vehicleId) => serviceRecords.filter((r) => r.vehicleId === vehicleId)
   const getPolicyRecordsForVehicle = (vehicleId) => policyRecords.filter((p) => p.vehicleId === vehicleId)
 
+  /**
+   * Hides the record at once and offers Undo. The DELETE is only sent once the undo window closes; if it fails,
+   * the record comes back with an error toast. The response's vehicle carries the recomputed odometer.
+   */
+  const deleteWithUndo = (kind, id) => {
+    const noun = NOUNS[kind]
+    dispatch({ type: 'hide', kind, id })
+    toast.undo(`${noun} deleted`, {
+      onUndo: () => dispatch({ type: 'restore', kind, id }),
+      onExpire: async () => {
+        try {
+          // keepalive lets the request finish when the window closed because the page is going away.
+          const body = await api(`${ENDPOINTS[kind]}/${id}`, { method: 'DELETE', keepalive: true })
+          dispatch({ type: 'commit', kind, id })
+          if (body?.vehicle) mergeVehicle(body.vehicle)
+        } catch (err) {
+          // Already gone on the server (say its vehicle was deleted meanwhile), which is what was asked for.
+          if (err.status === 404) {
+            dispatch({ type: 'commit', kind, id })
+            return
+          }
+          dispatch({ type: 'restore', kind, id })
+          toast.error(`Couldn't delete the ${noun.toLowerCase()}`, err.message)
+        }
+      },
+    })
+  }
+
   const addFillUp = async (data) => {
-    const created = await api('/api/fill-ups', { method: 'POST', body: JSON.stringify(data) })
-    setFillUps((fs) => [...fs, created])
-    return created.id
+    const { fillUp, vehicle } = await api(ENDPOINTS.fillUps, { method: 'POST', body: JSON.stringify(data) })
+    dispatch({ type: 'save', kind: 'fillUps', record: fillUp })
+    mergeVehicle(vehicle)
+    return fillUp.id
   }
 
   const updateFillUp = async (id, updates) => {
-    const updated = await api(`/api/fill-ups/${id}`, { method: 'PATCH', body: JSON.stringify(updates) })
-    setFillUps((fs) => fs.map((f) => (f.id === id ? updated : f)))
+    const { fillUp, vehicle } = await api(`${ENDPOINTS.fillUps}/${id}`, { method: 'PATCH', body: JSON.stringify(updates) })
+    dispatch({ type: 'save', kind: 'fillUps', record: fillUp })
+    mergeVehicle(vehicle)
   }
 
-  const deleteFillUp = async (id) => {
-    await api(`/api/fill-ups/${id}`, { method: 'DELETE' })
-    setFillUps((fs) => fs.filter((f) => f.id !== id))
-  }
+  const deleteFillUp = (id) => deleteWithUndo('fillUps', id)
 
   const addServiceRecord = async (data) => {
-    const created = await api('/api/service-records', { method: 'POST', body: JSON.stringify(data) })
-    setServiceRecords((rs) => [...rs, created])
-    return created.id
+    const { serviceRecord, vehicle } = await api(ENDPOINTS.serviceRecords, { method: 'POST', body: JSON.stringify(data) })
+    dispatch({ type: 'save', kind: 'serviceRecords', record: serviceRecord })
+    mergeVehicle(vehicle)
+    return serviceRecord.id
   }
 
   const updateServiceRecord = async (id, updates) => {
-    const updated = await api(`/api/service-records/${id}`, { method: 'PATCH', body: JSON.stringify(updates) })
-    setServiceRecords((rs) => rs.map((r) => (r.id === id ? updated : r)))
+    const { serviceRecord, vehicle } = await api(`${ENDPOINTS.serviceRecords}/${id}`, { method: 'PATCH', body: JSON.stringify(updates) })
+    dispatch({ type: 'save', kind: 'serviceRecords', record: serviceRecord })
+    mergeVehicle(vehicle)
   }
 
-  const deleteServiceRecord = async (id) => {
-    await api(`/api/service-records/${id}`, { method: 'DELETE' })
-    setServiceRecords((rs) => rs.filter((r) => r.id !== id))
+  const deleteServiceRecord = (id) => deleteWithUndo('serviceRecords', id)
+
+  /**
+   * Deletes at once, with no undo window of its own: for taking back a record that was just added, such as Mark
+   * done's Undo. The record is hidden while the DELETE runs and comes back if it fails; the error is rethrown.
+   */
+  const removeServiceRecord = async (id) => {
+    dispatch({ type: 'hide', kind: 'serviceRecords', id })
+    try {
+      const body = await api(`${ENDPOINTS.serviceRecords}/${id}`, { method: 'DELETE', keepalive: true })
+      dispatch({ type: 'commit', kind: 'serviceRecords', id })
+      if (body?.vehicle) mergeVehicle(body.vehicle)
+    } catch (err) {
+      if (err.status === 404) {
+        dispatch({ type: 'commit', kind: 'serviceRecords', id })
+        return
+      }
+      dispatch({ type: 'restore', kind: 'serviceRecords', id })
+      throw err
+    }
   }
 
   const addPolicyRecord = async (data) => {
-    const created = await api('/api/policy-records', { method: 'POST', body: JSON.stringify(data) })
-    setPolicyRecords((ps) => [...ps, created])
+    const created = await api(ENDPOINTS.policyRecords, { method: 'POST', body: JSON.stringify(data) })
+    dispatch({ type: 'save', kind: 'policyRecords', record: created })
     return created.id
   }
 
   const updatePolicyRecord = async (id, updates) => {
-    const updated = await api(`/api/policy-records/${id}`, { method: 'PATCH', body: JSON.stringify(updates) })
-    setPolicyRecords((ps) => ps.map((p) => (p.id === id ? updated : p)))
+    const updated = await api(`${ENDPOINTS.policyRecords}/${id}`, { method: 'PATCH', body: JSON.stringify(updates) })
+    dispatch({ type: 'save', kind: 'policyRecords', record: updated })
   }
 
-  const deletePolicyRecord = async (id) => {
-    await api(`/api/policy-records/${id}`, { method: 'DELETE' })
-    setPolicyRecords((ps) => ps.filter((p) => p.id !== id))
-  }
+  const deletePolicyRecord = (id) => deleteWithUndo('policyRecords', id)
 
-  if (loading) {
-    return <div className="flex items-center justify-center h-screen text-sm text-ink/50">Loading…</div>
-  }
-
-  if (error) {
-    return (
-      <div className="flex flex-col items-center justify-center h-screen gap-2 text-center px-6">
-        <p className="text-sm font-semibold text-red">Couldn't reach the server</p>
-        <p className="text-xs text-ink/50">Is the backend running? ({error})</p>
-      </div>
-    )
-  }
+  // The server cascades a vehicle's delete to its records; call this after deleteVehicle resolves.
+  const removeVehicleRecords = (vehicleId) => dispatch({ type: 'removeVehicle', vehicleId })
 
   return (
     <RecordsContext.Provider
       value={{
+        loading,
+        error,
         fillUps,
         serviceRecords,
         policyRecords,
@@ -115,9 +184,11 @@ export function RecordsProvider({ children }) {
         addServiceRecord,
         updateServiceRecord,
         deleteServiceRecord,
+        removeServiceRecord,
         addPolicyRecord,
         updatePolicyRecord,
         deletePolicyRecord,
+        removeVehicleRecords,
       }}
     >
       {children}
