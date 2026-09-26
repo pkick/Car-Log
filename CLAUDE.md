@@ -37,11 +37,42 @@ reseed. After P2-F, schema changes must be migrations.
   (steps of 5 by default). Check `tailwind.config.js` before using a new one.
 - **Design tokens** live in `tailwind.config.js` (and CSS variables in `index.css` after P2-A). Use `ink`,
   `slate`, `accent`, `teal`, `amber`, `green`, `red`, `page`. Archivo for UI text, IBM Plex Mono for data and labels.
-- **UI primitives** (after P2-A) live in `app/src/components/ui`. Use them; don't restyle buttons, inputs or
-  modals inline.
+- **UI primitives** live in `app/src/components/ui`; see [UI primitives](#ui-primitives) below.
 - **Icons** go in `app/src/components/icons.jsx` on the 24px, 2px-stroke grid.
 - Keep `lib/` functions pure, documented with JSDoc, and covered by tests.
 - Match the surrounding code style; no comments that restate the code.
+
+## UI primitives
+
+Build screens from `app/src/components/ui` (`import { Button, Field } from '../components/ui'`). To see every
+primitive in every state, run the dev server and open http://localhost:5173/dev/ui (dev only; never in the build).
+
+- `Button`: every text button. `primary` (slate) for the main action, `secondary` (accent tint) for a lighter one,
+  `ghost` (hairline border) for Cancel and neutral actions, `danger` to confirm a delete. `sm` / `md`, `loading`
+  while saving, `tone="dark"` on slate panels.
+- `IconButton`: icon-only buttons; `aria-label` is required. Its `danger` is the neutral-until-hover row delete.
+- `Field`: label plus hint or error around one control; wires `id`, `aria-describedby` and `aria-invalid`.
+- `Input`, `Textarea`, `Select`: text, multi-line and native select controls.
+- `NumberInput`: every numeric field (`type="text"`, `inputMode`, optional `unit`); the value stays a string.
+- `Segmented`: pick one of a few (filters, ranges, $/gal vs total, Shop / DIY). `sm` sits in a label row, `md`
+  is the filter track; `fullWidth`, `tone="dark"`.
+- `Switch`: on / off settings, with an optional label and description.
+- `Badge`, `StatusChip`: small tinted labels; `StatusChip` maps an interval `status` to green, amber or red.
+- `Card`: any bordered surface; `padding` none / sm / md / lg, `tone="dark"` for slate panels.
+- `EmptyState`: "nothing here yet" and "turned off" panels with one action.
+- `StatTile`: one stat-rail number with unit, delta and `deltaTone` (good / bad / neutral news).
+- `Modal`, `Drawer`: every dialog. Focus trap, Esc and backdrop close, focus return, sticky header and footer.
+  Modal `sm` 440 / `md` 600 / `lg` 760px; Drawer slides in from the right at 400 / 480 / 640px.
+
+**No one-off styling** of buttons, inputs, selects, toggles, cards or modals outside `components/ui`. If a
+primitive doesn't fit, extend it with a variant or prop (and show it in `src/dev/UiGallery.jsx`). `className`
+on a primitive is for layout only: width, flex, margins.
+
+**Colors** are CSS variables holding RGB channels on `:root` in `app/src/index.css` (`--accent: 26 111 225`),
+and Tailwind reads them as `rgb(var(--accent) / <alpha-value>)`. So every token takes an opacity modifier
+(`bg-accent/12`), as long as the value is in `theme.opacity`. Don't put hex, `rgba()` or `oklch()` in class
+names; use a token, or add one in both files. Radii: `rounded-control` 8px, `rounded-card` 10px,
+`rounded-modal` 14px. Shadows: `shadow-button`, `shadow-dropdown`, `shadow-modal`, `shadow-drawer`, `shadow-knob`.
 
 ## Workflow
 

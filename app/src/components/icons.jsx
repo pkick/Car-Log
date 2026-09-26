@@ -395,3 +395,20 @@ export function PaintbrushIcon({ size = 20, className = '', ...props }) {
     </svg>
   )
 }
+
+export function CloseIcon({ size = 20, className = '', ...props }) {
+  return (
+    <svg viewBox="0 0 24 24" width={size} height={size} fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true" className={className} {...props}>
+      <path d="M18 6L6 18M6 6L18 18" />
+    </svg>
+  )
+}
+
+export function SpinnerIcon({ size = 20, className = '', ...props }) {
+  return (
+    <svg viewBox="0 0 24 24" width={size} height={size} fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true" className={className} {...props}>
+      <circle cx="12" cy="12" r="9" opacity="0.25" />
+      <path d="M21 12C21 7.02944 16.9706 3 12 3" />
+    </svg>
+  )
+}
