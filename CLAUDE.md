@@ -28,8 +28,8 @@ cd server && npm install && npm run dev   # API on :3001
 cd app && npm install && npm run dev      # Vite on :5173, proxies /api to :3001
 ```
 
-`npm run dev` in `server/` sets `SEED_DEMO=1`, so an empty dev DB gets the two demo vehicles; `npm start` starts
-empty. Data lives in `DATA_DIR` (default `server/data`). For a clean slate: stop the server,
+`npm run dev` in `server/` sets `SEED_DEMO=1`, so an empty dev DB gets the two demo vehicles (flagged `isDemo`, so the
+"Clear demo data" banner shows); `npm start` starts empty, on the first-run screen. Data lives in `DATA_DIR` (default `server/data`). For a clean slate: stop the server,
 `rm server/data/odometer.db`, and start it again. For production (Docker, unraid, backups, upgrades) see README.md.
 
 ## Conventions

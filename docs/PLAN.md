@@ -501,14 +501,14 @@ Acceptance
 ### P4-G · First-run onboarding
 Branch `feat/p4g-first-run`. Depends on P2-B; the Import button appears once P4-E lands.
 
-- [ ] **P4-G1** Replace `FirstVehiclePanel` with the handoff first-run screen: car mark, title, one line of copy
+- [x] **P4-G1** Replace `FirstVehiclePanel` with the handoff first-run screen: car mark, title, one line of copy
       (about the NAS, not "this device"), Add vehicle and Import CSV, and a 3-step strip (Add the vehicle, Set
       intervals, Log a fill-up) that ticks off as each is done. The page header is hidden.
-- [ ] **P4-G2** Empty vehicle: stat rail with em-dashes and hints ("needs 2 fill-ups") and two invitation cards,
+- [x] **P4-G2** Empty vehicle: stat rail with em-dashes and hints ("needs 2 fill-ups") and two invitation cards,
       "No fill-ups yet" and "No service history".
-- [ ] **P4-G3** Opt-in demo data: "Explore with demo data" calls `POST /api/demo` (empty DB only); a banner offers
+- [x] **P4-G3** Opt-in demo data: "Explore with demo data" calls `POST /api/demo` (empty DB only); a banner offers
       "Clear demo data" (`DELETE /api/demo`). Demo rows are flagged (migration).
-- [ ] **P4-G4** Route tests for the demo endpoints.
+- [x] **P4-G4** Route tests for the demo endpoints.
 
 Acceptance
 - A fresh install shows the first-run screen; demo data can be loaded and cleared, leaving an empty database.
@@ -546,6 +546,7 @@ Backlog (not scheduled): units and currency settings (L/100 km, km, liters), hou
 Newest first. One line per merged PR: date, group, PR link, one-sentence summary.
 
 - 2026-09-25 · P1-C · Intervals list the services that reset them (D10); the server owns the defaults (`GET /api/defaults/intervals`); due items carry `progress`, `dueDate` and `dueOdometer`, labels follow whichever limit is closer, and the Coming up bars use `progress` (finishes P1-F2). Needs a dev DB reset.
+- 2026-09-26 · P4-G · First-run screen (no header, 3-step strip that keeps guiding on the Dashboard until set up), empty-vehicle Dashboard with em-dash tiles and invitation cards, and opt-in demo data (`POST`/`DELETE /api/demo`, migration `002_demo_flag`, a Clear demo data banner). The Import CSV button joins the first-run screen with P4-E.
 - 2026-09-26 · P2-D · Toasts (success, error, undo; max three, bottom-right, announced); deleting a fill-up, service or payment hides it with a 5-second Undo before the DELETE is sent (flushed on page close); success toasts carry a detail such as the MPG; vehicles and records load together behind one skeleton, with an error boundary and Retry.
 - 2026-09-26 · P3-G · Garage cards show tracking badges and a due count, open the vehicle on click (stretched `CardLink`) and the Add vehicle tile is a real button; Documents has renewal cards with countdowns, status and the last payment, from a tested `lib/renewals.js` that P3-B's attention banner will use.
 - 2026-09-26 · P2-C · `react-router` v7 in library mode: `/v/:vehicleId/{overview,fuel,maintenance,documents,trends}`, `/garage`, `/settings`, a 404 page; the active vehicle comes from the URL, switching vehicles keeps the section, untracked sections redirect, and back/forward restore scroll. Deep links work in dev and from the production server.

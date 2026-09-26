@@ -75,7 +75,7 @@ The server serves the built app and the API on one port. Everything it stores li
 |---|---|---|
 | `DATA_DIR` | `server/data` (`/data` in Docker) | Holds `odometer.db`, and later uploads. Created on start if missing. |
 | `PORT` | `3001` | Port for the app and the API. |
-| `SEED_DEMO` | unset | `1` loads the demo vehicles into an empty database. Leave it unset for real data. |
+| `SEED_DEMO` | unset | `1` loads the demo vehicles into an empty database, flagged as demo data (the app's "Clear demo data" banner removes them). Leave it unset for real data; a fresh install can also load demo data from its first-run screen. |
 | `DB_PATH` | `$DATA_DIR/odometer.db` | Overrides the database file (the tests use `:memory:`). |
 | `STATIC_DIR` | `app/dist` | The built app to serve. Without it, only the API is served. |
 | `TZ` | the machine's | Time zone. The server's local date names backup files. |
