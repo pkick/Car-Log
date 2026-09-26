@@ -304,11 +304,11 @@ Goal: the wireframed features in [`roadmap.html`](roadmap.html) sections 3A to 3
 ### P3-A · Chart kit
 Branch `feat/p3a-charts`. Depends on P2-A.
 
-- [ ] **P3-A1** `components/charts/`: `Sparkline`, `LineChart` (y-axis ticks from a nice-number scale, average line,
+- [x] **P3-A1** `components/charts/`: `Sparkline`, `LineChart` (y-axis ticks from a nice-number scale, average line,
       hollow markers for partial fills, hover tooltip), `BarChart` (stacked option), `ProgressTrack` (last-done
       marker, due tick, "now" marker, overdue overflow). Colors from tokens only.
-- [ ] **P3-A2** Scale and tick helpers in `lib/chartScale.js` with tests.
-- [ ] **P3-A3** Add the chart kit to the `/dev/ui` gallery.
+- [x] **P3-A2** Scale and tick helpers in `lib/chartScale.js` with tests.
+- [x] **P3-A3** Add the chart kit to the `/dev/ui` gallery.
 
 ### P3-B · Dashboard 2.0
 Branch `feat/p3b-dashboard`. Depends on P3-A, P2-C, P2-D. Wireframe: roadmap 3A.
@@ -546,6 +546,7 @@ Backlog (not scheduled): units and currency settings (L/100 km, km, liters), hou
 Newest first. One line per merged PR: date, group, PR link, one-sentence summary.
 
 - 2026-09-25 · P1-C · Intervals list the services that reset them (D10); the server owns the defaults (`GET /api/defaults/intervals`); due items carry `progress`, `dueDate` and `dueOdometer`, labels follow whichever limit is closer, and the Coming up bars use `progress` (finishes P1-F2). Needs a dev DB reset.
+- 2026-09-26 · P3-A · `components/charts`: Sparkline, LineChart (nice-number axis, average line, hollow partial fills, hover and keyboard tooltip), BarChart (grouped or stacked), ProgressTrack (due tick, now marker, overdue overflow); `lib/chartScale.js` with 41 tests; charts in the `/dev/ui` gallery.
 - 2026-09-26 · P2-F · `DATA_DIR`, numbered SQL migrations (`001_initial`), demo data only with `SEED_DEMO=1`, JSON backup and restore in Settings, Express serves the built app with SPA fallback, Dockerfile / compose / unraid template (verified: build, health check, data survives a rebuild, works with no internet), self-hosted fonts. **D2 has flipped: schema changes are migrations from here on.**
 - 2026-09-26 · P2-A · Color tokens are CSS variables (RGB channels, so any scale opacity works on every color); `components/ui` has Button, IconButton, Field, Input, Textarea, Select, NumberInput, Segmented, Switch, Badge, StatusChip, Card, EmptyState, StatTile, Modal and Drawer; gallery at `/dev/ui` (dev only).
 - 2026-09-25 · Plan · Expanded the Phase 4 epics into task groups P4-A to P4-I (47 tasks) and added decisions D14 to D17.
