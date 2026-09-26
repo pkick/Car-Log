@@ -1,4 +1,4 @@
-import { addMonths, currentYear, daysBetween, monthKey, parseISODate, todayISO } from './dates'
+import { addMonths, currentYear, daysBetween, isWithinDays, monthKey, parseISODate, todayISO } from './dates'
 import { CATEGORY_ID_BY_SERVICE } from './serviceCategories'
 
 /**
@@ -15,6 +15,11 @@ import { CATEGORY_ID_BY_SERVICE } from './serviceCategories'
  * @property {number} odometer
  * @property {string[]} services service names from `SUBCATEGORIES`
  * @property {string} categoryId the category of the first service, for display. Never used for matching.
+ * @property {number} cost
+ *
+ * @typedef {object} PolicyRecord
+ * @property {'insurance' | 'registration'} type
+ * @property {string} date `YYYY-MM-DD` the payment was made
  * @property {number} cost
  *
  * @typedef {object} Interval
@@ -40,6 +45,10 @@ import { CATEGORY_ID_BY_SERVICE } from './serviceCategories'
  * @property {'overdue' | 'coming-up' | 'ok'} status
  * @property {string} remainingLabel what is left of whichever limit is closer to due
  * @property {string} detailLabel
+ * @property {string} lastLabel where the interval is measured from: `Apr 22 · 79,630` for the last service
+ *   (leaving out a malformed date or a missing reading), or `Since purchase`
+ * @property {string | null} dueLabel where that closer limit falls due: `due 84,630` or `due Apr 22, 2027`;
+ *   `null` without limits
  * @property {number | null} milesRemaining
  * @property {number | null} dueOdometer the reading the interval is due at, or `null` without a miles limit
  * @property {string | null} dueDate `YYYY-MM-DD` the interval is due on, or `null` without a months limit
@@ -206,6 +215,7 @@ export function getDueSoonItems(vehicle, serviceRecords, currentOdometer) {
     }
 
     let remainingLabel = '—'
+    let dueLabel = null
     if (dateProgress != null && (milesProgress == null || dateProgress > milesProgress)) {
       remainingLabel =
         daysRemaining <= 0
@@ -213,12 +223,20 @@ export function getDueSoonItems(vehicle, serviceRecords, currentOdometer) {
           : daysRemaining < 14
             ? `${daysRemaining} ${daysRemaining === 1 ? 'day' : 'days'}`
             : `~${Math.round(daysRemaining / 7)} wks`
+      dueLabel = `due ${formatDueDay(dueDate)}`
     } else if (milesRemaining != null) {
       remainingLabel =
         milesRemaining <= 0
           ? `Due ${Math.abs(milesRemaining).toLocaleString()} mi ago`
           : `${milesRemaining.toLocaleString()} mi`
+      dueLabel = `due ${dueOdometer.toLocaleString()}`
     }
+
+    const lastLabel = last
+      ? [parseISODate(last.date) && formatDueDay(last.date), last.odometer > 0 && last.odometer.toLocaleString()]
+          .filter(Boolean)
+          .join(' · ')
+      : 'Since purchase'
 
     const detailLabel = [
       interval.miles != null ? `every ${interval.miles.toLocaleString()} mi` : null,
@@ -234,6 +252,8 @@ export function getDueSoonItems(vehicle, serviceRecords, currentOdometer) {
       status,
       remainingLabel,
       detailLabel,
+      lastLabel,
+      dueLabel,
       milesRemaining,
       dueOdometer,
       dueDate,
@@ -307,27 +327,6 @@ export function getRecords(fillsForVehicle) {
     cheapestGal: sorted.length ? Math.min(...sorted.map((f) => f.pricePerGal)) : null,
     totalMiles: sorted.length >= 2 ? sorted[sorted.length - 1].odometer - sorted[0].odometer : 0,
   }
-}
-
-/**
- * Fuel and service spend for each of the last three months, ending with the current month.
- * @param {FillUp[]} fillsForVehicle
- * @param {ServiceRecord[]} recordsForVehicle
- * @returns {Array<{ month: string, fuel: number, service: number }>}
- */
-export function getMonthlySpend(fillsForVehicle, recordsForVehicle) {
-  const today = todayISO()
-  const months = []
-  for (let i = 2; i >= 0; i--) {
-    const date = addMonths(today, -i)
-    months.push({ key: monthKey(date), month: parseISODate(date).toLocaleString('en-US', { month: 'short' }) })
-  }
-
-  return months.map(({ key, month }) => ({
-    month,
-    fuel: Math.round(fillsForVehicle.filter((f) => monthKey(f.date) === key).reduce((s, f) => s + f.total, 0)),
-    service: Math.round(recordsForVehicle.filter((r) => monthKey(r.date) === key).reduce((s, r) => s + r.cost, 0)),
-  }))
 }
 
 /** How far from its own average a fill's price must be, as a fraction, to count as high or low. */
@@ -425,4 +424,212 @@ export function getDrivingRate(fillsForVehicle) {
     milesPerYear: Math.round(milesPerMonth * 12),
     fillsPerYear: Math.round(sorted.length / (daysSpan / 365)),
   }
+}
+
+/**
+ * @typedef {object} TankMpg
+ * @property {number} id the fill-up that closed the tank
+ * @property {string} date `YYYY-MM-DD` of that fill-up
+ * @property {number} mpg
+ * @property {boolean} includesPartial partial fills since the previous full fill were added into this tank
+ */
+
+/**
+ * MPG of each full tank, for the fuel economy chart: oldest first, with the average of the tanks returned.
+ * Tanks closed on a malformed date are left out, since they can't be placed in time.
+ * @param {FillUp[]} fillsForVehicle fill-ups for ONE vehicle, in any order
+ * @param {object} [range] both limits apply when both are given
+ * @param {number} [range.tanks] keep only the latest this many tanks
+ * @param {number} [range.days] keep only tanks closed in this many days up to `today`
+ * @param {string} [today] `YYYY-MM-DD`; defaults to {@link todayISO}.
+ * @returns {{ points: TankMpg[], average: number | null }} `average` is rounded to one decimal place, and
+ *   `null` when there are no points.
+ */
+export function getMpgTrend(fillsForVehicle, { tanks, days } = {}, today = todayISO()) {
+  const sorted = [...fillsForVehicle].sort((a, b) => a.odometer - b.odometer)
+  const all = []
+  let partialSinceFull = false
+  for (const fill of computeFillMpg(sorted)) {
+    if (!fill.isFull) {
+      partialSinceFull = true
+      continue
+    }
+    if (fill.mpg != null && monthKey(fill.date)) {
+      all.push({ id: fill.id, date: fill.date, mpg: fill.mpg, includesPartial: partialSinceFull })
+    }
+    partialSinceFull = false
+  }
+  all.sort((a, b) => a.date.localeCompare(b.date))
+
+  const recent = days != null && Number.isFinite(days) ? all.filter((t) => isWithinDays(t.date, days, today)) : all
+  const points = tanks != null ? recent.slice(Math.max(0, recent.length - tanks)) : recent
+  const average = points.length
+    ? Math.round((points.reduce((sum, t) => sum + t.mpg, 0) / points.length) * 10) / 10
+    : null
+  return { points, average }
+}
+
+const SPEND_CATEGORIES = ['fuel', 'service', 'insurance', 'registration']
+
+const toCents = (amount) => Math.round(amount * 100) / 100
+
+/**
+ * @typedef {object} CategorySpend
+ * @property {number} fuel fill-up totals
+ * @property {number} service service record costs
+ * @property {number} insurance insurance payments
+ * @property {number} registration registration payments
+ * @property {number} total
+ */
+
+/**
+ * Adds up fill-ups, service records and policy payments by category. Amounts that aren't numbers, and
+ * policy records of another type, are skipped.
+ * @param {FillUp[]} fills
+ * @param {ServiceRecord[]} services
+ * @param {PolicyRecord[]} policies
+ * @returns {CategorySpend} rounded to the cent
+ */
+function sumSpend(fills, services, policies) {
+  const spend = { fuel: 0, service: 0, insurance: 0, registration: 0 }
+  const add = (category, amount) => {
+    if (Number.isFinite(amount)) spend[category] += amount
+  }
+  fills.forEach((f) => add('fuel', f.total))
+  services.forEach((r) => add('service', r.cost))
+  policies.forEach((p) => {
+    if (p.type === 'insurance' || p.type === 'registration') add(p.type, p.cost)
+  })
+  const rounded = Object.fromEntries(SPEND_CATEGORIES.map((c) => [c, toCents(spend[c])]))
+  return { ...rounded, total: toCents(SPEND_CATEGORIES.reduce((sum, c) => sum + spend[c], 0)) }
+}
+
+/**
+ * Spend per calendar month for the last `months` months, the current one included, split into fuel,
+ * service, insurance and registration. A policy payment counts in the month of its `date`. Records with a
+ * malformed date are left out.
+ * @param {FillUp[]} fills fill-ups for ONE vehicle
+ * @param {ServiceRecord[]} services service records for the same vehicle
+ * @param {PolicyRecord[]} policies insurance and registration payments for the same vehicle
+ * @param {number} [months] window length, in calendar months
+ * @param {string} [today] `YYYY-MM-DD`; defaults to {@link todayISO}.
+ * @returns {Array<{ month: string } & CategorySpend>} oldest first; `month` is `YYYY-MM`, amounts are
+ *   rounded to the cent, and a month with nothing logged is all zeros.
+ */
+export function getMonthlySpendByCategory(fills, services, policies, months = 12, today = todayISO()) {
+  const inMonth = (key) => (record) => monthKey(record.date) === key
+  const result = []
+  for (let i = months - 1; i >= 0; i--) {
+    const key = monthKey(addMonths(today, -i))
+    result.push({ month: key, ...sumSpend(fills.filter(inMonth(key)), services.filter(inMonth(key)), policies.filter(inMonth(key))) })
+  }
+  return result
+}
+
+/**
+ * Splits 100 in proportion to `values` in whole numbers that add up to exactly 100, giving the points
+ * lost to rounding down to the largest remainders (earlier values first on a tie).
+ * @param {number[]} values not negative
+ * @returns {number[]} all zeros when the values add up to 0
+ */
+function wholePercents(values) {
+  const total = values.reduce((sum, v) => sum + v, 0)
+  if (!(total > 0)) return values.map(() => 0)
+  const exact = values.map((v) => (v / total) * 100)
+  const percents = exact.map(Math.floor)
+  const byRemainder = exact.map((e, i) => i).sort((a, b) => exact[b] - percents[b] - (exact[a] - percents[a]) || a - b)
+  let left = 100 - percents.reduce((sum, p) => sum + p, 0)
+  for (const i of byRemainder) {
+    if (left <= 0) break
+    percents[i] += 1
+    left -= 1
+  }
+  return percents
+}
+
+/**
+ * @typedef {object} AllInCostPerMile
+ * @property {number} costPerMile all spend in the window over `miles`, rounded to the cent
+ * @property {number} miles between the lowest and highest odometer readings in the window
+ * @property {string} firstDate `YYYY-MM-DD` of the earliest reading in the window
+ * @property {string} lastDate `YYYY-MM-DD` of the latest reading in the window
+ * @property {CategorySpend} spend dated in the window
+ * @property {{ fuel: number, service: number, policies: number }} percent each part's share of the spend in
+ *   whole percents that add up to 100 (all 0 when nothing was spent); `policies` is insurance and
+ *   registration together
+ */
+
+/**
+ * All-in cost per mile over the `days` up to and including `today`: fuel, service, insurance and
+ * registration spend dated in the window, divided by the miles between the lowest and highest odometer
+ * readings dated in the window. Readings come from fill-ups and service records; missing or zero readings
+ * are ignored. A policy payment counts on its `date`, so a window holding a premium carries all of it.
+ * @param {FillUp[]} fills fill-ups for ONE vehicle
+ * @param {ServiceRecord[]} services service records for the same vehicle
+ * @param {PolicyRecord[]} policies insurance and registration payments for the same vehicle
+ * @param {number} [days] window length in days; `Infinity` (the default) is all time up to `today`.
+ * @param {string} [today] `YYYY-MM-DD`; defaults to {@link todayISO}.
+ * @returns {AllInCostPerMile | null} `null` when the window holds fewer than two readings, or they are all
+ *   the same.
+ */
+export function getAllInCostPerMile(fills, services, policies, days = Infinity, today = todayISO()) {
+  const inWindow = (record) => isWithinDays(record.date, days, today)
+  const windowFills = fills.filter(inWindow)
+  const windowServices = services.filter(inWindow)
+
+  const readings = [...windowFills, ...windowServices].filter((r) => Number.isFinite(r.odometer) && r.odometer > 0)
+  if (readings.length < 2) return null
+  const odometers = readings.map((r) => r.odometer)
+  const miles = Math.max(...odometers) - Math.min(...odometers)
+  if (miles <= 0) return null
+
+  const dates = readings.map((r) => r.date).sort()
+  const spend = sumSpend(windowFills, windowServices, policies.filter(inWindow))
+  const [fuel, service, policiesShare] = wholePercents([spend.fuel, spend.service, spend.insurance + spend.registration])
+
+  return {
+    costPerMile: toCents(spend.total / miles),
+    miles,
+    firstDate: dates[0],
+    lastDate: dates[dates.length - 1],
+    spend,
+    percent: { fuel, service, policies: policiesShare },
+  }
+}
+
+/**
+ * @typedef {object} StationPrice
+ * @property {string} station the name as written on the station's latest fill-up
+ * @property {number} averagePrice price per gallon weighted by gallons (what was paid per gallon there
+ *   overall), unrounded
+ * @property {number} fills how many fill-ups were made there
+ */
+
+/**
+ * Average price per gallon at each station, cheapest first. Fill-ups are grouped by `station`, trimmed
+ * and ignoring case; fill-ups without a station, or without gallons and a price, are left out.
+ * @param {Array<FillUp & { station?: string | null }>} fills fill-ups for ONE vehicle, in any order
+ * @returns {{ stations: StationPrice[], cheapest: StationPrice | null }} stations sorted by average
+ *   price, then by more fill-ups, then by name; `cheapest` is the first, or `null` when no fill-up has a
+ *   station.
+ */
+export function getStationInsights(fills) {
+  const groups = new Map()
+  const dated = [...fills].sort((a, b) => (a.date ?? '').localeCompare(b.date ?? ''))
+  for (const fill of dated) {
+    const name = typeof fill.station === 'string' ? fill.station.trim() : ''
+    if (!name || !(fill.gallons > 0) || !Number.isFinite(fill.pricePerGal)) continue
+    const key = name.toLowerCase()
+    const group = groups.get(key) ?? { station: name, gallons: 0, paid: 0, fills: 0 }
+    group.station = name
+    group.gallons += fill.gallons
+    group.paid += fill.gallons * fill.pricePerGal
+    group.fills += 1
+    groups.set(key, group)
+  }
+
+  const stations = [...groups.values()]
+    .map(({ station, gallons, paid, fills: count }) => ({ station, averagePrice: paid / gallons, fills: count }))
+    .sort((a, b) => a.averagePrice - b.averagePrice || b.fills - a.fills || a.station.localeCompare(b.station))
+  return { stations, cheapest: stations[0] ?? null }
 }

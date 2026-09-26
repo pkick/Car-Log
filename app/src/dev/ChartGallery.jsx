@@ -45,11 +45,13 @@ const MONTHS = [
   values: { fuel, service, insurance, registration },
 }))
 
+// The spend colors used everywhere (Trends too): amber is a status color, so registration is the
+// neutral gray.
 const SPEND_SERIES = [
   { key: 'fuel', label: 'Fuel', tone: 'accent' },
   { key: 'service', label: 'Service', tone: 'teal' },
   { key: 'insurance', label: 'Insurance', tone: 'slate' },
-  { key: 'registration', label: 'Registration', tone: 'amber' },
+  { key: 'registration', label: 'Registration', tone: 'neutral' },
 ]
 
 const SPARKS = {

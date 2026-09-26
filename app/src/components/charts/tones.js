@@ -1,7 +1,8 @@
 // Tone → class maps for chart marks. Written out in full so Tailwind finds every class, and all
-// built from the color tokens so dark mode (P2-G) stays a token swap.
+// built from the color tokens so dark mode (P2-G) stays a token swap. `neutral` is ink at 40%: a
+// light gray series (registration spend) that stays apart from slate and isn't a status color.
 
-/** @typedef {'accent' | 'teal' | 'amber' | 'green' | 'red' | 'ink' | 'slate'} ChartTone */
+/** @typedef {'accent' | 'teal' | 'amber' | 'green' | 'red' | 'ink' | 'slate' | 'neutral'} ChartTone */
 
 export const STROKE = {
   accent: 'stroke-accent',
@@ -11,6 +12,7 @@ export const STROKE = {
   red: 'stroke-red',
   ink: 'stroke-ink',
   slate: 'stroke-slate',
+  neutral: 'stroke-ink/40',
 }
 
 export const FILL = {
@@ -21,6 +23,7 @@ export const FILL = {
   red: 'fill-red',
   ink: 'fill-ink',
   slate: 'fill-slate',
+  neutral: 'fill-ink/40',
 }
 
 /** The area under a line: the series hue as a 10% wash. */
@@ -32,6 +35,7 @@ export const WASH = {
   red: 'fill-red/10',
   ink: 'fill-ink/10',
   slate: 'fill-slate/10',
+  neutral: 'fill-ink/4',
 }
 
 /** Legend swatches and tooltip line keys. */
@@ -43,6 +47,7 @@ export const BG = {
   red: 'bg-red',
   ink: 'bg-ink',
   slate: 'bg-slate',
+  neutral: 'bg-ink/40',
 }
 
 export const BORDER = {
@@ -53,6 +58,7 @@ export const BORDER = {
   red: 'border-red',
   ink: 'border-ink',
   slate: 'border-slate',
+  neutral: 'border-ink/40',
 }
 
 /** Axis and label text size in px. Fixed, so gutters can be computed from character counts. */

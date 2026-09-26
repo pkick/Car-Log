@@ -1,16 +1,19 @@
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import {
   computeFillMpg,
+  getAllInCostPerMile,
   getDrivingRate,
   getDueSoonItems,
   getFuelStats,
   formatLastReading,
   getLastReading,
   getMonthlyFuelAverages,
-  getMonthlySpend,
+  getMonthlySpendByCategory,
   getMonthToDateSpend,
+  getMpgTrend,
   getPriceHistory,
   getServiceHistorySorted,
+  getStationInsights,
   recordResetsInterval,
 } from './vehicleStats'
 
@@ -248,7 +251,31 @@ describe('getDueSoonItems', () => {
   it('gives an interval with no limits zero progress and a placeholder label', () => {
     onSep25()
     const [item] = getDueSoonItems({ intervals: [{ ...interval, months: null }] }, records, 1000)
-    expect(item).toMatchObject({ status: 'ok', progress: 0, dueDate: null, dueOdometer: null, remainingLabel: '—' })
+    expect(item).toMatchObject({ status: 'ok', progress: 0, dueDate: null, dueOdometer: null, remainingLabel: '—', dueLabel: null })
+  })
+
+  it('labels the last service and the due reading when the miles limit is closer', () => {
+    onSep25()
+    const oil = dueItem(getDueSoonItems(wagon, wagonRecords, 84210), 'Oil + filter')
+    expect(oil).toMatchObject({ lastLabel: 'Apr 22 · 79,630', dueLabel: 'due 84,630' })
+  })
+
+  it('labels the due date, with the year outside this one, when the date limit is closer', () => {
+    onSep25()
+    const filter = dueItem(getDueSoonItems(truck, truckRecords, 47850), 'Cabin air filter')
+    expect(filter).toMatchObject({ lastLabel: 'Jun 1 · 45,300', dueLabel: 'due Jun 1, 2028' })
+  })
+
+  it('labels an interval measured from the purchase', () => {
+    onSep25()
+    const fluid = dueItem(getDueSoonItems(truck, truckRecords, 47850), 'Brake fluid')
+    expect(fluid).toMatchObject({ lastLabel: 'Since purchase', dueLabel: 'due Sep 10, 2025' })
+  })
+
+  it('puts the year on a last service from another year', () => {
+    onSep25()
+    const [item] = getDueSoonItems(vehicle, [serviced('2025-03-03', 1000, ['Cabin air filter'])], 1000)
+    expect(item.lastLabel).toBe('Mar 3, 2025 · 1,000')
   })
 })
 
@@ -448,27 +475,252 @@ describe('getMonthlyFuelAverages', () => {
   })
 })
 
-describe('getMonthlySpend', () => {
-  it('returns the three months ending in the current month, on the 31st', () => {
-    vi.useFakeTimers()
-    vi.setSystemTime(new Date(2026, 2, 31, 12))
-    const fills = [
-      { date: '2025-12-31', total: 999 },
-      { date: '2026-01-01', total: 40 },
-      { date: '2026-03-31', total: 55 },
-    ]
-    const records = [{ date: '2026-02-01', cost: 200 }]
-    expect(getMonthlySpend(fills, records)).toEqual([
-      { month: 'Jan', fuel: 40, service: 0 },
-      { month: 'Feb', fuel: 0, service: 200 },
-      { month: 'Mar', fuel: 55, service: 0 },
+const tank = (id, date, odometer, gallons, isFull = true) => ({ id, date, odometer, gallons, pricePerGal: 3, total: gallons * 3, isFull })
+
+// The seeded Wagon's fill-ups: partial fills on May 30 and Aug 10.
+const wagonFills = [
+  tank(1, '2026-04-24', 79710, 15.9),
+  tank(2, '2026-05-06', 80210, 15.9),
+  tank(3, '2026-05-18', 80710, 15.9),
+  tank(4, '2026-05-30', 80960, 8.0, false),
+  tank(5, '2026-06-11', 81460, 15.9),
+  tank(6, '2026-06-23', 81960, 15.9),
+  tank(7, '2026-07-05', 82460, 16.0),
+  tank(8, '2026-07-17', 82960, 15.8),
+  tank(9, '2026-07-29', 83460, 16.1),
+  tank(10, '2026-08-10', 83710, 8.2, false),
+  tank(11, '2026-08-28', 84210, 15.9),
+]
+
+describe('getMpgTrend', () => {
+  it('marks the tank a partial fill was added into, and only that tank', () => {
+    const fills = [tank(1, '2026-01-01', 1000, 10), tank(2, '2026-01-05', 1150, 4, false), tank(3, '2026-01-10', 1300, 6), tank(4, '2026-01-20', 1600, 10)]
+    expect(getMpgTrend(fills).points).toEqual([
+      { id: 3, date: '2026-01-10', mpg: 30, includesPartial: true },
+      { id: 4, date: '2026-01-20', mpg: 30, includesPartial: false },
     ])
   })
 
-  it('crosses the year boundary', () => {
+  it('does not mark a tank for a partial fill before the first full fill', () => {
+    const fills = [tank(1, '2026-01-01', 900, 5, false), tank(2, '2026-01-05', 1000, 10), tank(3, '2026-01-10', 1300, 10)]
+    expect(getMpgTrend(fills).points).toEqual([{ id: 3, date: '2026-01-10', mpg: 30, includesPartial: false }])
+  })
+
+  it('marks the seeded Wagon\'s Jun 11 and Aug 28 tanks, and averages all of them', () => {
+    const { points, average } = getMpgTrend([...wagonFills].reverse())
+    expect(points.map((p) => p.date)).toEqual(['2026-05-06', '2026-05-18', '2026-06-11', '2026-06-23', '2026-07-05', '2026-07-17', '2026-07-29', '2026-08-28'])
+    expect(points.filter((p) => p.includesPartial).map((p) => p.id)).toEqual([5, 11])
+    expect(points.map((p) => p.mpg)).toEqual([31.4, 31.4, 31.4, 31.4, 31.3, 31.6, 31.1, 31.1])
+    expect(average).toBe(31.3)
+  })
+
+  it('keeps only the latest tanks', () => {
+    const fills = Array.from({ length: 15 }, (_, i) => tank(i + 1, `2026-01-${String(i + 10).padStart(2, '0')}`, 1000 + i * 300, 10))
+    expect(getMpgTrend(fills, { tanks: 12 }).points.map((p) => p.id)).toEqual([4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15])
+    expect(getMpgTrend(fills.slice(0, 5), { tanks: 12 }).points).toHaveLength(4)
+  })
+
+  it('keeps tanks closed in the last N days, today included and later dates left out', () => {
+    const fills = [
+      tank(1, '2026-03-20', 1000, 10),
+      tank(2, '2026-03-27', 1300, 10),
+      tank(3, '2026-03-28', 1600, 10),
+      tank(4, '2026-09-26', 1900, 10),
+      tank(5, '2026-09-27', 2200, 10),
+    ]
+    expect(getMpgTrend(fills, { days: 182 }, '2026-09-26').points.map((p) => p.id)).toEqual([3, 4])
+  })
+
+  it('averages only the tanks it returns, to one decimal place', () => {
+    const fills = [tank(1, '2026-01-01', 1000, 10), tank(2, '2026-01-10', 1500, 10), tank(3, '2026-01-20', 1800, 10), tank(4, '2026-01-30', 2110, 10), tank(5, '2026-02-09', 2443, 10)]
+    // 50, 30, 31 and 33.3 mpg; the last three average 31.43.
+    expect(getMpgTrend(fills, { tanks: 3 }).average).toBe(31.4)
+  })
+
+  it('orders tanks by date and leaves out one closed on a malformed date', () => {
+    const fills = [tank(1, '2026-02-01', 1000, 10), tank(2, '', 1300, 10), tank(3, '2026-02-20', 1600, 10)]
+    expect(getMpgTrend(fills).points.map((p) => p.id)).toEqual([3])
+  })
+
+  it('returns no points and a null average for an empty log or a single fill', () => {
+    expect(getMpgTrend([])).toEqual({ points: [], average: null })
+    expect(getMpgTrend([tank(1, '2026-01-01', 1000, 10)])).toEqual({ points: [], average: null })
+  })
+})
+
+describe('getMonthlySpendByCategory', () => {
+  const zero = { fuel: 0, service: 0, insurance: 0, registration: 0, total: 0 }
+
+  it('returns the 12 calendar months ending in the current one, oldest first', () => {
+    const months = getMonthlySpendByCategory([], [], [], 12, '2026-09-26')
+    expect(months.map((m) => m.month)).toEqual([
+      '2025-10', '2025-11', '2025-12', '2026-01', '2026-02', '2026-03',
+      '2026-04', '2026-05', '2026-06', '2026-07', '2026-08', '2026-09',
+    ])
+    expect(months.every((m) => JSON.stringify({ ...m, month: undefined }) === JSON.stringify(zero))).toBe(true)
+  })
+
+  it('splits each month into fuel, service, insurance and registration', () => {
+    const fills = [{ date: '2026-05-06', total: 52.63 }, { date: '2026-05-18', total: 53.27 }]
+    const services = [{ date: '2026-05-01', cost: 28.5 }]
+    const policies = [
+      { type: 'insurance', date: '2026-05-14', cost: 612 },
+      { type: 'registration', date: '2026-03-15', cost: 145 },
+    ]
+    const months = getMonthlySpendByCategory(fills, services, policies, 12, '2026-09-26')
+    expect(months.find((m) => m.month === '2026-05')).toEqual({
+      month: '2026-05', fuel: 105.9, service: 28.5, insurance: 612, registration: 0, total: 746.4,
+    })
+    expect(months.find((m) => m.month === '2026-03')).toMatchObject({ registration: 145, total: 145 })
+  })
+
+  it('counts a policy payment in the month of its date, not its renewal', () => {
+    const policies = [{ type: 'insurance', date: '2026-08-01', cost: 780, renewalDate: '2027-02-01' }]
+    const months = getMonthlySpendByCategory([], [], policies, 12, '2026-09-26')
+    expect(months.filter((m) => m.total > 0)).toEqual([{ month: '2026-08', ...zero, insurance: 780, total: 780 }])
+  })
+
+  it('leaves out records outside the window or with a malformed date, and unknown policy types', () => {
+    const fills = [{ date: '2025-09-30', total: 99 }, { date: '2026-10-01', total: 99 }, { date: '', total: 99 }, { date: '2026-09-02', total: 40 }]
+    const policies = [{ type: 'roadside', date: '2026-09-01', cost: 99 }]
+    const months = getMonthlySpendByCategory(fills, [], policies, 12, '2026-09-26')
+    expect(months.reduce((sum, m) => sum + m.total, 0)).toBe(40)
+  })
+
+  it('crosses the year boundary from the 31st', () => {
+    expect(getMonthlySpendByCategory([], [], [], 3, '2026-01-31').map((m) => m.month)).toEqual(['2025-11', '2025-12', '2026-01'])
+    expect(getMonthlySpendByCategory([], [], [], 3, '2026-03-31').map((m) => m.month)).toEqual(['2026-01', '2026-02', '2026-03'])
+  })
+
+  it('rounds to the cent', () => {
+    const fills = [{ date: '2026-09-01', total: 0.1 }, { date: '2026-09-02', total: 0.2 }]
+    expect(getMonthlySpendByCategory(fills, [], [], 1, '2026-09-26')).toEqual([{ month: '2026-09', ...zero, fuel: 0.3, total: 0.3 }])
+  })
+
+  it('uses the local date by default', () => {
     vi.useFakeTimers()
-    vi.setSystemTime(new Date(2026, 0, 15, 12))
-    expect(getMonthlySpend([], []).map((m) => m.month)).toEqual(['Nov', 'Dec', 'Jan'])
+    vi.setSystemTime(new Date(2026, 8, 30, 23))
+    expect(getMonthlySpendByCategory([], [], []).at(-1).month).toBe('2026-09')
+  })
+})
+
+describe('getAllInCostPerMile', () => {
+  const fuel = (date, odometer, total) => ({ date, odometer, total })
+  const service = (date, odometer, cost) => ({ date, odometer, cost })
+  const policy = (type, date, cost) => ({ type, date, cost })
+
+  it('matches the seeded Wagon over the rolling 90 days: Jul 5 to Aug 28, 1,750 mi', () => {
+    const fills = wagonFills.map((f, i) => ({ ...f, total: [52.15, 52.63, 53.27, 26.4, 54.38, 53.9, 55.04, 54.67, 54.9, 27.72, 55.01][i] }))
+    const result = getAllInCostPerMile(fills, wagonRecords, [policy('insurance', '2026-05-14', 612)], 90, '2026-09-26')
+    expect(result).toEqual({
+      costPerMile: 0.14,
+      miles: 1750,
+      firstDate: '2026-07-05',
+      lastDate: '2026-08-28',
+      spend: { fuel: 247.34, service: 0, insurance: 0, registration: 0, total: 247.34 },
+      percent: { fuel: 100, service: 0, policies: 0 },
+    })
+  })
+
+  it('adds service, insurance and registration spend dated in the window', () => {
+    const fills = [fuel('2026-07-01', 1000, 50), fuel('2026-08-01', 2000, 50)]
+    const services = [service('2026-07-15', 1500, 100), service('2026-06-27', 900, 999)]
+    const policies = [policy('insurance', '2026-08-10', 600), policy('registration', '2026-09-01', 200), policy('registration', '2026-06-01', 150)]
+    const result = getAllInCostPerMile(fills, services, policies, 90, '2026-09-26')
+    expect(result).toMatchObject({
+      costPerMile: 1,
+      miles: 1000,
+      spend: { fuel: 100, service: 100, insurance: 600, registration: 200, total: 1000 },
+      percent: { fuel: 10, service: 10, policies: 80 },
+    })
+  })
+
+  it('takes miles from service readings as well as fill-ups', () => {
+    const result = getAllInCostPerMile([fuel('2026-09-01', 5000, 60)], [service('2026-09-10', 5300, 0), service('2026-08-20', 4900, 30)], [], 90, '2026-09-26')
+    expect(result).toMatchObject({ miles: 400, firstDate: '2026-08-20', lastDate: '2026-09-10', costPerMile: 0.23 })
+  })
+
+  it('returns null with fewer than two readings in the window, or no miles between them', () => {
+    expect(getAllInCostPerMile([], [], [], 90, '2026-09-26')).toBeNull()
+    expect(getAllInCostPerMile([fuel('2026-01-01', 1000, 40), fuel('2026-09-01', 2000, 40)], [], [], 90, '2026-09-26')).toBeNull()
+    expect(getAllInCostPerMile([fuel('2026-09-01', 2000, 40), fuel('2026-09-02', 2000, 40)], [], [], 90, '2026-09-26')).toBeNull()
+  })
+
+  it('ignores missing and zero readings, but still counts their spend', () => {
+    const fills = [fuel('2026-09-01', 2000, 40), fuel('2026-09-10', 2400, 40)]
+    const services = [service('2026-09-05', 0, 120), service('2026-09-06', null, 40)]
+    expect(getAllInCostPerMile(fills, services, [], 90, '2026-09-26')).toMatchObject({ miles: 400, costPerMile: 0.6 })
+    expect(getAllInCostPerMile(fills.slice(0, 1), services, [], 90, '2026-09-26')).toBeNull()
+  })
+
+  it('covers all time up to today by default, leaving out later and malformed dates', () => {
+    const fills = [fuel('2021-04-02', 1000, 50), fuel('2026-09-26', 3000, 50), fuel('2026-09-27', 9000, 999), fuel('', 9999, 999)]
+    expect(getAllInCostPerMile(fills, [], [], undefined, '2026-09-26')).toMatchObject({ miles: 2000, costPerMile: 0.05, firstDate: '2021-04-02' })
+  })
+
+  it('splits the percentages so they add up to 100', () => {
+    const fills = [fuel('2026-09-01', 1000, 1), fuel('2026-09-02', 1100, 0)]
+    const result = getAllInCostPerMile(fills, [service('2026-09-03', 1050, 1)], [policy('insurance', '2026-09-04', 0.5), policy('registration', '2026-09-05', 0.5)], 90, '2026-09-26')
+    expect(result.percent).toEqual({ fuel: 34, service: 33, policies: 33 })
+  })
+})
+
+describe('getStationInsights', () => {
+  const at = (station, date, gallons, pricePerGal) => ({ station, date, gallons, pricePerGal, total: gallons * pricePerGal, odometer: 0, isFull: true })
+
+  const fills = [
+    at('Costco · 3rd St', '2026-07-01', 10, 3.0),
+    at('Shell', '2026-07-08', 10, 3.4),
+    at('Costco · 3rd St', '2026-07-15', 5, 3.3),
+    at('Chevron', '2026-07-22', 8, 3.2),
+    at('Shell', '2026-07-29', 12, 3.5),
+    at(null, '2026-08-05', 10, 2.5),
+  ]
+
+  it('averages the price per gallon at each station, cheapest first, with the fill count', () => {
+    const { stations } = getStationInsights(fills)
+    expect(stations.map((s) => [s.station, s.fills])).toEqual([['Costco · 3rd St', 2], ['Chevron', 1], ['Shell', 2]])
+    expect(stations[0].averagePrice).toBeCloseTo(3.1)
+    expect(stations[1].averagePrice).toBeCloseTo(3.2)
+    expect(stations[2].averagePrice).toBeCloseTo(3.4545, 3)
+  })
+
+  it('weights the average by gallons, so a small fill counts less', () => {
+    // (10 × $3.00 + 5 × $3.30) / 15 gal, not the $3.15 mean of the two prices.
+    expect(getStationInsights(fills).stations[0].averagePrice).toBeCloseTo(3.1)
+  })
+
+  it('returns the cheapest station', () => {
+    expect(getStationInsights(fills).cheapest).toMatchObject({ station: 'Costco · 3rd St', fills: 2 })
+  })
+
+  it('groups names ignoring case and surrounding spaces, showing the latest spelling', () => {
+    const { stations } = getStationInsights([at('costco ', '2026-07-01', 10, 3), at(' Costco', '2026-07-15', 10, 3.2), at('COSTCO', '2026-07-08', 10, 3.1)])
+    expect(stations).toHaveLength(1)
+    expect(stations[0]).toMatchObject({ station: 'Costco', fills: 3 })
+    expect(stations[0].averagePrice).toBeCloseTo(3.1)
+  })
+
+  it('leaves out fills without a station, gallons or price', () => {
+    const { stations } = getStationInsights([
+      at('', '2026-07-01', 10, 2),
+      at('   ', '2026-07-01', 10, 2),
+      { date: '2026-07-01', gallons: 10, pricePerGal: 2 },
+      at('Arco', '2026-07-01', 0, 2),
+      at('Arco', '2026-07-02', 10, null),
+      at('Arco', '2026-07-03', 10, 3.6),
+    ])
+    expect(stations).toEqual([{ station: 'Arco', averagePrice: 3.6, fills: 1 }])
+  })
+
+  it('puts the station with more fill-ups first on a tie', () => {
+    const { stations } = getStationInsights([at('B', '2026-07-01', 10, 3), at('A', '2026-07-02', 10, 3), at('B', '2026-07-03', 10, 3)])
+    expect(stations.map((s) => s.station)).toEqual(['B', 'A'])
+  })
+
+  it('returns no stations and no cheapest when no fill-up has a station', () => {
+    expect(getStationInsights(wagonFills)).toEqual({ stations: [], cheapest: null })
+    expect(getStationInsights([])).toEqual({ stations: [], cheapest: null })
   })
 })
 
@@ -538,8 +790,10 @@ describe('records with a blank date', () => {
     }
 
     expect(getFuelStats(fills).spendThisMonth).toBe(40)
-    expect(getMonthlySpend(fills, records).at(-1)).toEqual({ month: 'Sep', fuel: 40, service: 0 })
-    expect(getDueSoonItems(vehicle, records, 1300)[0].milesRemaining).toBe(4600)
+    expect(getMonthlySpendByCategory(fills, records, [{ type: 'insurance', date: '', cost: 500 }]).at(-1)).toEqual({
+      month: '2026-09', fuel: 40, service: 0, insurance: 0, registration: 0, total: 40,
+    })
+    expect(getDueSoonItems(vehicle, records, 1300)[0]).toMatchObject({ milesRemaining: 4600, lastLabel: '900' })
     expect(getServiceHistorySorted([...records, { date: '2026-09-01' }])[0].date).toBe('2026-09-01')
   })
 })
