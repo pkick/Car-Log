@@ -77,7 +77,7 @@ export default function Garage({ vehicles, activeVehicleId, onSetActive, onEditV
 
             {/* Content */}
             <div className="p-6">
-              <h3 className="text-2xl font-bold tracking-tighter mb-2">{vehicle.nickname}</h3>
+              <h3 className="text-2xl font-bold tracking-tight mb-2">{vehicle.nickname}</h3>
               <p className="text-xs font-mono text-ink/50 mb-4">
                 {vehicle.vin ? `${vehicle.vin} · ` : ''}{vehicle.year} {vehicle.make} {vehicle.model} · {vehicle.odometer.toLocaleString()} mi
               </p>

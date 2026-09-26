@@ -53,12 +53,12 @@ export default function Header({ vehicle, vehicles = [], activeVehicleId, onSele
             <div className="flex flex-col gap-0.5 items-start whitespace-nowrap">
               {vehicle ? (
                 <>
-                  <span className="font-semibold text-sm tracking-tighter">{vehicle.nickname}</span>
+                  <span className="font-semibold text-sm">{vehicle.nickname}</span>
                   <span className="text-xs font-mono text-ink/50">{vehicle.year} {vehicle.make} {vehicle.model} · {vehicle.odometer.toLocaleString()} mi</span>
                 </>
               ) : (
                 <>
-                  <span className="font-semibold text-sm tracking-tighter">No vehicles yet</span>
+                  <span className="font-semibold text-sm">No vehicles yet</span>
                   <span className="text-xs font-mono text-ink/50">Add one to start tracking</span>
                 </>
               )}

@@ -11,8 +11,9 @@ Before starting, find the next unchecked task group whose dependencies are merge
 
 ## Stack and layout
 
-- `app/`: React 19 + Vite 8 + Tailwind 3.4. Contexts in `src/context`, pages in `src/pages`,
-  modals and shared pieces in `src/components`, pure logic in `src/lib`.
+- `app/`: React 19 + Vite 8 + Tailwind 3.4 + `react-router` 7 (library mode). Contexts in `src/context`, pages in
+  `src/pages`, modals and shared pieces in `src/components`, pure logic in `src/lib`. Routes live in `App.jsx`
+  (URL helpers in `lib/routes.js`); pages receive the route's `vehicle` as a prop.
 - `server/`: Express 4 + `node:sqlite`. Routes in `routes/`, schema in `migrations/` (run by `migrate.js` from `db.js`),
   demo data in `seed.js`. `index.js` starts the server; `docker-entrypoint.js` is the container's start command.
 - `design_handoff_car_tracker/README.md`: the original design spec (tokens, screens, behavior). Treat it as

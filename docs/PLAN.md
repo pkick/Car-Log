@@ -229,10 +229,10 @@ Acceptance
 ### P2-C · Routing
 Branch `feat/p2c-routing`. Depends on P2-B.
 
-- [ ] **P2-C1** Add `react-router` with the URL scheme in D6. The sidebar uses `NavLink`.
-- [ ] **P2-C2** Active vehicle comes from the URL; switching vehicles keeps the current section.
-- [ ] **P2-C3** Scroll restoration per route, 404 page, redirect away from sections the vehicle doesn't track.
-- [ ] **P2-C4** Vite dev server and the production server both fall back to `index.html` for client routes.
+- [x] **P2-C1** Add `react-router` with the URL scheme in D6. The sidebar uses `NavLink`.
+- [x] **P2-C2** Active vehicle comes from the URL; switching vehicles keeps the current section.
+- [x] **P2-C3** Scroll restoration per route, 404 page, redirect away from sections the vehicle doesn't track.
+- [x] **P2-C4** Vite dev server and the production server both fall back to `index.html` for client routes.
 
 Acceptance
 - Refreshing `/v/2/trends` stays on The Truck's Trends; back and forward work.
@@ -546,6 +546,7 @@ Backlog (not scheduled): units and currency settings (L/100 km, km, liters), hou
 Newest first. One line per merged PR: date, group, PR link, one-sentence summary.
 
 - 2026-09-25 · P1-C · Intervals list the services that reset them (D10); the server owns the defaults (`GET /api/defaults/intervals`); due items carry `progress`, `dueDate` and `dueOdometer`, labels follow whichever limit is closer, and the Coming up bars use `progress` (finishes P1-F2). Needs a dev DB reset.
+- 2026-09-26 · P2-C · `react-router` v7 in library mode: `/v/:vehicleId/{overview,fuel,maintenance,documents,trends}`, `/garage`, `/settings`, a 404 page; the active vehicle comes from the URL, switching vehicles keeps the section, untracked sections redirect, and back/forward restore scroll. Deep links work in dev and from the production server.
 - 2026-09-26 · P3-F · Trends rebuilt on the chart kit: MPG per tank (hollow when partial fills went in), 12 months of stacked spend (fuel, service, insurance, registration), all-in cost per mile, station insights (empty until P3-C adds stations), price per gallon, records, and Looking ahead with progress tracks.
 - 2026-09-26 · P4-H · VIN check digit in `lib/vin.js`; `GET /api/vin/:vin` proxies NHTSA vPIC (5 s timeout, cache, 502 with a clear message when unreachable); Add and Edit vehicle have a Decode button that fills blanks and asks before replacing typed values.
 - 2026-09-26 · P2-B · Every modal and page is built from `components/ui` (modals collapse to sm / md / lg), all segmented controls use `Segmented`, `PageHeader` with the primary action on every page, one `FillUpForm` shared by the modal and the Fuel panel, and no arbitrary `oklch()` classes outside Settings (migrated with P2-G). New primitives: `Chip`, `PageHeader`; new variants on Button, Badge, Card and Select.
