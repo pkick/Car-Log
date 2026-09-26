@@ -5,6 +5,7 @@ import {
   getDrivingRate,
   getDueSoonItems,
   getFuelStats,
+  formatIntervalRule,
   formatLastReading,
   getLastReading,
   getMonthlyFuelAverages,
@@ -276,6 +277,74 @@ describe('getDueSoonItems', () => {
     onSep25()
     const [item] = getDueSoonItems(vehicle, [serviced('2025-03-03', 1000, ['Cabin air filter'])], 1000)
     expect(item.lastLabel).toBe('Mar 3, 2025 · 1,000')
+  })
+
+  const withBaseline = (base, name, baseline) => ({
+    ...base,
+    intervals: base.intervals.map((i) => (i.name === name ? { ...i, ...baseline } : i)),
+  })
+
+  it('says what each interval is measured from', () => {
+    onSep25()
+    const items = getDueSoonItems(withBaseline(truck, 'Brake fluid', { baselineDate: '2025-03-01', baselineOdometer: 40000 }), truckRecords, 47850)
+    expect(dueItem(items, 'Oil + filter').measuredFrom).toBe('record')
+    expect(dueItem(items, 'Brake fluid').measuredFrom).toBe('baseline')
+    expect(dueItem(getDueSoonItems(truck, truckRecords, 47850), 'Brake fluid').measuredFrom).toBe('purchase')
+  })
+
+  it('measures from the baseline date and reading in place of the purchase', () => {
+    onSep25()
+    const vehicle = withBaseline(truck, 'Brake fluid', { baselineDate: '2025-03-01', baselineOdometer: 40000 })
+    const fluid = dueItem(getDueSoonItems(vehicle, truckRecords, 47850), 'Brake fluid')
+    expect(fluid).toMatchObject({
+      status: 'ok',
+      dueOdometer: 70000,
+      dueDate: '2028-03-01',
+      milesRemaining: 22150,
+      lastServiceDate: null,
+      lastServiceOdometer: null,
+    })
+    // 573 of 1,096 days beats 7,850 of 30,000 mi.
+    expect(fluid.progress).toBeCloseTo(573 / 1096)
+  })
+
+  it('labels the baseline as where the interval is measured from', () => {
+    onSep25()
+    const vehicle = withBaseline(truck, 'Brake fluid', { baselineDate: '2025-03-01', baselineOdometer: 40000 })
+    const fluid = dueItem(getDueSoonItems(vehicle, truckRecords, 47850), 'Brake fluid')
+    expect(fluid).toMatchObject({ lastLabel: 'Mar 1, 2025 · 40,000', dueLabel: 'due Mar 1, 2028' })
+
+    const thisYear = withBaseline(truck, 'Brake fluid', { baselineDate: '2026-02-10', baselineOdometer: 41000 })
+    expect(dueItem(getDueSoonItems(thisYear, truckRecords, 47850), 'Brake fluid').lastLabel).toBe('Feb 10 · 41,000')
+  })
+
+  it('ignores the baseline once a record resets the interval', () => {
+    onSep25()
+    const vehicle = withBaseline(wagon, 'Tire rotation', { baselineDate: '2026-09-01', baselineOdometer: 84000 })
+    const tires = dueItem(getDueSoonItems(vehicle, wagonRecords, 84210), 'Tire rotation')
+    expect(tires).toMatchObject({ measuredFrom: 'record', lastLabel: 'Feb 1 · 76,800', status: 'overdue', dueOdometer: 81800 })
+  })
+
+  it('falls back to the purchase for whichever half of the baseline is missing or malformed', () => {
+    onSep25()
+    const dateOnly = dueItem(getDueSoonItems(withBaseline(truck, 'Brake fluid', { baselineDate: '2025-03-01' }), truckRecords, 47850), 'Brake fluid')
+    expect(dateOnly).toMatchObject({ measuredFrom: 'baseline', dueDate: '2028-03-01', dueOdometer: 48500, lastLabel: 'Mar 1, 2025' })
+
+    const malformed = withBaseline(truck, 'Brake fluid', { baselineDate: '2025-02-30', baselineOdometer: -5 })
+    expect(dueItem(getDueSoonItems(malformed, truckRecords, 47850), 'Brake fluid')).toMatchObject({
+      measuredFrom: 'purchase',
+      lastLabel: 'Since purchase',
+      dueDate: '2025-09-10',
+    })
+  })
+})
+
+describe('formatIntervalRule', () => {
+  it('names the miles and months limits, whichever the interval has', () => {
+    expect(formatIntervalRule({ miles: 5000, months: 12 })).toBe('every 5,000 mi or 12 mo')
+    expect(formatIntervalRule({ miles: 5000, months: null })).toBe('every 5,000 mi')
+    expect(formatIntervalRule({ miles: null, months: 24 })).toBe('every 24 mo')
+    expect(formatIntervalRule({ miles: null, months: null })).toBe('')
   })
 })
 

@@ -131,6 +131,26 @@ export function RecordsProvider({ children }) {
 
   const deleteServiceRecord = (id) => deleteWithUndo('serviceRecords', id)
 
+  /**
+   * Deletes at once, with no undo window of its own: for taking back a record that was just added, such as Mark
+   * done's Undo. The record is hidden while the DELETE runs and comes back if it fails; the error is rethrown.
+   */
+  const removeServiceRecord = async (id) => {
+    dispatch({ type: 'hide', kind: 'serviceRecords', id })
+    try {
+      const body = await api(`${ENDPOINTS.serviceRecords}/${id}`, { method: 'DELETE', keepalive: true })
+      dispatch({ type: 'commit', kind: 'serviceRecords', id })
+      if (body?.vehicle) mergeVehicle(body.vehicle)
+    } catch (err) {
+      if (err.status === 404) {
+        dispatch({ type: 'commit', kind: 'serviceRecords', id })
+        return
+      }
+      dispatch({ type: 'restore', kind: 'serviceRecords', id })
+      throw err
+    }
+  }
+
   const addPolicyRecord = async (data) => {
     const created = await api(ENDPOINTS.policyRecords, { method: 'POST', body: JSON.stringify(data) })
     dispatch({ type: 'save', kind: 'policyRecords', record: created })
@@ -164,6 +184,7 @@ export function RecordsProvider({ children }) {
         addServiceRecord,
         updateServiceRecord,
         deleteServiceRecord,
+        removeServiceRecord,
         addPolicyRecord,
         updatePolicyRecord,
         deletePolicyRecord,

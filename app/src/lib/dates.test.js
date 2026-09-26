@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, it, vi } from 'vitest'
-import { addMonths, currentYear, daysBetween, isWithinDays, monthKey, parseISODate, todayISO } from './dates'
+import { addDays, addMonths, currentYear, daysBetween, isWithinDays, monthKey, parseISODate, todayISO } from './dates'
 
 afterEach(() => {
   vi.useRealTimers()
@@ -80,6 +80,35 @@ describe('addMonths', () => {
     expect(addMonths('09/25/2026', 1)).toBeNull()
     expect(addMonths('', 1)).toBeNull()
     expect(addMonths('2026-02-30', 1)).toBeNull()
+  })
+})
+
+describe('addDays', () => {
+  it('adds and subtracts days across month and year boundaries', () => {
+    expect(addDays('2026-09-26', 10)).toBe('2026-10-06')
+    expect(addDays('2026-12-25', 7)).toBe('2027-01-01')
+    expect(addDays('2026-03-01', -1)).toBe('2026-02-28')
+  })
+
+  it('counts Feb 29 in a leap year', () => {
+    expect(addDays('2028-02-28', 1)).toBe('2028-02-29')
+    expect(addDays('2028-02-28', 2)).toBe('2028-03-01')
+  })
+
+  it('is exact across DST changes', () => {
+    expect(addDays('2026-03-07', 2)).toBe('2026-03-09')
+    expect(addDays('2026-10-31', 2)).toBe('2026-11-02')
+  })
+
+  it('returns the same date for zero days', () => {
+    expect(addDays('2026-09-26', 0)).toBe('2026-09-26')
+  })
+
+  it('returns null for malformed input or a fraction of a day', () => {
+    expect(addDays('2026-02-30', 1)).toBeNull()
+    expect(addDays('', 1)).toBeNull()
+    expect(addDays('2026-09-26', 1.5)).toBeNull()
+    expect(addDays('2026-09-26', NaN)).toBeNull()
   })
 })
 

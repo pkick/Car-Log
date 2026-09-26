@@ -1,11 +1,20 @@
 import { useState } from 'react'
-import { SERVICE_CATEGORIES, CATEGORY_TEXT_CLASS, CATEGORY_TILE_CLASS, CATEGORY_ICON, SUBCATEGORIES, CATEGORY_ID_BY_SERVICE } from '../lib/serviceCategories'
+import {
+  SERVICE_CATEGORIES,
+  CATEGORY_BY_ID,
+  CATEGORY_TEXT_CLASS,
+  CATEGORY_TILE_CLASS,
+  CATEGORY_ICON,
+  SUBCATEGORIES,
+  CATEGORY_ID_BY_SERVICE,
+} from '../lib/serviceCategories'
 import { CalendarIcon } from './icons'
-import { Badge, Card, Chip, Field, Input, Modal, NumberInput, Segmented, Textarea } from './ui'
+import { Badge, Card, Chip, Field, FieldGroup, Input, Modal, NumberInput, Segmented, Textarea } from './ui'
 import FormActions from './FormActions'
 import { useRecords } from '../context/RecordsContext'
 import { useToast } from '../context/toast'
-import { getDueSoonItems, formatLastReading, getLastReading } from '../lib/vehicleStats'
+import { formatLastReading, getLastReading } from '../lib/vehicleStats'
+import { getNextDueAfterService } from '../lib/maintenance'
 import { todayISO } from '../lib/dates'
 import { summarizeServices } from '../lib/toastDetails'
 
@@ -70,7 +79,7 @@ export default function LogServiceModal({ vehicle, onClose, editingRecord = null
       services: selectedServices,
       cost: parseFloat(formData.cost) || 0,
       performedBy: formData.performedBy,
-      shopName: formData.shopName,
+      shopName: formData.performedBy === 'shop' ? formData.shopName.trim() : '',
       partsUsed: formData.partsUsed,
       notes: formData.notes,
     }
@@ -92,11 +101,12 @@ export default function LogServiceModal({ vehicle, onClose, editingRecord = null
     }
   }
 
-  const dueForActiveCategory = vehicle
-    ? getDueSoonItems(vehicle, getServiceRecordsForVehicle(vehicle.id), vehicle.odometer).find(
-        (item) => item.categoryId === activeCategory
-      )
-    : null
+  const nextDue = getNextDueAfterService(vehicle?.intervals ?? [], {
+    services: selectedServices,
+    date: formData.date,
+    odometer: odometer || null,
+  })
+  const activeLabel = (CATEGORY_BY_ID[activeCategory] ?? CATEGORY_BY_ID.other).label
 
   const odometerHint = vehicle
     ? formatLastReading(
@@ -114,7 +124,7 @@ export default function LogServiceModal({ vehicle, onClose, editingRecord = null
       open
       onClose={onClose}
       size="lg"
-      title={editingRecord ? 'Edit service' : 'Log service'}
+      title={editingRecord ? 'Edit service' : selectedServices.length > 1 ? `Log ${selectedServices.length} services` : 'Log service'}
       subtitle={<>{vehicle?.nickname} · {vehicle?.odometer?.toLocaleString()} mi</>}
       footer={
         <FormActions
@@ -128,11 +138,17 @@ export default function LogServiceModal({ vehicle, onClose, editingRecord = null
       }
     >
       <div className="space-y-5">
-        {/* Services Performed */}
-        <div>
-          <p className="text-xs font-mono text-ink/45 mb-3 tracking-wider">SERVICES PERFORMED {selectedServices.length > 0 && `${selectedServices.length} selected`}</p>
-
-          {/* Category Tabs */}
+        <FieldGroup
+          label="Services performed"
+          aside={
+            selectedServices.length > 0 && (
+              <Badge variant="solid" tone="accent">
+                {selectedServices.length} selected
+              </Badge>
+            )
+          }
+        >
+          {/* Category chips */}
           <div className="flex flex-wrap gap-2.5 mb-5">
             {SERVICE_CATEGORIES.map((cat) => {
               const Icon = CATEGORY_ICON[cat.id]
@@ -159,27 +175,26 @@ export default function LogServiceModal({ vehicle, onClose, editingRecord = null
             })}
           </div>
 
-          {/* Subcategory Panel */}
-          <Card tone="muted" padding="sm" className="mb-5">
-            <p className="text-xs font-mono text-ink/45 mb-3 uppercase tracking-wider">
-              {activeCategory.toUpperCase()} – Pick what was done
-            </p>
-            <div className="flex flex-wrap gap-2.5">
-              {SUBCATEGORIES[activeCategory]?.map((subcategory) => (
-                <Chip
-                  key={subcategory}
-                  selected={selectedServices.includes(subcategory)}
-                  onClick={() => handleServiceToggle(subcategory)}
-                >
-                  {subcategory}
-                </Chip>
-              ))}
-            </div>
+          {/* Subcategory panel */}
+          <Card tone="muted" padding="sm">
+            <FieldGroup label={`${activeLabel} — pick what was done`}>
+              <div className="flex flex-wrap gap-2.5">
+                {SUBCATEGORIES[activeCategory]?.map((subcategory) => (
+                  <Chip
+                    key={subcategory}
+                    selected={selectedServices.includes(subcategory)}
+                    onClick={() => handleServiceToggle(subcategory)}
+                  >
+                    {subcategory}
+                  </Chip>
+                ))}
+              </div>
+            </FieldGroup>
           </Card>
 
-          {/* Selected Services */}
+          {/* Selected services */}
           {selectedServices.length > 0 && (
-            <div className="flex flex-wrap gap-2 mb-5">
+            <div className="flex flex-wrap gap-2 mt-4">
               {selectedServices.map((service) => (
                 <Chip key={service} removable aria-label={`Remove ${service}`} onClick={() => removeService(service)}>
                   {service}
@@ -187,7 +202,7 @@ export default function LogServiceModal({ vehicle, onClose, editingRecord = null
               ))}
             </div>
           )}
-        </div>
+        </FieldGroup>
 
         {/* Date, Odometer, Cost */}
         <div className="grid grid-cols-3 gap-4">
@@ -202,18 +217,25 @@ export default function LogServiceModal({ vehicle, onClose, editingRecord = null
           </Field>
         </div>
 
-        <Field label="Performed by">
-          <Segmented
-            fullWidth
-            options={PERFORMED_BY}
-            value={formData.performedBy}
-            onChange={(performedBy) => setFormData({ ...formData, performedBy })}
-          />
-        </Field>
-
-        <Field label="Shop">
-          <Input name="shopName" value={formData.shopName} onChange={handleChange} />
-        </Field>
+        <div className="grid grid-cols-2 gap-4">
+          <Field label="Performed by">
+            <Segmented
+              fullWidth
+              options={PERFORMED_BY}
+              value={formData.performedBy}
+              onChange={(performedBy) => setFormData({ ...formData, performedBy })}
+            />
+          </Field>
+          <Field label="Shop name">
+            <Input
+              name="shopName"
+              value={formData.performedBy === 'shop' ? formData.shopName : ''}
+              onChange={handleChange}
+              disabled={formData.performedBy !== 'shop'}
+              placeholder={formData.performedBy === 'shop' ? 'Where it was done' : 'Not needed for DIY'}
+            />
+          </Field>
+        </div>
 
         <Field label="Parts used">
           <Input name="partsUsed" value={formData.partsUsed} onChange={handleChange} />
@@ -223,15 +245,20 @@ export default function LogServiceModal({ vehicle, onClose, editingRecord = null
           <Textarea name="notes" value={formData.notes} onChange={handleChange} rows={3} />
         </Field>
 
-        {/* Next Due Callout */}
-        {dueForActiveCategory && (
+        {/* Next due callout */}
+        {nextDue.length > 0 && (
           <Card tone="accent" padding="sm">
-            <p className="font-bold text-sm text-accent mb-1">
-              {dueForActiveCategory.status === 'overdue' ? dueForActiveCategory.remainingLabel : `Next due in ${dueForActiveCategory.remainingLabel}`}
-            </p>
-            <p className="text-xs text-ink/60">
-              From this vehicle's interval: {dueForActiveCategory.name.toLowerCase()} – {dueForActiveCategory.detailLabel}, whichever first
-            </p>
+            <p className="text-xs font-mono font-semibold tracking-widest uppercase text-accent mb-2">Next due</p>
+            <ul className="space-y-2">
+              {nextDue.map((next) => (
+                <li key={next.intervalId}>
+                  <p className="text-sm font-semibold">
+                    {next.name} {next.label}
+                  </p>
+                  <p className="text-xs text-ink/60">From this vehicle's interval: {next.rule}</p>
+                </li>
+              ))}
+            </ul>
           </Card>
         )}
       </div>

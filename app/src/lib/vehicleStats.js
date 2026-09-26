@@ -32,6 +32,9 @@ import { CATEGORY_ID_BY_SERVICE } from './serviceCategories'
  * @property {number | null} months
  * @property {number} warnMiles
  * @property {number} warnDays
+ * @property {string | null} [baselineDate] `YYYY-MM-DD` it was last done, entered by hand ("Set last done") for an
+ *   interval with no service on record; used in place of the purchase date until a record resets the interval
+ * @property {number | null} [baselineOdometer] the reading it was last done at, likewise
  *
  * @typedef {object} Vehicle
  * @property {Interval[]} [intervals]
@@ -45,8 +48,10 @@ import { CATEGORY_ID_BY_SERVICE } from './serviceCategories'
  * @property {'overdue' | 'coming-up' | 'ok'} status
  * @property {string} remainingLabel what is left of whichever limit is closer to due
  * @property {string} detailLabel
- * @property {string} lastLabel where the interval is measured from: `Apr 22 · 79,630` for the last service
- *   (leaving out a malformed date or a missing reading), or `Since purchase`
+ * @property {'record' | 'baseline' | 'purchase'} measuredFrom what the interval is measured from: the latest
+ *   service that resets it, the interval's baseline (see {@link Interval}), or the purchase
+ * @property {string} lastLabel where the interval is measured from: `Apr 22 · 79,630` for the last service or the
+ *   baseline (leaving out a malformed date or a missing reading), or `Since purchase`
  * @property {string | null} dueLabel where that closer limit falls due: `due 84,630` or `due Apr 22, 2027`;
  *   `null` without limits
  * @property {number | null} milesRemaining
@@ -174,8 +179,33 @@ function formatDueDay(iso) {
 }
 
 /**
+ * Where an interval is measured from, for a due item's `lastLabel`: `Apr 22 · 79,630`, leaving out a malformed
+ * date or a missing reading.
+ * @param {string | null | undefined} date `YYYY-MM-DD`
+ * @param {number | null | undefined} odometer
+ * @returns {string}
+ */
+const formatReadingLabel = (date, odometer) =>
+  [parseISODate(date) && formatDueDay(date), odometer > 0 && odometer.toLocaleString()].filter(Boolean).join(' · ')
+
+/**
+ * An interval's rule, as shown next to its name: `every 5,000 mi or 12 mo`, `every 24 mo`.
+ * @param {{ miles: number | null, months: number | null }} interval
+ * @returns {string} empty when the interval has no limits.
+ */
+export function formatIntervalRule(interval) {
+  return [
+    interval.miles != null ? `every ${interval.miles.toLocaleString()} mi` : null,
+    interval.months != null ? `${interval.miles != null ? 'or ' : 'every '}${interval.months} mo` : null,
+  ]
+    .filter(Boolean)
+    .join(' ')
+}
+
+/**
  * Status of each maintenance interval, measured from the latest service that resets it (see
- * {@link recordResetsInterval}) or from the purchase. Most urgent first, then furthest through its interval.
+ * {@link recordResetsInterval}), else from the interval's baseline date and reading where it has them, else from
+ * the purchase. Most urgent first, then furthest through its interval.
  * @param {Vehicle} vehicle
  * @param {ServiceRecord[]} serviceRecords
  * @param {number} currentOdometer
@@ -190,8 +220,13 @@ export function getDueSoonItems(vehicle, serviceRecords, currentOdometer) {
       .filter((r) => recordResetsInterval(r, interval))
       .sort((a, b) => b.odometer - a.odometer)[0]
 
-    const baseOdometer = last ? last.odometer : vehicle.purchaseOdometer ?? 0
-    const baseDate = last ? last.date : vehicle.purchaseDate || today
+    const baselineDate = !last && parseISODate(interval.baselineDate) ? interval.baselineDate : null
+    const baselineOdometer =
+      !last && Number.isFinite(interval.baselineOdometer) && interval.baselineOdometer >= 0 ? interval.baselineOdometer : null
+    const measuredFrom = last ? 'record' : baselineDate || baselineOdometer != null ? 'baseline' : 'purchase'
+
+    const baseOdometer = last ? last.odometer : baselineOdometer ?? vehicle.purchaseOdometer ?? 0
+    const baseDate = last ? last.date : baselineDate || vehicle.purchaseDate || today
 
     const milesSince = currentOdometer - baseOdometer
     const dueOdometer = interval.miles != null ? baseOdometer + interval.miles : null
@@ -233,17 +268,12 @@ export function getDueSoonItems(vehicle, serviceRecords, currentOdometer) {
     }
 
     const lastLabel = last
-      ? [parseISODate(last.date) && formatDueDay(last.date), last.odometer > 0 && last.odometer.toLocaleString()]
-          .filter(Boolean)
-          .join(' · ')
-      : 'Since purchase'
+      ? formatReadingLabel(last.date, last.odometer)
+      : measuredFrom === 'baseline'
+        ? formatReadingLabel(baselineDate, baselineOdometer)
+        : 'Since purchase'
 
-    const detailLabel = [
-      interval.miles != null ? `every ${interval.miles.toLocaleString()} mi` : null,
-      interval.months != null ? `${interval.miles != null ? 'or ' : 'every '}${interval.months} mo` : null,
-    ]
-      .filter(Boolean)
-      .join(' ')
+    const detailLabel = formatIntervalRule(interval)
 
     return {
       intervalId: interval.id,
@@ -252,6 +282,7 @@ export function getDueSoonItems(vehicle, serviceRecords, currentOdometer) {
       status,
       remainingLabel,
       detailLabel,
+      measuredFrom,
       lastLabel,
       dueLabel,
       milesRemaining,

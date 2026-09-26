@@ -80,6 +80,19 @@ export function addMonths(iso, n) {
 }
 
 /**
+ * Adds calendar days. Unaffected by DST changes.
+ * @param {string} iso `YYYY-MM-DD`
+ * @param {number} n whole days to add; may be negative.
+ * @returns {string | null} `YYYY-MM-DD`, or `null` when `iso` is malformed or `n` isn't a whole number.
+ */
+export function addDays(iso, n) {
+  const parts = splitISO(iso)
+  if (!parts || !Number.isInteger(n)) return null
+  const date = new Date(Date.UTC(parts.year, parts.month - 1, parts.day + n))
+  return formatParts(date.getUTCFullYear(), date.getUTCMonth() + 1, date.getUTCDate())
+}
+
+/**
  * Whole calendar days from `a` to `b`. Positive when `b` is later. Unaffected by DST changes.
  * @param {string} a `YYYY-MM-DD`
  * @param {string} b `YYYY-MM-DD`

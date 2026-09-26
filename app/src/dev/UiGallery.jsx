@@ -12,6 +12,7 @@ import {
   Drawer,
   EmptyState,
   Field,
+  FieldGroup,
   IconButton,
   Input,
   Modal,
@@ -292,13 +293,19 @@ function ChipDemos() {
             Disabled
           </Chip>
         </div>
-        <div className="flex flex-wrap gap-2.5">
-          {SERVICES.map((service) => (
-            <Chip key={service} selected={picked.includes(service)} onClick={() => toggle(service)}>
-              {service}
-            </Chip>
-          ))}
-        </div>
+        <FieldGroup
+          label="Brakes — pick what was done"
+          aside={picked.length > 0 && <Badge variant="solid" tone="accent">{picked.length} selected</Badge>}
+          hint="FieldGroup: Field's label and hint around a group of chips (role=group)"
+        >
+          <div className="flex flex-wrap gap-2.5">
+            {SERVICES.map((service) => (
+              <Chip key={service} selected={picked.includes(service)} onClick={() => toggle(service)}>
+                {service}
+              </Chip>
+            ))}
+          </div>
+        </FieldGroup>
         <div className="flex flex-wrap gap-1.5">
           {SERVICES.map((service) => (
             <Chip key={service} size="sm" selected={picked.includes(service)} onClick={() => toggle(service)}>
@@ -635,7 +642,7 @@ export default function UiGallery() {
         </Card>
       </Section>
 
-      <Section title="Chip" note="Toggle chips for pickers too big for Segmented; removable for the picked summary">
+      <Section title="Chip and FieldGroup" note="Toggle chips for pickers too big for Segmented; removable for the picked summary; FieldGroup labels a group">
         <ChipDemos />
       </Section>
 
