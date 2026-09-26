@@ -365,11 +365,11 @@ Branch `feat/p3e-command-palette`. Depends on P2-C, P2-E. Wireframe: roadmap 3D.
 ### P3-F · Trends rebuild
 Branch `feat/p3f-trends`. Depends on P3-A, P1-D.
 
-- [ ] **P3-F1** MPG over time as a `LineChart` with the range control.
-- [ ] **P3-F2** Monthly spend as stacked bars for 12 months (fuel, service, insurance, registration).
-- [ ] **P3-F3** Cost per mile card keeps the window selector and caption, now all-in.
-- [ ] **P3-F4** Station insights: average price per station, cheapest station.
-- [ ] **P3-F5** Records card and Looking ahead card on the new components.
+- [x] **P3-F1** MPG over time as a `LineChart` with the range control.
+- [x] **P3-F2** Monthly spend as stacked bars for 12 months (fuel, service, insurance, registration).
+- [x] **P3-F3** Cost per mile card keeps the window selector and caption, now all-in.
+- [x] **P3-F4** Station insights: average price per station, cheapest station.
+- [x] **P3-F5** Records card and Looking ahead card on the new components.
 
 ### P3-G · Garage and Documents polish
 Branch `feat/p3g-garage-docs`. Depends on P2-B.
@@ -546,6 +546,7 @@ Backlog (not scheduled): units and currency settings (L/100 km, km, liters), hou
 Newest first. One line per merged PR: date, group, PR link, one-sentence summary.
 
 - 2026-09-25 · P1-C · Intervals list the services that reset them (D10); the server owns the defaults (`GET /api/defaults/intervals`); due items carry `progress`, `dueDate` and `dueOdometer`, labels follow whichever limit is closer, and the Coming up bars use `progress` (finishes P1-F2). Needs a dev DB reset.
+- 2026-09-26 · P3-F · Trends rebuilt on the chart kit: MPG per tank (hollow when partial fills went in), 12 months of stacked spend (fuel, service, insurance, registration), all-in cost per mile, station insights (empty until P3-C adds stations), price per gallon, records, and Looking ahead with progress tracks.
 - 2026-09-26 · P4-H · VIN check digit in `lib/vin.js`; `GET /api/vin/:vin` proxies NHTSA vPIC (5 s timeout, cache, 502 with a clear message when unreachable); Add and Edit vehicle have a Decode button that fills blanks and asks before replacing typed values.
 - 2026-09-26 · P2-B · Every modal and page is built from `components/ui` (modals collapse to sm / md / lg), all segmented controls use `Segmented`, `PageHeader` with the primary action on every page, one `FillUpForm` shared by the modal and the Fuel panel, and no arbitrary `oklch()` classes outside Settings (migrated with P2-G). New primitives: `Chip`, `PageHeader`; new variants on Button, Badge, Card and Select.
 - 2026-09-26 · P3-A · `components/charts`: Sparkline, LineChart (nice-number axis, average line, hollow partial fills, hover and keyboard tooltip), BarChart (grouped or stacked), ProgressTrack (due tick, now marker, overdue overflow); `lib/chartScale.js` with 41 tests; charts in the `/dev/ui` gallery.
