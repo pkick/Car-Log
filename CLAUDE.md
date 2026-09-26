@@ -5,7 +5,7 @@ Runs on the owner's unraid NAS. Goal: SaaS-quality polish without accounts or mu
 
 ## Current work
 
-**Follow [`docs/PLAN.md`](docs/PLAN.md).** It holds the phased task list, the decisions (D1 to D13) and the
+**Follow [`docs/PLAN.md`](docs/PLAN.md).** It holds the phased task list, the decisions (D1 to D17) and the
 definition of done. [`docs/roadmap.html`](docs/roadmap.html) has the audit and wireframes behind it.
 Before starting, find the next unchecked task group whose dependencies are merged.
 
@@ -35,8 +35,9 @@ reseed. After P2-F, schema changes must be migrations.
   use `app/src/lib/dates.js` (added in P1-A).
 - **Tailwind opacity modifiers** like `bg-ink/42` only work if the value is in `theme.opacity`
   (steps of 5 by default). Check `tailwind.config.js` before using a new one.
-- **Design tokens** live in `tailwind.config.js` (and CSS variables in `index.css` after P2-A). Use `ink`,
-  `slate`, `accent`, `teal`, `amber`, `green`, `red`, `page`. Archivo for UI text, IBM Plex Mono for data and labels.
+- **Design tokens** are CSS variables in `index.css`, read by `tailwind.config.js` (see [UI primitives](#ui-primitives)).
+  Use `page`, `surface`, `ink`, `slate`, `accent`, `teal`, `amber`, `green`, `red`. Archivo for UI text, IBM Plex
+  Mono for data and labels.
 - **UI primitives** live in `app/src/components/ui`; see [UI primitives](#ui-primitives) below.
 - **Icons** go in `app/src/components/icons.jsx` on the 24px, 2px-stroke grid.
 - Keep `lib/` functions pure, documented with JSDoc, and covered by tests.

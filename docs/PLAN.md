@@ -199,15 +199,15 @@ to hold real data on the NAS.
 ### P2-A · Design tokens and UI primitives
 Branch `feat/p2a-primitives`. Depends on Phase 1.
 
-- [ ] **P2-A1** Move colors to CSS variables in `index.css` as RGB channels and reference them from Tailwind
+- [x] **P2-A1** Move colors to CSS variables in `index.css` as RGB channels and reference them from Tailwind
       (`ink: 'rgb(var(--ink) / <alpha-value>)'`), so any opacity works and dark mode (P2-G) is a token swap.
-- [ ] **P2-A2** Build `app/src/components/ui/`: `Button` (primary, secondary, ghost, danger; sm, md; `loading`),
+- [x] **P2-A2** Build `app/src/components/ui/`: `Button` (primary, secondary, ghost, danger; sm, md; `loading`),
       `IconButton` (requires `aria-label`), `Field` (label, hint, error), `Input`, `NumberInput` (unit suffix,
       tabular numerals, `inputMode="decimal"`), `Select`, `Segmented`, `Switch`, `Badge` / `StatusChip`, `Card`,
       `EmptyState`, `StatTile`, `Modal` and `Drawer` (shared base: Esc and backdrop close, focus trap, returns
       focus, sticky header and footer, sizes sm 440 / md 600 / lg 760, `aria-modal`).
-- [ ] **P2-A3** Dev-only gallery at `/dev/ui` showing every primitive in every state.
-- [ ] **P2-A4** Document the primitives and the rule "no one-off styles" in `CLAUDE.md`.
+- [x] **P2-A3** Dev-only gallery at `/dev/ui` showing every primitive in every state.
+- [x] **P2-A4** Document the primitives and the rule "no one-off styles" in `CLAUDE.md`.
 
 Acceptance
 - Gallery renders all components; keyboard-only use of Modal and Drawer works (Tab cycles inside, Esc closes).
@@ -546,6 +546,7 @@ Backlog (not scheduled): units and currency settings (L/100 km, km, liters), hou
 Newest first. One line per merged PR: date, group, PR link, one-sentence summary.
 
 - 2026-09-25 · P1-C · Intervals list the services that reset them (D10); the server owns the defaults (`GET /api/defaults/intervals`); due items carry `progress`, `dueDate` and `dueOdometer`, labels follow whichever limit is closer, and the Coming up bars use `progress` (finishes P1-F2). Needs a dev DB reset.
+- 2026-09-26 · P2-A · Color tokens are CSS variables (RGB channels, so any scale opacity works on every color); `components/ui` has Button, IconButton, Field, Input, Textarea, Select, NumberInput, Segmented, Switch, Badge, StatusChip, Card, EmptyState, StatTile, Modal and Drawer; gallery at `/dev/ui` (dev only).
 - 2026-09-25 · Plan · Expanded the Phase 4 epics into task groups P4-A to P4-I (47 tasks) and added decisions D14 to D17.
 - 2026-09-25 · P1-E · `400 { error, field }` validation on every write, `ON DELETE CASCADE` for records (startup warns about an old DB); every form awaits its save and shows the server's message inline ("Can't reach the server" when it's down); no `alert()`; the last vehicle can be deleted and the app shows an "Add your first vehicle" panel. **Phase 1 complete.**
 - 2026-09-25 · P1-D · Full / Partial toggle, tank warning in both forms, month-to-date spend vs the same days last month, a 12-fill price chart around the vehicle's own average, real 6-month spend and gallon averages, and Looking ahead for every interval.
