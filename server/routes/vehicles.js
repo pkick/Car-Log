@@ -3,6 +3,7 @@ import { db } from '../db.js'
 import { rowToVehicle, recomputeOdometer } from '../vehicles.js'
 import { DEFAULT_INTERVALS } from '../seed.js'
 import { validateVehicle } from '../validate.js'
+import { removeReceiptFiles, vehicleReceipts } from './receipts.js'
 
 const router = Router()
 
@@ -49,10 +50,14 @@ router.patch('/:id', (req, res) => {
   res.json(recomputeOdometer(id))
 })
 
-// Fill-ups, service records and policy records go with the vehicle through ON DELETE CASCADE.
+// Fill-ups, service records, policy records and receipt rows go with the vehicle through ON DELETE CASCADE; the
+// receipts' files are removed once the rows are gone.
 router.delete('/:id', (req, res) => {
-  const { changes } = db.prepare('DELETE FROM vehicles WHERE id = ?').run(Number(req.params.id))
+  const id = Number(req.params.id)
+  const receipts = vehicleReceipts(id)
+  const { changes } = db.prepare('DELETE FROM vehicles WHERE id = ?').run(id)
   if (changes === 0) return res.status(404).json({ error: 'Vehicle not found' })
+  removeReceiptFiles(receipts)
   res.status(204).end()
 })
 

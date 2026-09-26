@@ -11,11 +11,15 @@ import {
 import { CalendarIcon } from './icons'
 import { Badge, Card, Chip, Field, FieldGroup, Input, Modal, NumberInput, Segmented, Textarea } from './ui'
 import FormActions from './FormActions'
+import ReceiptDropZone from './ReceiptDropZone'
 import { useRecords } from '../context/RecordsContext'
 import { useToast } from '../context/toast'
+import { useReceiptQueue } from '../hooks/useReceiptQueue'
+import { useVehicleReceipts } from '../hooks/useReceipts'
 import { formatLastReading, getLastReading } from '../lib/vehicleStats'
 import { getNextDueAfterService } from '../lib/maintenance'
 import { todayISO } from '../lib/dates'
+import { failedUploadMessage } from '../lib/receipts'
 import { summarizeServices } from '../lib/toastDetails'
 
 const PERFORMED_BY = [
@@ -41,6 +45,11 @@ export default function LogServiceModal({ vehicle, onClose, editingRecord = null
   const [saving, setSaving] = useState(false)
   const [odometerError, setOdometerError] = useState(null)
   const [saveError, setSaveError] = useState(null)
+  // Set once the record exists: its receipts upload straight away, and saving again updates it instead of adding one.
+  const [recordId, setRecordId] = useState(editingRecord?.id ?? null)
+  const receiptQueue = useReceiptQueue({ recordType: 'service', recordId })
+  const { receipts: vehicleReceipts } = useVehicleReceipts(vehicle?.id)
+  const attachedReceipts = recordId == null ? [] : vehicleReceipts.filter((r) => r.recordType === 'service' && r.recordId === recordId)
 
   const handleServiceToggle = (service) => {
     if (selectedServices.includes(service)) {
@@ -87,10 +96,19 @@ export default function LogServiceModal({ vehicle, onClose, editingRecord = null
     setOdometerError(null)
     setSaveError(null)
     try {
-      if (editingRecord) {
-        await updateServiceRecord(editingRecord.id, payload)
+      let id = recordId
+      if (id) {
+        await updateServiceRecord(id, payload)
       } else {
-        await addServiceRecord(payload)
+        id = await addServiceRecord(payload)
+        setRecordId(id)
+      }
+      // Files upload once the record has an id. The record stays saved if one fails; the form stays open to retry.
+      const failed = await receiptQueue.uploadAll(id)
+      if (failed > 0) {
+        setSaveError(failedUploadMessage('Service', failed))
+        setSaving(false)
+        return
       }
       toast.success('Service saved', summarizeServices(selectedServices))
       onClose()
@@ -128,7 +146,7 @@ export default function LogServiceModal({ vehicle, onClose, editingRecord = null
       subtitle={<>{vehicle?.nickname} · {vehicle?.odometer?.toLocaleString()} mi</>}
       footer={
         <FormActions
-          submitLabel={editingRecord ? 'Save changes' : 'Save service'}
+          submitLabel={recordId ? 'Save changes' : 'Save service'}
           onSubmit={handleSave}
           onCancel={onClose}
           saving={saving}
@@ -244,6 +262,8 @@ export default function LogServiceModal({ vehicle, onClose, editingRecord = null
         <Field label="Notes">
           <Textarea name="notes" value={formData.notes} onChange={handleChange} rows={3} />
         </Field>
+
+        <ReceiptDropZone queue={receiptQueue} attached={attachedReceipts} />
 
         {/* Next due callout */}
         {nextDue.length > 0 && (

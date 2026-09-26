@@ -7,7 +7,7 @@ process.env.DB_PATH ??= ':memory:'
 process.env.SEED_DEMO ??= '1'
 const { db } = await import('../db.js')
 
-const RECORD_TABLES = ['fill_ups', 'service_records', 'policy_records']
+const RECORD_TABLES = ['fill_ups', 'service_records', 'policy_records', 'receipts']
 
 test('the database is migrated and records each migration', () => {
   const rows = db.prepare('SELECT version, name, appliedAt FROM schema_migrations ORDER BY version').all()
@@ -15,6 +15,7 @@ test('the database is migrated and records each migration', () => {
   assert.deepEqual(rows.map(({ version, name }) => ({ version, name })), [
     { version: 1, name: 'initial' },
     { version: 2, name: 'demo_flag' },
+    { version: 3, name: 'receipts' },
   ])
   assert.match(rows[0].appliedAt, /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}Z$/)
 })

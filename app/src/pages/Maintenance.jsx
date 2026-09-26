@@ -3,9 +3,11 @@ import { ProgressTrack } from '../components/charts'
 import { Button, Card, Chip, EmptyState, Field, Input, NumberInput, PageHeader, Segmented, StatusChip } from '../components/ui'
 import { WrenchIcon } from '../components/icons'
 import LogServiceModal from '../components/LogServiceModal'
+import ReceiptThumbs from '../components/ReceiptThumbs'
 import { useRecords } from '../context/RecordsContext'
 import { useToast } from '../context/toast'
 import { VehicleContext } from '../context/VehicleContext'
+import { useVehicleReceipts } from '../hooks/useReceipts'
 import { currentYear, parseISODate, todayISO } from '../lib/dates'
 import {
   countByStatus,
@@ -16,6 +18,7 @@ import {
   parseBaseline,
 } from '../lib/maintenance'
 import { PACE_MONTHS, getDrivingPace, milesPerMonth, withProjectedDates } from '../lib/projections'
+import { groupReceipts, receiptKey } from '../lib/receipts'
 import {
   CATEGORY_BG_CLASS,
   CATEGORY_BY_ID,
@@ -283,6 +286,7 @@ export default function Maintenance({ vehicle, onLogService }) {
   const activeCategory = historyCategoryIds.includes(categoryFilter) ? categoryFilter : null
   const shownHistory = filterServiceHistory(history, { query, categoryId: activeCategory })
   const filtering = query.trim() !== '' || activeCategory != null
+  const receiptsByRecord = groupReceipts(useVehicleReceipts(vehicle.id).receipts)
 
   const markDone = async (item, interval) => {
     const [service] = interval.services
@@ -460,7 +464,7 @@ export default function Maintenance({ vehicle, onLogService }) {
                 const [firstCategory = 'other'] = getRecordCategoryIds(service)
                 const performedBy = service.performedBy === 'diy' ? 'DIY' : service.shopName || 'Shop'
                 return (
-                  <li key={service.id} className="grid grid-cols-[2rem_minmax(0,1fr)_auto_auto_auto] items-center gap-x-4 px-5.5 py-3">
+                  <li key={service.id} className="grid grid-cols-[2rem_minmax(0,1fr)_auto_auto_auto_auto] items-center gap-x-4 px-5.5 py-3">
                     <CategoryTile categoryId={firstCategory} />
                     <div className="min-w-0">
                       <p className="text-sm font-semibold truncate" title={service.services.join(', ')}>
@@ -470,6 +474,7 @@ export default function Maintenance({ vehicle, onLogService }) {
                         {performedBy} · {formatDay(service.date)}
                       </p>
                     </div>
+                    <ReceiptThumbs receipts={receiptsByRecord.get(receiptKey('service', service.id)) ?? []} />
                     <span className="text-xs font-mono text-ink/50 tabular-nums text-right">{service.odometer.toLocaleString()} mi</span>
                     <span className="text-sm font-semibold tabular-nums text-right w-20">{usd(service.cost)}</span>
                     <div className="flex justify-end gap-3">

@@ -37,7 +37,7 @@ test('GET /api/export sends every table as a dated attachment, in the shapes the
   assert.match(res.headers.get('content-type'), /^application\/json/)
   assert.equal(res.headers.get('content-disposition'), `attachment; filename="odometer-backup-${today}.json"`)
   assert.equal(backup.app, 'odometer')
-  assert.equal(backup.schemaVersion, 2)
+  assert.equal(backup.schemaVersion, 3)
   assert.match(backup.exportedAt, new RegExp(`^${today}T\\d{2}:\\d{2}:\\d{2}[+-]\\d{2}:\\d{2}$`))
 
   const current = await snapshot()
@@ -74,6 +74,7 @@ test('an export imported back reproduces every GET exactly', async () => {
     fillUps: backup.fillUps.length,
     serviceRecords: backup.serviceRecords.length,
     policyRecords: backup.policyRecords.length,
+    receipts: backup.receipts.length,
   })
   assert.deepEqual(await snapshot(), before)
   assert.equal(before.vehicles.find((v) => v.id === vehicle.id).odometer, 10900, 'the odometer is recomputed, not taken from the file')
@@ -115,7 +116,7 @@ test('import rejects files it cannot restore and changes nothing', async () => {
   const cases = [
     [{ ...backup, app: 'something-else' }, /isn't an Odometer backup/],
     [[backup], /isn't an Odometer backup/],
-    [{ ...backup, schemaVersion: backup.schemaVersion + 1 }, /newer version of Odometer \(schema 3; this server is on 2\)/],
+    [{ ...backup, schemaVersion: backup.schemaVersion + 1 }, /newer version of Odometer \(schema 4; this server is on 3\)/],
     [{ ...backup, schemaVersion: '1' }, /doesn't say which schema version/],
     [{ ...backup, policyRecords: undefined }, /no policyRecords list/],
   ]

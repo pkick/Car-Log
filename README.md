@@ -73,7 +73,7 @@ The server serves the built app and the API on one port. Everything it stores li
 
 | Variable | Default | What it does |
 |---|---|---|
-| `DATA_DIR` | `server/data` (`/data` in Docker) | Holds `odometer.db`, and later uploads. Created on start if missing. |
+| `DATA_DIR` | `server/data` (`/data` in Docker) | Holds `odometer.db` and `receipts/`, the uploaded receipts and documents. Created on start if missing. |
 | `PORT` | `3001` | Port for the app and the API. |
 | `SEED_DEMO` | unset | `1` loads the demo vehicles into an empty database, flagged as demo data (the app's "Clear demo data" banner removes them). Leave it unset for real data; a fresh install can also load demo data from its first-run screen. |
 | `DB_PATH` | `$DATA_DIR/odometer.db` | Overrides the database file (the tests use `:memory:`). |
@@ -141,7 +141,9 @@ Then build and start it:
 cd /mnt/user/appdata/odometer-src && docker compose up -d --build
 ```
 
-Odometer has no sign-in. Keep it on your LAN, or put it behind your reverse proxy's authentication.
+Odometer has no sign-in. Keep it on your LAN, or put it behind your reverse proxy's authentication. Receipts upload up
+to 10 MB, so let the proxy pass bodies that large (nginx and Nginx Proxy Manager default to 1 MB:
+`client_max_body_size 12m;`).
 
 ### File ownership (why the container starts as root)
 
@@ -161,14 +163,18 @@ If it can't write to `/data`, the log says so and names the user.
 
 ## Backups
 
-- **The data folder.** All data is `odometer.db` in the data folder (`/mnt/user/appdata/odometer` on unraid), so the
-  Appdata Backup plugin covers it. That plugin stops containers while it copies, which keeps the file consistent.
-  If you copy the file yourself, stop the container first.
+- **The data folder.** All data is in the data folder (`/mnt/user/appdata/odometer` on unraid): the database,
+  `odometer.db`, and the receipts and documents you attach, as files in `receipts/` under random names. The Appdata
+  Backup plugin covers both. That plugin stops containers while it copies, which keeps the database consistent. If you
+  copy the folder yourself, stop the container first.
 - **In the app.** Settings › Export › **Export backup (JSON)** downloads every vehicle and record as
   `odometer-backup-YYYY-MM-DD.json`. **Restore from backup** replaces everything with a backup's contents after you
   confirm. A restore checks every record first and changes nothing if one is invalid. Backups from an older version
   restore into a newer one; a newer backup is refused by an older server. The CSV export is for spreadsheets and
   can't be restored.
+- **Receipt files are not in the JSON export.** It holds each receipt's details (name, type, which record it's on) but
+  not the file, so keep the appdata backup for those. A restore never deletes files, and a restored receipt whose file
+  isn't in `receipts/` shows as "File missing" until you put the file back.
 
 ## Upgrading
 

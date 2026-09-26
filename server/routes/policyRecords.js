@@ -1,6 +1,8 @@
 import { Router } from 'express'
 import { db } from '../db.js'
 import { validatePolicyRecord } from '../validate.js'
+import { rollback } from '../migrate.js'
+import { deleteRecordReceipts, removeReceiptFiles } from './receipts.js'
 
 const router = Router()
 
@@ -43,7 +45,18 @@ router.patch('/:id', (req, res) => {
 })
 
 router.delete('/:id', (req, res) => {
-  db.prepare('DELETE FROM policy_records WHERE id = ?').run(Number(req.params.id))
+  const id = Number(req.params.id)
+  db.exec('BEGIN')
+  let receipts
+  try {
+    receipts = deleteRecordReceipts('policy', id)
+    db.prepare('DELETE FROM policy_records WHERE id = ?').run(id)
+    db.exec('COMMIT')
+  } catch (err) {
+    rollback(db)
+    throw err
+  }
+  removeReceiptFiles(receipts)
   res.status(204).end()
 })
 

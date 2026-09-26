@@ -1,11 +1,15 @@
-import { useState, useContext, useRef } from 'react'
+import { useState, useContext } from 'react'
 import { CalendarIcon } from './icons'
 import { Field, Input, Modal, NumberInput, Segmented, Textarea } from './ui'
 import FormActions from './FormActions'
+import ReceiptDropZone from './ReceiptDropZone'
 import { useRecords } from '../context/RecordsContext'
 import { VehicleContext } from '../context/VehicleContext'
 import { useToast } from '../context/toast'
+import { useReceiptQueue } from '../hooks/useReceiptQueue'
+import { useVehicleReceipts } from '../hooks/useReceipts'
 import { todayISO } from '../lib/dates'
+import { failedUploadMessage } from '../lib/receipts'
 import { paymentSavedDetail } from '../lib/toastDetails'
 
 // Fields with an error line under their input. Errors for any other field show above the buttons.
@@ -32,8 +36,12 @@ export default function LogPolicyModal({ vehicle, onClose, editingRecord = null,
   const [saving, setSaving] = useState(false)
   const [fieldErrors, setFieldErrors] = useState({})
   const [saveError, setSaveError] = useState(null)
-  // Set once the record exists, so retrying after the renewal-date update failed doesn't add it twice.
-  const savedRecordId = useRef(editingRecord?.id ?? null)
+  // Set once the record exists, so retrying after the renewal-date update or an upload failed doesn't add it twice.
+  // Its receipts upload straight away from then on.
+  const [recordId, setRecordId] = useState(editingRecord?.id ?? null)
+  const receiptQueue = useReceiptQueue({ recordType: 'policy', recordId })
+  const { receipts: vehicleReceipts } = useVehicleReceipts(vehicle?.id)
+  const attachedReceipts = recordId == null ? [] : vehicleReceipts.filter((r) => r.recordType === 'policy' && r.recordId === recordId)
 
   const handleChange = (e) => {
     const { name, value } = e.target
@@ -58,14 +66,22 @@ export default function LogPolicyModal({ vehicle, onClose, editingRecord = null,
     setFieldErrors({})
     setSaveError(null)
     try {
-      if (savedRecordId.current) {
-        await updatePolicyRecord(savedRecordId.current, payload)
+      let id = recordId
+      if (id) {
+        await updatePolicyRecord(id, payload)
       } else {
-        savedRecordId.current = await addPolicyRecord(payload)
+        id = await addPolicyRecord(payload)
+        setRecordId(id)
       }
       if (formData.renewalDate) {
         const field = formData.type === 'insurance' ? 'insuranceRenewal' : 'registrationRenewal'
         await updateVehicle(vehicle.id, { [field]: formData.renewalDate })
+      }
+      const failed = await receiptQueue.uploadAll(id)
+      if (failed > 0) {
+        setSaveError(failedUploadMessage('Payment', failed))
+        setSaving(false)
+        return
       }
       toast.success('Payment saved', paymentSavedDetail({ type: formData.type, cost }))
       onClose()
@@ -85,7 +101,7 @@ export default function LogPolicyModal({ vehicle, onClose, editingRecord = null,
       subtitle={<>{vehicle?.nickname} · {vehicle?.odometer?.toLocaleString()} mi</>}
       footer={
         <FormActions
-          submitLabel={editingRecord ? 'Save changes' : 'Save payment'}
+          submitLabel={recordId ? 'Save changes' : 'Save payment'}
           onSubmit={handleSave}
           onCancel={onClose}
           saving={saving}
@@ -130,6 +146,8 @@ export default function LogPolicyModal({ vehicle, onClose, editingRecord = null,
         <Field label="Notes">
           <Textarea name="notes" value={formData.notes} onChange={handleChange} rows={3} />
         </Field>
+
+        <ReceiptDropZone queue={receiptQueue} attached={attachedReceipts} />
       </div>
     </Modal>
   )

@@ -1,8 +1,12 @@
 import { useState } from 'react'
 import { useRecords } from '../context/RecordsContext'
 import LogPolicyModal from '../components/LogPolicyModal'
+import ReceiptThumbs from '../components/ReceiptThumbs'
+import VehicleDocumentsCard from '../components/VehicleDocumentsCard'
+import { useVehicleReceipts } from '../hooks/useReceipts'
 import { InsuranceIcon, RegistrationIcon } from '../components/icons'
 import { Button, Card, EmptyState, PageHeader, Segmented, StatusChip } from '../components/ui'
+import { groupReceipts, receiptKey } from '../lib/receipts'
 import { RENEWAL_TYPES, formatFullDate, formatRenewalCountdown, getRenewalItems } from '../lib/renewals'
 
 const RENEWAL_ICONS = {
@@ -62,6 +66,7 @@ export default function Documents({ vehicle }) {
   const { getPolicyRecordsForVehicle, deletePolicyRecord } = useRecords()
   const [modalState, setModalState] = useState(null) // { editingRecord, defaultType } | null
   const [filter, setFilter] = useState('All')
+  const receiptsByRecord = groupReceipts(useVehicleReceipts(vehicle.id).receipts)
 
   const records = getPolicyRecordsForVehicle(vehicle.id)
   const renewals = getRenewalItems(vehicle, records)
@@ -124,18 +129,25 @@ export default function Documents({ vehicle }) {
                 </div>
                 <p className="text-sm font-semibold">${record.cost.toFixed(2)}</p>
               </div>
-              <div className="flex justify-end gap-3 ml-12">
-                <Button variant="link" size="sm" onClick={() => setModalState({ editingRecord: record })}>
-                  EDIT
-                </Button>
-                <Button variant="link-danger" size="sm" onClick={() => deletePolicyRecord(record.id)}>
-                  DEL
-                </Button>
+              <div className="flex items-center justify-between gap-3 ml-20">
+                <ReceiptThumbs receipts={receiptsByRecord.get(receiptKey('policy', record.id)) ?? []} />
+                <div className="flex gap-3">
+                  <Button variant="link" size="sm" onClick={() => setModalState({ editingRecord: record })}>
+                    EDIT
+                  </Button>
+                  <Button variant="link-danger" size="sm" onClick={() => deletePolicyRecord(record.id)}>
+                    DEL
+                  </Button>
+                </div>
               </div>
             </div>
           ))}
         </div>
       </Card>
+
+      <div className="mt-[22px]">
+        <VehicleDocumentsCard key={vehicle.id} vehicle={vehicle} />
+      </div>
 
       {modalState && (
         <LogPolicyModal

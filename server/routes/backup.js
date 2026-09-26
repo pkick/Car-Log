@@ -4,11 +4,14 @@ import { currentSchemaVersion, rollback } from '../migrate.js'
 import { rowToVehicle, recomputeOdometer } from '../vehicles.js'
 import { rowToFillUp, rowToServiceRecord } from '../records.js'
 import { validateVehicle, validateFillUp, validateServiceRecord, validatePolicyRecord } from '../validate.js'
+import { RECEIPT_MIME_TYPES, RECORD_TYPES, isStoredName } from './receipts.js'
 
 const router = Router()
 
 const LISTS = ['vehicles', 'fillUps', 'serviceRecords', 'policyRecords']
-const TABLES = ['vehicles', 'fill_ups', 'service_records', 'policy_records']
+// Receipts are metadata only: their files stay in DATA_DIR/receipts, which the appdata backup covers. Backups from
+// before schema 3 have no receipts list.
+const TABLES = ['vehicles', 'fill_ups', 'service_records', 'policy_records', 'receipts']
 
 const pad = (n) => String(n).padStart(2, '0')
 
@@ -41,6 +44,7 @@ router.get('/export', (req, res) => {
     fillUps: db.prepare('SELECT * FROM fill_ups ORDER BY id').all().map(rowToFillUp),
     serviceRecords: db.prepare('SELECT * FROM service_records ORDER BY id').all().map(rowToServiceRecord),
     policyRecords: db.prepare('SELECT * FROM policy_records ORDER BY id').all(),
+    receipts: db.prepare('SELECT * FROM receipts ORDER BY id').all(),
   }
   res.attachment(`odometer-backup-${localDate(now)}.json`)
   res.send(JSON.stringify(backup, null, 2))
@@ -69,6 +73,7 @@ function checkBackup(backup) {
   }
   const missing = LISTS.find((key) => !Array.isArray(backup[key]))
   if (missing) throw new ImportError(`This backup has no ${missing} list.`)
+  if (backup.receipts !== undefined && !Array.isArray(backup.receipts)) throw new ImportError("This backup's receipts aren't a list.")
 }
 
 /**
@@ -83,6 +88,36 @@ const textFields = (fields) => (record) => {
 const checkVehicleText = textFields(['make', 'model', 'trim', 'vin', 'plate', 'color'])
 const checkServiceText = textFields(['performedBy', 'shopName', 'partsUsed', 'notes'])
 const checkPolicyText = textFields(['provider', 'notes'])
+const checkReceiptText = textFields(['label'])
+
+const RECEIPT_RECORD_NOUNS = { service: 'service record', policy: 'payment', vehicle: 'vehicle' }
+
+/**
+ * Checks receipt rows against the records restored before them. Files aren't checked: a row whose file isn't in
+ * DATA_DIR/receipts is restored anyway, and the app shows it as missing.
+ * @param {object} backup A backup whose vehicles and records passed.
+ * @returns {(receipt: object) => { error: string, field: string } | null}
+ */
+function receiptChecker(backup) {
+  const owners = {
+    service: new Map(backup.serviceRecords.map((r) => [r.id, r.vehicleId])),
+    policy: new Map(backup.policyRecords.map((p) => [p.id, p.vehicleId])),
+    vehicle: new Map(backup.vehicles.map((v) => [v.id, v.id])),
+  }
+  return (r) => {
+    if (!RECORD_TYPES.includes(r.recordType)) return { error: 'recordType must be service, policy or vehicle.', field: 'recordType' }
+    const vehicleId = owners[r.recordType].get(r.recordId)
+    if (vehicleId === undefined) return { error: `Its ${RECEIPT_RECORD_NOUNS[r.recordType]} isn't in the backup.`, field: 'recordId' }
+    if (r.vehicleId !== vehicleId) return { error: "vehicleId doesn't match its record's vehicle.", field: 'vehicleId' }
+    if (!isStoredName(r.storedName)) return { error: "storedName isn't a name Odometer gives files.", field: 'storedName' }
+    if (r.thumbName != null && !isStoredName(r.thumbName)) return { error: "thumbName isn't a name Odometer gives files.", field: 'thumbName' }
+    if (typeof r.filename !== 'string' || !r.filename.trim()) return { error: 'filename must be text.', field: 'filename' }
+    if (!RECEIPT_MIME_TYPES.includes(r.mimeType)) return { error: `mimeType must be one of ${RECEIPT_MIME_TYPES.join(', ')}.`, field: 'mimeType' }
+    if (!Number.isInteger(r.size) || r.size < 0) return { error: 'size must be a whole number of bytes.', field: 'size' }
+    if (typeof r.createdAt !== 'string') return { error: 'createdAt must be text.', field: 'createdAt' }
+    return checkReceiptText(r)
+  }
+}
 
 /**
  * Checks each record of one list and inserts it, keeping its id.
@@ -110,9 +145,11 @@ function insertAll(records, label, check, insert) {
 }
 
 /**
- * Deletes every vehicle and record, then writes the backup's, keeping their ids. Call it inside a transaction.
+ * Deletes every vehicle, record and receipt row, then writes the backup's, keeping their ids. Receipt files are left
+ * alone. Call it inside a transaction.
  * @param {object} backup A backup that passed `checkBackup`.
- * @returns {{ vehicles: number, fillUps: number, serviceRecords: number, policyRecords: number }} What was restored.
+ * @returns {{ vehicles: number, fillUps: number, serviceRecords: number, policyRecords: number, receipts: number }}
+ *   What was restored.
  * @throws {ImportError} When a record fails validation.
  */
 function replaceAllData(backup) {
@@ -158,9 +195,19 @@ function replaceAllData(backup) {
     p.id, p.vehicleId, p.type, p.date, p.cost ?? 0, p.renewalDate ?? null, p.provider ?? null, p.notes ?? ''
   ))
 
+  const receipts = backup.receipts ?? []
+  const insertReceipt = db.prepare(`
+    INSERT INTO receipts (id, recordType, recordId, vehicleId, storedName, thumbName, filename, mimeType, size, label, createdAt)
+    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+  `)
+  insertAll(receipts, 'Receipt', receiptChecker(backup), (r) => insertReceipt.run(
+    r.id, r.recordType, r.recordId, r.vehicleId, r.storedName, r.thumbName ?? null, r.filename, r.mimeType, r.size,
+    r.label ?? null, r.createdAt
+  ))
+
   for (const { id } of backup.vehicles) recomputeOdometer(id)
 
-  return Object.fromEntries(LISTS.map((key) => [key, backup[key].length]))
+  return { ...Object.fromEntries(LISTS.map((key) => [key, backup[key].length])), receipts: receipts.length }
 }
 
 router.post('/import', (req, res) => {

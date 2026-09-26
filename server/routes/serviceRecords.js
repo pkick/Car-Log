@@ -3,6 +3,8 @@ import { db } from '../db.js'
 import { recomputeOdometer } from '../vehicles.js'
 import { validateServiceRecord } from '../validate.js'
 import { rowToServiceRecord } from '../records.js'
+import { rollback } from '../migrate.js'
+import { deleteRecordReceipts, removeReceiptFiles } from './receipts.js'
 
 const router = Router()
 
@@ -55,7 +57,17 @@ router.delete('/:id', (req, res) => {
   const existing = db.prepare('SELECT * FROM service_records WHERE id = ?').get(id)
   if (!existing) return res.status(404).json({ error: 'Service record not found' })
 
-  db.prepare('DELETE FROM service_records WHERE id = ?').run(id)
+  db.exec('BEGIN')
+  let receipts
+  try {
+    receipts = deleteRecordReceipts('service', id)
+    db.prepare('DELETE FROM service_records WHERE id = ?').run(id)
+    db.exec('COMMIT')
+  } catch (err) {
+    rollback(db)
+    throw err
+  }
+  removeReceiptFiles(receipts)
   res.json({ vehicle: recomputeOdometer(existing.vehicleId) })
 })
 

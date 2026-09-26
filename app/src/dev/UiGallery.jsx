@@ -10,9 +10,11 @@ import {
   CardLink,
   Chip,
   Drawer,
+  DropZone,
   EmptyState,
   Field,
   FieldGroup,
+  FileThumb,
   IconButton,
   Input,
   Menu,
@@ -31,7 +33,7 @@ import {
   Textarea,
   Toast,
 } from '../components/ui'
-import { BrakesIcon, CalendarIcon, CarIcon, ChevronDownIcon, ExportIcon, FuelIcon, MoreIcon, OilDropIcon, PencilIcon, TrashIcon, WrenchIcon } from '../components/icons'
+import { BrakesIcon, CalendarIcon, CarIcon, ChevronDownIcon, ExportIcon, FuelIcon, MoreIcon, OilDropIcon, PaperclipIcon, PencilIcon, TrashIcon, WrenchIcon } from '../components/icons'
 import ChartGallery from './ChartGallery'
 import { ToastProvider } from '../context/ToastProvider'
 import { useToast } from '../context/toast'
@@ -72,6 +74,33 @@ const HISTORY = Array.from({ length: 14 }, (_, i) => ({
   odometer: 84210 - i * 480,
   gallons: (15.9 - (i % 3) * 0.4).toFixed(1),
 }))
+
+// A stand-in photo for FileThumb, drawn with named colors so the gallery needs no image file.
+const SAMPLE_PHOTO =
+  "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 4 3'%3E%3Crect width='4' height='3' fill='lightsteelblue'/%3E%3Ccircle cx='1.2' cy='1' r='0.5' fill='white'/%3E%3Cpath d='M0 3 L1.6 1.6 L2.6 2.4 L3.2 1.9 L4 2.6 V3Z' fill='slategray'/%3E%3C/svg%3E"
+
+function DropZoneDemo() {
+  const [picked, setPicked] = useState([])
+  return (
+    <div className="grid grid-cols-2 gap-3.5">
+      <div>
+        <DropZone
+          icon={PaperclipIcon}
+          title="Drop a receipt, paste one, or click to attach"
+          hint="Stored on your server · JPG, PNG, HEIC, PDF up to 10 MB"
+          accept=".jpg,.png,.pdf"
+          onFiles={(files) => setPicked(files.map((file) => file.name))}
+        />
+        <p className="text-xs font-mono text-ink/50 mt-2">{picked.length ? `onFiles: ${picked.join(', ')}` : 'Drop, pick or paste to see onFiles. Dragging a file over it highlights it.'}</p>
+      </div>
+      <div className="flex flex-col gap-3">
+        <DropZone size="sm" icon={PaperclipIcon} title="size sm" hint="Beside other fields" onFiles={() => {}} />
+        <DropZone size="sm" title="With an error" hint="The border turns red" error="scan.pdf is 12 MB; the limit is 10 MB." onFiles={() => {}} />
+        <DropZone size="sm" title="Disabled" onFiles={() => {}} disabled />
+      </div>
+    </div>
+  )
+}
 
 function Section({ title, note, children }) {
   return (
@@ -785,6 +814,39 @@ export default function UiGallery() {
             action={<Button size="sm">Enable fuel tracking</Button>}
           />
         </div>
+      </Section>
+
+      <Section title="DropZone" note="Drop, click (Space or Enter on the focused zone) or paste; a zone in a dialog takes pastes anywhere in it">
+        <DropZoneDemo />
+      </Section>
+
+      <Section title="FileThumb" note="Image when src loads, else a type tile; +N for overflow; red for a missing file; a button when onClick is set">
+        <Card>
+          <div className="flex flex-wrap items-end gap-6">
+            {['sm', 'md', 'lg'].map((size) => (
+              <div key={size} className="flex items-center gap-1.5">
+                <FileThumb size={size} src={SAMPLE_PHOTO} label="JPG" />
+                <FileThumb size={size} label="PDF" />
+                <FileThumb size={size} label="HEIC" />
+                <span className="text-xs font-mono text-ink/50 ml-1.5">{size}</span>
+              </div>
+            ))}
+          </div>
+          <div className="flex flex-wrap items-center gap-6 mt-5">
+            <div className="flex items-center gap-1">
+              <FileThumb src={SAMPLE_PHOTO} label="JPG" onClick={() => {}} aria-label="Open photo" />
+              <FileThumb label="PDF" onClick={() => {}} aria-label="Open invoice" />
+              <FileThumb src={SAMPLE_PHOTO} label="PNG" onClick={() => {}} aria-label="Open photo" />
+              <FileThumb label="+2" onClick={() => {}} aria-label="2 more files" />
+              <span className="text-xs font-mono text-ink/50 ml-2">a history row: buttons, +N</span>
+            </div>
+            <div className="flex items-center gap-1">
+              <FileThumb label="PDF" tone="red" />
+              <FileThumb src="/no-such-thumbnail.jpg" label="JPG" />
+              <span className="text-xs font-mono text-ink/50 ml-2">missing file; image that failed to load</span>
+            </div>
+          </div>
+        </Card>
       </Section>
 
       <Section title="StatTile" note="deltaTone is good / bad / neutral news, not up / down">
