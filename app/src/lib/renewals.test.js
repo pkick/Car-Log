@@ -48,6 +48,15 @@ describe('getRenewalItems', () => {
     expect(insuranceOn('2026-09-26')).toMatchObject({ daysUntil: 0, status: 'coming-up' })
   })
 
+  it('takes the warn days as a setting', () => {
+    const on = (renewalDate, warnDays) => getRenewalItems({ insuranceRenewal: renewalDate }, [], TODAY, warnDays)[0].status
+    expect(on('2026-10-11', 14)).toBe('ok')
+    expect(on('2026-10-10', 14)).toBe('coming-up')
+    expect(on('2026-12-25', 90)).toBe('coming-up')
+    expect(on('2026-09-26', 0)).toBe('coming-up')
+    expect(on('2026-09-25', 60)).toBe('overdue')
+  })
+
   it('is overdue once the date has passed', () => {
     expect(insuranceOn('2026-09-25')).toMatchObject({ daysUntil: -1, status: 'overdue' })
     expect(insuranceOn('2026-09-14')).toMatchObject({ daysUntil: -12, status: 'overdue' })

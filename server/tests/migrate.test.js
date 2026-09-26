@@ -242,3 +242,34 @@ test('004_fillup_station_notes adds station and notes, leaving existing fill-ups
   const plan = db.prepare("EXPLAIN QUERY PLAN SELECT * FROM fill_ups WHERE vehicleId = 1 AND date < '2026-10-01' ORDER BY date DESC, id DESC LIMIT 1").all()
   assert.ok(plan.some((step) => step.detail.includes('fill_ups_vehicle_date')), 'order checks use the index')
 })
+
+test('005_notifications applies on top of a database at 004, and its log rows go with their vehicle', () => {
+  const db = new DatabaseSync(':memory:')
+  db.exec('PRAGMA foreign_keys = ON')
+  runMigrations(db, shippedUpTo(4))
+  db.exec("INSERT INTO vehicles (id, nickname, intervals) VALUES (1, 'Existing', '[]'), (2, 'Other', '[]')")
+
+  const applied = runMigrations(db, shippedUpTo(5))
+
+  assert.deepEqual(applied.map((m) => m.file), ['005_notifications.sql'])
+  assert.deepEqual(columns(db, 'settings'), ['key', 'value'])
+  assert.deepEqual(columns(db, 'notification_log'), ['id', 'vehicleId', 'itemKey', 'state', 'sentAt'])
+  assert.deepEqual(
+    db.prepare("PRAGMA index_list('notification_log')").all().map((index) => index.name),
+    ['notification_log_item']
+  )
+  assert.deepEqual(db.prepare("PRAGMA index_info('notification_log_item')").all().map((column) => column.name), ['vehicleId', 'itemKey'])
+  assert.equal(db.prepare('SELECT COUNT(*) AS n FROM vehicles').get().n, 2)
+
+  db.exec(`INSERT INTO settings (key, value) VALUES ('lastDailyRun', '"2026-09-26"')`)
+  assert.throws(() => db.exec(`INSERT INTO settings (key, value) VALUES ('lastDailyRun', '"again"')`), /UNIQUE/)
+  db.exec(`
+    INSERT INTO notification_log (vehicleId, itemKey, state, sentAt) VALUES
+      (1, 'interval:1', 'coming-up', '2026-09-26T15:00:00Z'),
+      (2, 'renewal:insurance', 'overdue', '2026-09-26T15:00:00Z');
+  `)
+  assert.throws(() => db.exec(`INSERT INTO notification_log (vehicleId, itemKey, state, sentAt) VALUES (99, 'x', 'ok', 'now')`), /FOREIGN KEY/)
+
+  db.exec('DELETE FROM vehicles WHERE id = 1')
+  assert.deepEqual(db.prepare('SELECT vehicleId FROM notification_log').all().map((row) => row.vehicleId), [2])
+})

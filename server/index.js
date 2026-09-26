@@ -1,9 +1,10 @@
 import { StartupError } from './errors.js'
 
-let app, db, DB_PATH
+let app, db, DB_PATH, createScheduler
 try {
   ;({ default: app } = await import('./app.js'))
   ;({ db, DB_PATH } = await import('./db.js'))
+  ;({ createScheduler } = await import('./notify/scheduler.js'))
 } catch (err) {
   if (!(err instanceof StartupError)) throw err
   console.error(`Odometer can't start: ${err.message}`)
@@ -16,10 +17,15 @@ app.listen(PORT, () => {
   console.log(`Odometer listening on http://localhost:${PORT} (database: ${DB_PATH})`)
 })
 
+// Reminders: the daily check and weekly digest run in this process (PLAN.md D15).
+const scheduler = createScheduler()
+scheduler.start()
+
 // `docker stop` sends SIGTERM, which Node ignores when it runs as PID 1 unless it has a handler. Every write is
 // synchronous, so none is in flight when a handler runs.
 for (const signal of ['SIGTERM', 'SIGINT']) {
   process.on(signal, () => {
+    scheduler.stop()
     db.close()
     process.exit(0)
   })

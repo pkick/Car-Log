@@ -238,6 +238,21 @@ describe('getDueSoonItems', () => {
     expect(tires.progress).toBeCloseTo(7410 / 5000)
   })
 
+  it('takes today as an argument, so it needs no clock', () => {
+    const [before] = getDueSoonItems(vehicle, records, 1000, '2027-01-30')
+    const [on] = getDueSoonItems(vehicle, records, 1000, '2027-01-31')
+    expect(before.status).not.toBe('overdue')
+    expect(on).toMatchObject({ status: 'overdue', remainingLabel: 'Overdue since Jan 31' })
+    expect(getDueSoonItems(vehicle, records, 1000, '2028-02-01')[0].remainingLabel).toBe('Overdue since Jan 31, 2027')
+  })
+
+  it('says which limit the labels describe', () => {
+    onSep25()
+    const byName = Object.fromEntries(getDueSoonItems(wagon, wagonRecords, 84210).map((i) => [i.name, i.dueBy]))
+    expect(byName).toEqual({ 'Oil + filter': 'miles', 'Tire rotation': 'miles', 'Brake fluid': 'date', 'Cabin air filter': 'date' })
+    expect(getDueSoonItems({ intervals: [{ ...interval, months: null }] }, records, 1000)[0].dueBy).toBeNull()
+  })
+
   it('sorts overdue items first, then by highest progress', () => {
     onSep25()
     const items = getDueSoonItems(wagon, wagonRecords, 84210)

@@ -22,6 +22,11 @@ describe('todayISO', () => {
     vi.setSystemTime(new Date('2026-01-01T00:05:00-08:00'))
     expect(todayISO()).toBe('2026-01-01')
   })
+
+  it('takes the local date of a given moment, for an injected clock', () => {
+    expect(todayISO(new Date('2026-09-24T23:00:00-07:00'))).toBe('2026-09-24')
+    expect(todayISO(new Date(2026, 0, 1, 0, 5))).toBe('2026-01-01')
+  })
 })
 
 describe('currentYear', () => {

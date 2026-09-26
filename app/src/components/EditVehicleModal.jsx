@@ -6,6 +6,7 @@ import { Button, Card, Chip, Field, IconButton, Input, Modal, NumberInput, Selec
 import FormActions from './FormActions'
 import VinField from './VinField'
 import { VEHICLE_COLORS, VEHICLE_COLOR_SWATCH_CLASS } from '../lib/vehicleColors'
+import { useReminderDefaults } from '../hooks/useReminderDefaults'
 import {
   SERVICE_CATEGORIES,
   SUBCATEGORIES,
@@ -48,6 +49,7 @@ export default function EditVehicleModal({ vehicleId, onClose }) {
   const [fieldErrors, setFieldErrors] = useState({})
   const [saveError, setSaveError] = useState(null)
   const focusIntervalId = useRef(null)
+  const { defaults: warnDefaults } = useReminderDefaults()
 
   if (!vehicle) return null
 
@@ -83,7 +85,7 @@ export default function EditVehicleModal({ vehicleId, onClose }) {
     focusIntervalId.current = id
     setIntervals([
       ...intervals,
-      { id, categoryId: 'other', name: '', services: [], trackBy: 'miles', miles: 5000, months: null, warnMiles: 500, warnDays: 14 },
+      { id, categoryId: 'other', name: '', services: [], trackBy: 'miles', miles: 5000, months: null, warnMiles: warnDefaults.warnMiles, warnDays: warnDefaults.warnDays },
     ])
   }
 

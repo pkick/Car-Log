@@ -14,6 +14,7 @@ import demoRouter from './routes/demo.js'
 import receiptsRouter from './routes/receipts.js'
 import importRouter from './routes/import.js'
 import stationsRouter from './routes/stations.js'
+import notificationsRouter from './routes/notifications.js'
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url))
 
@@ -41,6 +42,7 @@ app.use('/api/vin', vinRouter)
 app.use('/api/demo', demoRouter)
 app.use('/api/receipts', receiptsRouter)
 app.use('/api/import', importRouter)
+app.use('/api/settings', notificationsRouter)
 app.use('/api', backupRouter)
 app.use('/api', (req, res) => res.status(404).json({ error: 'Not found' }))
 

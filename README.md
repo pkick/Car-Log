@@ -161,6 +161,37 @@ mkdir -p /mnt/user/appdata/odometer && chown -R 99:100 /mnt/user/appdata/odomete
 
 If it can't write to `/data`, the log says so and names the user.
 
+## Reminders
+
+Odometer can tell you when a service or a renewal is coming up, and again when it's overdue. Set it up in
+Settings › Notifications:
+
+- **ntfy**: a server (`https://ntfy.sh`, or your own), a topic, and an access token if the topic is protected.
+  Subscribe to the topic in the ntfy app. On ntfy.sh anyone who knows a topic can read it, so pick one that's hard
+  to guess.
+- **Pushover**: your user key and an application's API token.
+- **Email**: an SMTP server, port, security (STARTTLS, TLS or none), username and password, and the from and to
+  addresses.
+
+**Send test** on each channel sends a test message and shows the provider's error if it fails. Tokens and passwords
+are write-only: Settings shows them as "Saved" and never displays them again. They're stored in `odometer.db`, and
+the JSON backup doesn't include them, so after restoring into a fresh install, set the channels up again.
+
+The server sends reminders itself, so they arrive whether or not the app is open, and they work over plain
+`http://` (unlike offline mode and install, they don't need HTTPS). The server needs to reach the provider: the
+internet for ntfy.sh, Pushover or a hosted mail server, or just your network for a self-hosted ntfy or SMTP relay.
+
+- **Daily check**, at 8:00 by default: one message per maintenance interval or renewal when it becomes due soon,
+  and one more if it becomes overdue, such as "The Wagon: Tire rotation is overdue (2,410 mi past due)." Nothing
+  repeats. Logging the service resets the interval, and its reminders start over. If the server was off at the
+  check time, the check runs when it starts.
+- **Weekly digest**, on Sundays by default (or off): everything overdue or coming up on every vehicle, and this
+  month's spend so far.
+- **Reminder defaults**: how many miles and days before its due point a new interval warns (500 mi / 14 days), and
+  how many days before a renewal its reminder goes out (30).
+
+Times are in the server's time zone, so set `TZ` (see [Running in production](#running-in-production)).
+
 ## Backups
 
 - **The data folder.** All data is in the data folder (`/mnt/user/appdata/odometer` on unraid): the database,

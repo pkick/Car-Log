@@ -1,0 +1,6 @@
+{
+  "name": "odometer-shared",
+  "private": true,
+  "description": "Plain ESM the app and the server both import (PLAN.md D16). No dependencies, no React.",
+  "type": "module"
+}

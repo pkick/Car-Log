@@ -2,6 +2,8 @@ import { useContext, useRef, useState } from 'react'
 import { useUIPrefs, DEFAULT_TEXT_SCALE, MIN_TEXT_SCALE, MAX_TEXT_SCALE } from '../context/UIPrefsContext'
 import { VehicleContext } from '../context/VehicleContext'
 import { useRecords } from '../context/RecordsContext'
+import NotificationSettings from '../components/NotificationSettings'
+import ReminderDefaults from '../components/ReminderDefaults'
 import { buildCsv, downloadBlob, downloadCsv } from '../lib/exportCsv'
 import { filenameFromDisposition, restoreWarning, summarizeBackup } from '../lib/backup'
 import { todayISO } from '../lib/dates'
@@ -224,6 +226,9 @@ export default function Settings() {
           <CsvImportPanel />
         </div>
       </div>
+
+      <NotificationSettings />
+      <ReminderDefaults />
     </main>
   )
 }

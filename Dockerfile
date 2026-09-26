@@ -1,10 +1,11 @@
 # Odometer: the built app and the API in one container on port 3001, with all data in /data.
 
-# Build the app.
+# Build the app. It imports shared/ (logic the server uses too) from next to app/.
 FROM node:22-alpine AS app-build
 WORKDIR /build/app
 COPY app/package.json app/package-lock.json ./
 RUN npm ci
+COPY shared/ /build/shared/
 COPY app/ ./
 RUN npm run build
 
@@ -23,6 +24,7 @@ ENV NODE_ENV=production \
     PGID=1000
 WORKDIR /opt/odometer/server
 COPY --from=server-deps /build/server/node_modules ./node_modules
+COPY shared/ /opt/odometer/shared/
 COPY server/ ./
 COPY --from=app-build /build/app/dist /opt/odometer/app/dist
 VOLUME /data

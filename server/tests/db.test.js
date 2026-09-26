@@ -6,17 +6,21 @@ import { fileURLToPath } from 'node:url'
 process.env.DB_PATH ??= ':memory:'
 process.env.SEED_DEMO ??= '1'
 const { db } = await import('../db.js')
+const { listMigrations } = await import('../migrate.js')
 
 const RECORD_TABLES = ['fill_ups', 'service_records', 'policy_records', 'receipts']
 
 test('the database is migrated and records each migration', () => {
   const rows = db.prepare('SELECT version, name, appliedAt FROM schema_migrations ORDER BY version').all()
 
-  assert.deepEqual(rows.map(({ version, name }) => ({ version, name })), [
+  const shipped = listMigrations(fileURLToPath(new URL('../migrations', import.meta.url)))
+  assert.deepEqual(rows.map(({ version, name }) => ({ version, name })), shipped.map(({ version, name }) => ({ version, name })))
+  assert.deepEqual(rows.slice(0, 5).map(({ version, name }) => ({ version, name })), [
     { version: 1, name: 'initial' },
     { version: 2, name: 'demo_flag' },
     { version: 3, name: 'receipts' },
     { version: 4, name: 'fillup_station_notes' },
+    { version: 5, name: 'notifications' },
   ])
   assert.match(rows[0].appliedAt, /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}Z$/)
 })
