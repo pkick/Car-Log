@@ -124,3 +124,50 @@ export const SEED_POLICY_RECORDS = [
   policyRecord(3, 2, 'insurance', '2026-08-01', 780.0, '2027-02-01', 'Progressive'),
   policyRecord(4, 2, 'registration', '2026-01-15', 168.0, '2027-01-15', 'DMV'),
 ]
+
+/**
+ * Loads the demo vehicles and their records. `db.js` calls it on start when `SEED_DEMO=1` and the database
+ * has no vehicles.
+ * @param {import('node:sqlite').DatabaseSync} database A migrated database.
+ * @returns {void}
+ */
+export function seedDemoData(database) {
+  const insertVehicle = database.prepare(`
+    INSERT INTO vehicles (id, nickname, year, make, model, trim, vin, plate, purchaseDate, purchaseOdometer, registrationRenewal, insuranceRenewal, tankSize, tracksFuel, tracksService, odometer, intervals, color)
+    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+  `)
+  for (const v of SEED_VEHICLES) {
+    insertVehicle.run(
+      v.id, v.nickname, v.year, v.make, v.model, v.trim, v.vin, v.plate,
+      v.purchaseDate, v.purchaseOdometer, v.registrationRenewal, v.insuranceRenewal,
+      v.tankSize, v.tracksFuel ? 1 : 0, v.tracksService ? 1 : 0, v.odometer, JSON.stringify(v.intervals),
+      v.color ?? null
+    )
+  }
+
+  const insertFillUp = database.prepare(`
+    INSERT INTO fill_ups (id, vehicleId, date, odometer, gallons, pricePerGal, total, isFull)
+    VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+  `)
+  for (const f of SEED_FILL_UPS) {
+    insertFillUp.run(f.id, f.vehicleId, f.date, f.odometer, f.gallons, f.pricePerGal, f.total, f.isFull ? 1 : 0)
+  }
+
+  const insertServiceRecord = database.prepare(`
+    INSERT INTO service_records (id, vehicleId, date, odometer, categoryId, services, cost, performedBy, shopName, partsUsed, notes)
+    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+  `)
+  for (const r of SEED_SERVICE_RECORDS) {
+    insertServiceRecord.run(r.id, r.vehicleId, r.date, r.odometer, r.categoryId, JSON.stringify(r.services), r.cost, r.performedBy, r.shopName, r.partsUsed, r.notes)
+  }
+
+  const insertPolicyRecord = database.prepare(`
+    INSERT INTO policy_records (id, vehicleId, type, date, cost, renewalDate, provider, notes)
+    VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+  `)
+  for (const p of SEED_POLICY_RECORDS) {
+    insertPolicyRecord.run(p.id, p.vehicleId, p.type, p.date, p.cost, p.renewalDate, p.provider, p.notes)
+  }
+
+  console.log(`Seeded demo data: ${SEED_VEHICLES.length} vehicles, ${SEED_FILL_UPS.length} fill-ups, ${SEED_SERVICE_RECORDS.length} service records, ${SEED_POLICY_RECORDS.length} policy records`)
+}

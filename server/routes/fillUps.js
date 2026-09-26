@@ -2,14 +2,11 @@ import { Router } from 'express'
 import { db } from '../db.js'
 import { recomputeOdometer } from '../vehicles.js'
 import { validateFillUp } from '../validate.js'
+import { rowToFillUp } from '../records.js'
 
 const router = Router()
 
 const MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec']
-
-function rowToFillUp(row) {
-  return { ...row, isFull: !!row.isFull }
-}
 
 // Split the string rather than using `new Date(date)`, which parses YYYY-MM-DD as UTC and can shift the day.
 function formatDate(date) {

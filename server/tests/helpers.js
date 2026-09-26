@@ -2,11 +2,14 @@ import { after } from 'node:test'
 
 // Never let a test run against the real dev database, even when a file is run without `npm test`.
 process.env.DB_PATH ??= ':memory:'
+process.env.SEED_DEMO ??= '1'
 const { default: app } = await import('../app.js')
 
 const server = app.listen(0)
 await new Promise((resolve) => server.once('listening', resolve))
-const baseUrl = `http://127.0.0.1:${server.address().port}`
+
+/** The test server's origin, for requests that `request` can't make (non-JSON responses). */
+export const baseUrl = `http://127.0.0.1:${server.address().port}`
 
 after(() => new Promise((resolve) => server.close(resolve)))
 

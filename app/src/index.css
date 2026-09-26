@@ -2,7 +2,6 @@
 @tailwind components;
 @tailwind utilities;
 
-@import url('https://fonts.googleapis.com/css2?family=Archivo:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500&display=swap');
 
 /* Color tokens as space-separated sRGB channels. tailwind.config.js reads them as
    rgb(var(--token) / <alpha-value>), so every opacity modifier works and dark mode (P2-G) only

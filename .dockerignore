@@ -1,0 +1,14 @@
+**/node_modules
+**/dist
+server/data
+data
+.git
+.claude
+*.png
+**/screenshots
+Dockerfile*
+docker-compose.yml
+unraid
+docs
+design_handoff_car_tracker
+server/tests

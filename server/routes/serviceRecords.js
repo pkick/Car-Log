@@ -2,12 +2,9 @@ import { Router } from 'express'
 import { db } from '../db.js'
 import { recomputeOdometer } from '../vehicles.js'
 import { validateServiceRecord } from '../validate.js'
+import { rowToServiceRecord } from '../records.js'
 
 const router = Router()
-
-function rowToServiceRecord(row) {
-  return { ...row, services: row.services ? JSON.parse(row.services) : [] }
-}
 
 router.get('/', (req, res) => {
   const vehicleId = req.query.vehicleId ? Number(req.query.vehicleId) : null

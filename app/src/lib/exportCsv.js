@@ -40,13 +40,12 @@ export function buildCsv(vehicles, fillUps, serviceRecords) {
 }
 
 /**
- * Saves `csvContent` as a file download in the browser.
- * @param {string} csvContent
+ * Saves `blob` as a file download in the browser.
+ * @param {Blob} blob
  * @param {string} filename
  * @returns {void}
  */
-export function downloadCsv(csvContent, filename) {
-  const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' })
+export function downloadBlob(blob, filename) {
   const url = URL.createObjectURL(blob)
   const link = document.createElement('a')
   link.href = url
@@ -55,4 +54,14 @@ export function downloadCsv(csvContent, filename) {
   link.click()
   document.body.removeChild(link)
   URL.revokeObjectURL(url)
+}
+
+/**
+ * Saves `csvContent` as a file download in the browser.
+ * @param {string} csvContent
+ * @param {string} filename
+ * @returns {void}
+ */
+export function downloadCsv(csvContent, filename) {
+  downloadBlob(new Blob([csvContent], { type: 'text/csv;charset=utf-8;' }), filename)
 }

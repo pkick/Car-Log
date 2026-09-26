@@ -4,9 +4,9 @@
   "version": "0.0.0",
   "type": "module",
   "scripts": {
-    "dev": "node --watch index.js",
+    "dev": "SEED_DEMO=1 node --watch index.js",
     "start": "node index.js",
-    "test": "DB_PATH=:memory: node --test 'tests/*.test.js'"
+    "test": "DB_PATH=:memory: SEED_DEMO=1 node --test 'tests/*.test.js'"
   },
   "dependencies": {
     "express": "^4.21.2"
