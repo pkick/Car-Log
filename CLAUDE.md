@@ -42,6 +42,8 @@ empty. Data lives in `DATA_DIR` (default `server/data`). For a clean slate: stop
   Mono for data and labels.
 - **UI primitives** live in `app/src/components/ui`; see [UI primitives](#ui-primitives) below.
 - **Icons** go in `app/src/components/icons.jsx` on the 24px, 2px-stroke grid.
+- **Shared form pieces:** `components/FillUpForm.jsx` (fill-up fields, preview and save, used by the modal and the
+  Fuel panel) and `components/FormActions.jsx` (save error line plus Save and Cancel for every form footer).
 - **Schema changes are migrations** (D2 flipped at P2-F). Add `server/migrations/NNN_name.sql` with the next number
   and never edit one that has shipped. Each runs once, in its own transaction, with foreign keys off, and
   `foreign_key_check` must pass. Don't put `BEGIN`/`COMMIT` in a migration. If a new column belongs in backups,
@@ -57,17 +59,23 @@ Build screens from `app/src/components/ui` (`import { Button, Field } from '../c
 primitive in every state, run the dev server and open http://localhost:5173/dev/ui (dev only; never in the build).
 
 - `Button`: every text button. `primary` (slate) for the main action, `secondary` (accent tint) for a lighter one,
-  `ghost` (hairline border) for Cancel and neutral actions, `danger` to confirm a delete. `sm` / `md`, `loading`
-  while saving, `tone="dark"` on slate panels.
+  `ghost` (hairline border) for Cancel and neutral actions, `danger` to confirm a delete, `dashed` for "add"
+  tiles, and borderless `link` / `link-muted` / `link-danger` for row actions. `sm` / `md`, `loading` while saving,
+  `tone="dark"` on slate panels.
 - `IconButton`: icon-only buttons; `aria-label` is required. Its `danger` is the neutral-until-hover row delete.
 - `Field`: label plus hint or error around one control; wires `id`, `aria-describedby` and `aria-invalid`.
-- `Input`, `Textarea`, `Select`: text, multi-line and native select controls.
+- `Input`, `Textarea`, `Select`: text, multi-line and native select controls (`Select` has `size="sm"` and
+  `tone="dark"` for dark cards). A width class such as `w-24` works on all of them.
 - `NumberInput`: every numeric field (`type="text"`, `inputMode`, optional `unit`); the value stays a string.
 - `Segmented`: pick one of a few (filters, ranges, $/gal vs total, Shop / DIY). `sm` sits in a label row, `md`
   is the filter track; `fullWidth`, `tone="dark"`.
+- `Chip`: toggle chips for multi-select pickers (service categories and services), with an optional icon.
 - `Switch`: on / off settings, with an optional label and description.
-- `Badge`, `StatusChip`: small tinted labels; `StatusChip` maps an interval `status` to green, amber or red.
-- `Card`: any bordered surface; `padding` none / sm / md / lg, `tone="dark"` for slate panels.
+- `Badge`, `StatusChip`: small labels. `Badge` variants `tag` (tinted), `solid` (counts such as "4 DUE") and `pill`
+  (deltas). `StatusChip` maps an interval `status` to green, amber or red.
+- `Card`: any bordered surface; `padding` none / sm / md / lg; `tone` `dark` (slate panels), `muted` (sunken rows),
+  `accent` (callouts) or `red` (warnings, overdue).
+- `PageHeader`: eyebrow, title, optional subtitle and the page's primary action; every page starts with one.
 - `EmptyState`: "nothing here yet" and "turned off" panels with one action.
 - `StatTile`: one stat-rail number with unit, delta and `deltaTone` (good / bad / neutral news).
 - `Modal`, `Drawer`: every dialog. Focus trap, Esc and backdrop close, focus return, sticky header and footer.

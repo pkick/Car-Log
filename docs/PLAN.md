@@ -215,12 +215,12 @@ Acceptance
 ### P2-B · Migrate screens onto primitives
 Branch `refactor/p2b-migrate-ui`. Depends on P2-A.
 
-- [ ] **P2-B1** Migrate all six modals. Modal widths collapse to the three sizes.
-- [ ] **P2-B2** Migrate all pages. Unify the segmented controls (Dashboard, Documents, Trends, fuel price mode,
+- [x] **P2-B1** Migrate all six modals. Modal widths collapse to the three sizes.
+- [x] **P2-B2** Migrate all pages. Unify the segmented controls (Dashboard, Documents, Trends, fuel price mode,
       Shop/DIY, Insurance/Registration) onto `Segmented`.
-- [ ] **P2-B3** `PageHeader` component (eyebrow, title, primary action slot) on every page; Maintenance gets
+- [x] **P2-B3** `PageHeader` component (eyebrow, title, primary action slot) on every page; Maintenance gets
       "Log service", Documents "Log payment", Fuel "Log fill-up", Garage "Add vehicle".
-- [ ] **P2-B4** Delete dead classes and duplicated form code (the Fuel page panel and the modal share one form
+- [x] **P2-B4** Delete dead classes and duplicated form code (the Fuel page panel and the modal share one form
       component until P3-C replaces both).
 
 Acceptance
@@ -546,6 +546,7 @@ Backlog (not scheduled): units and currency settings (L/100 km, km, liters), hou
 Newest first. One line per merged PR: date, group, PR link, one-sentence summary.
 
 - 2026-09-25 · P1-C · Intervals list the services that reset them (D10); the server owns the defaults (`GET /api/defaults/intervals`); due items carry `progress`, `dueDate` and `dueOdometer`, labels follow whichever limit is closer, and the Coming up bars use `progress` (finishes P1-F2). Needs a dev DB reset.
+- 2026-09-26 · P2-B · Every modal and page is built from `components/ui` (modals collapse to sm / md / lg), all segmented controls use `Segmented`, `PageHeader` with the primary action on every page, one `FillUpForm` shared by the modal and the Fuel panel, and no arbitrary `oklch()` classes outside Settings (migrated with P2-G). New primitives: `Chip`, `PageHeader`; new variants on Button, Badge, Card and Select.
 - 2026-09-26 · P3-A · `components/charts`: Sparkline, LineChart (nice-number axis, average line, hollow partial fills, hover and keyboard tooltip), BarChart (grouped or stacked), ProgressTrack (due tick, now marker, overdue overflow); `lib/chartScale.js` with 41 tests; charts in the `/dev/ui` gallery.
 - 2026-09-26 · P2-F · `DATA_DIR`, numbered SQL migrations (`001_initial`), demo data only with `SEED_DEMO=1`, JSON backup and restore in Settings, Express serves the built app with SPA fallback, Dockerfile / compose / unraid template (verified: build, health check, data survives a rebuild, works with no internet), self-hosted fonts. **D2 has flipped: schema changes are migrations from here on.**
 - 2026-09-26 · P2-A · Color tokens are CSS variables (RGB channels, so any scale opacity works on every color); `components/ui` has Button, IconButton, Field, Input, Textarea, Select, NumberInput, Segmented, Switch, Badge, StatusChip, Card, EmptyState, StatTile, Modal and Drawer; gallery at `/dev/ui` (dev only).
