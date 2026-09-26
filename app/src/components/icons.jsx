@@ -6,6 +6,22 @@ export function PencilIcon({ size = 20, className = '', ...props }) {
   )
 }
 
+export function ChevronDownIcon({ size = 20, className = '', ...props }) {
+  return (
+    <svg viewBox="0 0 24 24" width={size} height={size} fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true" className={className} {...props}>
+      <path d="M6 9L12 15L18 9" />
+    </svg>
+  )
+}
+
+export function MoreIcon({ size = 20, className = '', ...props }) {
+  return (
+    <svg viewBox="0 0 24 24" width={size} height={size} fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true" className={className} {...props}>
+      <path d="M5 12H5.01M12 12H12.01M19 12H19.01" />
+    </svg>
+  )
+}
+
 export function ServerIcon({ size = 20, className = '', ...props }) {
   return (
     <svg viewBox="0 0 24 24" width={size} height={size} fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true" className={className} {...props}>

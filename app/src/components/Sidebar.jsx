@@ -5,8 +5,9 @@ import { useRecords } from '../context/RecordsContext'
 import { getDueSoonItems } from '../lib/vehicleStats'
 import { tracksSection, vehiclePath } from '../lib/routes'
 import { TrendsIcon, SettingsIcon, GarageIcon, WrenchIcon, FuelIcon, RegistrationIcon, DashboardIcon } from './icons'
+import VehicleSwitcher from './VehicleSwitcher'
 
-export default function Sidebar({ activeVehicle }) {
+export default function Sidebar({ activeVehicle, onSelectVehicle, onAddVehicle }) {
   const { vehicles } = useContext(VehicleContext)
   const { fillUps, serviceRecords, policyRecords, getFillUpsForVehicle, getServiceRecordsForVehicle, getPolicyRecordsForVehicle } = useRecords()
 
@@ -39,14 +40,27 @@ export default function Sidebar({ activeVehicle }) {
   ]
 
   return (
-    <aside className="w-[236px] bg-slate text-page p-[26px] flex flex-col gap-[30px] sticky top-0 h-screen">
-      {/* Logo */}
-      <div className="flex items-center gap-[10px]">
-        <div className="w-[26px] h-[26px] rounded-[5px] bg-accent relative flex-none">
-          <div className="absolute inset-[7px_7px_auto_7px] h-1 rounded-[5px] bg-slate" />
-          <div className="absolute left-[7px] bottom-[6px] w-2 h-2 rounded-full bg-slate" />
+    // z-30 keeps the switcher's menu above the page it opens over.
+    <aside className="w-[236px] bg-slate text-page p-[26px] flex flex-col gap-[30px] sticky top-0 z-30 h-screen">
+      <div className="flex flex-col gap-5">
+        {/* Logo */}
+        <div className="flex items-center gap-[10px]">
+          <div className="w-[26px] h-[26px] rounded-[5px] bg-accent relative flex-none">
+            <div className="absolute inset-[7px_7px_auto_7px] h-1 rounded-[5px] bg-slate" />
+            <div className="absolute left-[7px] bottom-[6px] w-2 h-2 rounded-full bg-slate" />
+          </div>
+          <div className="font-semibold text-base tracking-tighter">Odometer</div>
         </div>
-        <div className="font-semibold text-base tracking-tighter">Odometer</div>
+
+        {/* With no vehicles (the first-run screen), there is nothing to switch between. */}
+        {vehicles.length > 0 && (
+          <VehicleSwitcher
+            vehicles={vehicles}
+            activeVehicle={activeVehicle}
+            onSelectVehicle={onSelectVehicle}
+            onAddVehicle={onAddVehicle}
+          />
+        )}
       </div>
 
       {/* Navigation */}

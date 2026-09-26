@@ -15,6 +15,10 @@ import {
   FieldGroup,
   IconButton,
   Input,
+  Menu,
+  MenuItem,
+  MenuLabel,
+  MenuSeparator,
   Modal,
   NumberInput,
   PageHeader,
@@ -27,7 +31,7 @@ import {
   Textarea,
   Toast,
 } from '../components/ui'
-import { BrakesIcon, CalendarIcon, CarIcon, ExportIcon, FuelIcon, OilDropIcon, PencilIcon, TrashIcon, WrenchIcon } from '../components/icons'
+import { BrakesIcon, CalendarIcon, CarIcon, ChevronDownIcon, ExportIcon, FuelIcon, MoreIcon, OilDropIcon, PencilIcon, TrashIcon, WrenchIcon } from '../components/icons'
 import ChartGallery from './ChartGallery'
 import { ToastProvider } from '../context/ToastProvider'
 import { useToast } from '../context/toast'
@@ -365,6 +369,69 @@ function ToastDemos() {
         </div>
       </Card>
     </>
+  )
+}
+
+function MenuDemos() {
+  const [picked, setPicked] = useState(null)
+  const [vehicle, setVehicle] = useState('The Wagon')
+  return (
+    <div className="grid grid-cols-3 gap-3.5 items-start">
+      <Card className="min-h-[190px]">
+        <Caption>Row actions · align end</Caption>
+        <div className="flex items-center justify-between gap-3 mt-4">
+          <span className="text-xs font-mono text-ink/50">{picked ?? 'Pick an item'}</span>
+          <Menu
+            align="end"
+            trigger={(props) => (
+              <IconButton size="sm" aria-label="More actions for fill-up Aug 28" {...props}>
+                <MoreIcon size={16} />
+              </IconButton>
+            )}
+          >
+            <MenuItem icon={PencilIcon} onSelect={() => setPicked('Edit')}>Edit</MenuItem>
+            <MenuItem icon={ExportIcon} onSelect={() => setPicked('Export')}>Export</MenuItem>
+            <MenuItem icon={CalendarIcon} disabled>Duplicate</MenuItem>
+            <MenuSeparator />
+            <MenuItem icon={TrashIcon} tone="danger" onSelect={() => setPicked('Delete')}>Delete</MenuItem>
+          </Menu>
+        </div>
+      </Card>
+      <Card className="min-h-[190px]">
+        <Caption>Radio items, label · align start</Caption>
+        <div className="mt-4">
+          <Menu
+            trigger={(props) => (
+              <Button variant="ghost" size="sm" {...props}>
+                {vehicle}
+                <ChevronDownIcon size={14} className="flex-none" />
+              </Button>
+            )}
+          >
+            <MenuLabel>Your garage</MenuLabel>
+            {['The Wagon', 'The Truck'].map((name) => (
+              <MenuItem key={name} checked={name === vehicle} onSelect={() => setVehicle(name)}>{name}</MenuItem>
+            ))}
+          </Menu>
+        </div>
+      </Card>
+      <Card className="min-h-[190px]">
+        <Caption>Open (defaultOpen)</Caption>
+        <div className="mt-4">
+          <Menu
+            defaultOpen
+            trigger={(props) => (
+              <IconButton size="sm" aria-label="More actions for service Sep 7" {...props}>
+                <MoreIcon size={16} />
+              </IconButton>
+            )}
+          >
+            <MenuItem icon={PencilIcon}>Edit</MenuItem>
+            <MenuItem icon={TrashIcon} tone="danger">Delete</MenuItem>
+          </Menu>
+        </div>
+      </Card>
+    </div>
   )
 }
 
@@ -768,6 +835,13 @@ export default function UiGallery() {
             </div>
           </Card>
         </div>
+      </Section>
+
+      <Section
+        title="Menu"
+        note="Menu button: Enter, Space, ↓ or a click opens on the first item (↑ on the last); ↑ ↓ Home End move; Esc and Tab close and return focus"
+      >
+        <MenuDemos />
       </Section>
 
       <Section title="Modal and Drawer" note="Esc, backdrop and × close; Tab is trapped; focus returns to the trigger">

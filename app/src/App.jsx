@@ -95,20 +95,9 @@ function AppContent() {
   return (
     <>
       <div className="flex h-screen bg-page">
-        <Sidebar activeVehicle={activeVehicle} />
+        <Sidebar activeVehicle={activeVehicle} onSelectVehicle={selectVehicle} onAddVehicle={openAddVehicle} />
         <main className="flex-1 overflow-hidden flex flex-col">
-          {!firstRun && (
-            <Header
-              vehicle={activeVehicle}
-              vehicles={vehicles}
-              activeVehicleId={activeVehicle?.id}
-              onSelectVehicle={selectVehicle}
-              onEditVehicle={setEditingVehicleId}
-              onAddVehicle={openAddVehicle}
-              onLogService={openLogService}
-              onLogFillup={openLogFillup}
-            />
-          )}
+          {!firstRun && <Header vehicle={activeVehicle} onLogService={openLogService} onLogFillup={openLogFillup} />}
           <DemoBanner />
           <div ref={scrollRef} className="flex-1 overflow-auto">
             <Routes>
@@ -128,6 +117,7 @@ function AppContent() {
                         <Dashboard
                           vehicle={vehicle}
                           onViewTrends={() => navigate(vehiclePath(vehicle, 'trends'))}
+                          onViewSchedule={() => navigate(vehiclePath(vehicle, 'maintenance'))}
                           onLogService={openLogService}
                           onLogFillup={openLogFillup}
                           onEditVehicle={() => setEditingVehicleId(vehicle.id)}

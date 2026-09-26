@@ -10,9 +10,12 @@ export default function AppSkeleton() {
   return (
     <div role="progressbar" aria-label="Loading" aria-busy="true" className="flex h-screen bg-page">
       <div className="w-[236px] flex-none bg-slate p-[26px] flex flex-col gap-[30px]">
-        <div className="flex items-center gap-[10px]">
-          <Skeleton tone="dark" className="w-[26px] h-[26px]" />
-          <Skeleton tone="dark" className="w-24 h-4" />
+        <div className="flex flex-col gap-5">
+          <div className="flex items-center gap-[10px]">
+            <Skeleton tone="dark" className="w-[26px] h-[26px]" />
+            <Skeleton tone="dark" className="w-24 h-4" />
+          </div>
+          <Skeleton tone="dark" className="h-[50px]" />
         </div>
         <div className="flex flex-col gap-1">
           {Array.from({ length: NAV_ITEMS }, (_, i) => (
@@ -26,8 +29,7 @@ export default function AppSkeleton() {
       </div>
 
       <div className="flex-1 min-w-0 flex flex-col">
-        <div className="flex items-center gap-[14px] px-10 py-[34px] border-b border-ink/12">
-          <Skeleton className="w-[240px] h-14" />
+        <div className="flex items-center gap-[14px] px-10 py-4 border-b border-ink/12">
           <div className="ml-auto flex items-center gap-2.5">
             <Skeleton className="w-[150px] h-9" />
             <Skeleton className="w-[150px] h-11" />
