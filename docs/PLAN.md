@@ -516,12 +516,12 @@ Acceptance
 ### P4-H · VIN decode
 Branch `feat/p4h-vin`. Depends on P2-B.
 
-- [ ] **P4-H1** VIN check in `lib/` with tests: 17 characters, no I, O or Q, valid check digit.
-- [ ] **P4-H2** `GET /api/vin/:vin` proxies NHTSA vPIC `DecodeVinValues` with a 5-second timeout and an in-memory
+- [x] **P4-H1** VIN check in `lib/` with tests: 17 characters, no I, O or Q, valid check digit.
+- [x] **P4-H2** `GET /api/vin/:vin` proxies NHTSA vPIC `DecodeVinValues` with a 5-second timeout and an in-memory
       cache.
-- [ ] **P4-H3** Add and Edit vehicle: "Decode" next to VIN fills year, make, model and trim (asks before
+- [x] **P4-H3** Add and Edit vehicle: "Decode" next to VIN fills year, make, model and trim (asks before
       overwriting typed values); failures show inline and the form keeps working.
-- [ ] **P4-H4** Route tests with a mocked fetch: success, unknown VIN, timeout.
+- [x] **P4-H4** Route tests with a mocked fetch: success, unknown VIN, timeout.
 
 Acceptance
 - A valid VIN fills the fields; with no internet the form still saves.
@@ -546,6 +546,7 @@ Backlog (not scheduled): units and currency settings (L/100 km, km, liters), hou
 Newest first. One line per merged PR: date, group, PR link, one-sentence summary.
 
 - 2026-09-25 · P1-C · Intervals list the services that reset them (D10); the server owns the defaults (`GET /api/defaults/intervals`); due items carry `progress`, `dueDate` and `dueOdometer`, labels follow whichever limit is closer, and the Coming up bars use `progress` (finishes P1-F2). Needs a dev DB reset.
+- 2026-09-26 · P4-H · VIN check digit in `lib/vin.js`; `GET /api/vin/:vin` proxies NHTSA vPIC (5 s timeout, cache, 502 with a clear message when unreachable); Add and Edit vehicle have a Decode button that fills blanks and asks before replacing typed values.
 - 2026-09-26 · P2-B · Every modal and page is built from `components/ui` (modals collapse to sm / md / lg), all segmented controls use `Segmented`, `PageHeader` with the primary action on every page, one `FillUpForm` shared by the modal and the Fuel panel, and no arbitrary `oklch()` classes outside Settings (migrated with P2-G). New primitives: `Chip`, `PageHeader`; new variants on Button, Badge, Card and Select.
 - 2026-09-26 · P3-A · `components/charts`: Sparkline, LineChart (nice-number axis, average line, hollow partial fills, hover and keyboard tooltip), BarChart (grouped or stacked), ProgressTrack (due tick, now marker, overdue overflow); `lib/chartScale.js` with 41 tests; charts in the `/dev/ui` gallery.
 - 2026-09-26 · P2-F · `DATA_DIR`, numbered SQL migrations (`001_initial`), demo data only with `SEED_DEMO=1`, JSON backup and restore in Settings, Express serves the built app with SPA fallback, Dockerfile / compose / unraid template (verified: build, health check, data survives a rebuild, works with no internet), self-hosted fonts. **D2 has flipped: schema changes are migrations from here on.**

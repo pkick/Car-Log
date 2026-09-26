@@ -3,7 +3,7 @@ import { VehicleContext } from '../context/VehicleContext'
 import { FuelIcon, CheckIcon, WrenchIcon, TrashIcon } from './icons'
 import { Button, Card, Chip, Field, IconButton, Input, Modal, NumberInput, Select, Switch } from './ui'
 import FormActions from './FormActions'
-import { VinField } from './AddVehicleModal'
+import VinField from './VinField'
 import { VEHICLE_COLORS, VEHICLE_COLOR_SWATCH_CLASS } from '../lib/vehicleColors'
 import {
   SERVICE_CATEGORIES,
