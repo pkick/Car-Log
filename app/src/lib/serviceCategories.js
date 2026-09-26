@@ -74,13 +74,11 @@ export const CATEGORY_TEXT_CLASS = {
   slate: 'text-slate',
 }
 
-// Tailwind can't derive an alpha channel from these colors' oklch() values (slate is a plain
-// hex and is fine with the normal /NN opacity syntax), so the tint bakes the alpha into the
-// oklch() string itself via an arbitrary-value class.
+// Light tint behind a category's icon.
 export const CATEGORY_TILE_CLASS = {
-  amber: 'bg-[oklch(0.66_0.14_68/12%)]',
-  red: 'bg-[oklch(0.55_0.17_28/12%)]',
-  teal: 'bg-[oklch(0.56_0.13_195/12%)]',
-  accent: 'bg-[oklch(0.56_0.19_258/12%)]',
+  amber: 'bg-amber/12',
+  red: 'bg-red/12',
+  teal: 'bg-teal/12',
+  accent: 'bg-accent/12',
   slate: 'bg-slate/10',
 }

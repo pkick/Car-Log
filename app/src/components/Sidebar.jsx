@@ -55,9 +55,9 @@ export default function Sidebar({ screen, setScreen, hiddenScreens = [] }) {
             }`}
           >
             {item.icon ? (
-              <item.icon size={19} className={`flex-none ${item.disabled ? 'text-blue-400/40' : 'text-blue-400'}`} />
+              <item.icon size={19} className={`flex-none ${item.disabled ? 'text-accent-on-dark/40' : 'text-accent-on-dark'}`} />
             ) : (
-              <span className={`w-1.5 h-1.5 rounded-full flex-none ${item.disabled ? 'bg-blue-400/40' : 'bg-blue-400'}`} />
+              <span className={`w-1.5 h-1.5 rounded-full flex-none ${item.disabled ? 'bg-accent-on-dark/40' : 'bg-accent-on-dark'}`} />
             )}
             <span>{item.label}</span>
             {item.meta != null && item.meta !== 0 && (

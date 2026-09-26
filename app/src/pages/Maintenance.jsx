@@ -3,6 +3,7 @@ import { useRecords } from '../context/RecordsContext'
 import { getDueSoonItems, getServiceHistorySorted } from '../lib/vehicleStats'
 import { CATEGORY_BY_ID, CATEGORY_ICON, CATEGORY_TEXT_CLASS, CATEGORY_TILE_CLASS, CATEGORY_ID_BY_SERVICE } from '../lib/serviceCategories'
 import { MapPinIcon } from '../components/icons'
+import { Badge, Button, Card, PageHeader } from '../components/ui'
 import LogServiceModal from '../components/LogServiceModal'
 
 function formatServicesList(services) {
@@ -10,7 +11,7 @@ function formatServicesList(services) {
   return `${services.slice(0, 2).join(', ')}, +${services.length - 2} more`
 }
 
-export default function Maintenance({ vehicle }) {
+export default function Maintenance({ vehicle, onLogService }) {
   const { getServiceRecordsForVehicle, deleteServiceRecord } = useRecords()
   const [modalState, setModalState] = useState(null) // { editingRecord, defaultCategoryId } | null
   const [deletingId, setDeletingId] = useState(null)
@@ -33,48 +34,42 @@ export default function Maintenance({ vehicle }) {
 
   return (
     <main className="px-10 py-8 max-w-[1180px] w-full">
+      <PageHeader
+        eyebrow="Maintenance"
+        title={`${vehicle.nickname} — service`}
+        action={<Button onClick={onLogService}>Log service</Button>}
+      />
+
       {/* Due Cards */}
       <div className="mb-[22px]">
         <h2 className="text-2xl font-bold mb-4">Due soon</h2>
         {dueSoon.length === 0 ? (
-          <div className="bg-white border border-ink/10 rounded-2.5 p-6 text-sm text-ink/45">
+          <Card padding="lg" className="text-sm text-ink/45">
             Nothing due soon for {vehicle.nickname} — you're all caught up.
-          </div>
+          </Card>
         ) : (
           <div className="grid grid-cols-3 gap-[14px]">
             {dueSoon.map((item) => {
-              const barClass = item.status === 'overdue' ? 'bg-red' : 'bg-ink/30'
-              const tileClass = item.status === 'overdue' ? 'bg-[oklch(0.55_0.17_28/9%)]' : 'bg-ink/3'
+              const overdue = item.status === 'overdue'
               return (
-                <div key={item.intervalId} className="rounded-2.5 border border-ink/8 overflow-hidden flex">
-                  <div className={`w-2 flex-none ${barClass}`} />
-                  <div className={`flex-1 p-4 ${tileClass}`}>
+                <Card key={item.intervalId} tone={overdue ? 'red' : 'muted'} padding="none" className="overflow-hidden flex">
+                  <div className={`w-2 flex-none ${overdue ? 'bg-red' : 'bg-ink/30'}`} />
+                  <div className="flex-1 p-4">
                     <h3 className="font-semibold text-sm mb-3">{item.name}</h3>
 
-                    <div className={`inline-block text-xs font-mono font-semibold px-2 py-1.5 rounded mb-3 ${
-                      item.status === 'overdue'
-                        ? 'bg-[oklch(0.55_0.17_28/20%)] text-red'
-                        : 'bg-ink/6 text-ink/45'
-                    }`}>
-                      {item.status === 'overdue' ? 'OVERDUE' : 'COMING UP'}
-                    </div>
+                    <Badge tone={overdue ? 'red' : 'neutral'} className="mb-3">
+                      {overdue ? 'Overdue' : 'Coming up'}
+                    </Badge>
 
-                    <div className={`h-1 rounded-full mb-3 ${
-                      item.status === 'overdue' ? 'bg-[oklch(0.55_0.17_28/30%)]' : 'bg-ink/9'
-                    }`} />
+                    <div className={`h-1 rounded-full mb-3 ${overdue ? 'bg-red/30' : 'bg-ink/9'}`} />
 
                     <p className="text-xs font-mono text-ink/50 mb-4">{item.remainingLabel} · {item.detailLabel}</p>
 
-                    <div className="flex gap-2">
-                      <button
-                        onClick={() => setModalState({ defaultCategoryId: item.categoryId })}
-                        className="flex-1 py-2 px-3 bg-[oklch(0.56_0.19_258/10%)] text-accent text-xs font-semibold rounded-lg hover:bg-[oklch(0.56_0.19_258/15%)] transition-colors"
-                      >
-                        Log now
-                      </button>
-                    </div>
+                    <Button variant="secondary" size="sm" className="w-full" onClick={() => setModalState({ defaultCategoryId: item.categoryId })}>
+                      Log now
+                    </Button>
                   </div>
-                </div>
+                </Card>
               )
             })}
           </div>
@@ -82,15 +77,9 @@ export default function Maintenance({ vehicle }) {
       </div>
 
       {/* Service History */}
-      <div className="bg-white rounded-2.5 border border-ink/10">
+      <Card padding="none">
         <div className="flex items-center justify-between px-6 py-4 border-b border-ink/8">
           <h2 className="text-2xl font-bold">Service history</h2>
-          <button
-            onClick={() => setModalState({})}
-            className="px-4 py-2.5 bg-slate text-white text-sm font-semibold rounded-lg hover:bg-slate/90 transition-colors"
-          >
-            + Add service
-          </button>
         </div>
 
         {deleteError && <p className="px-6 py-3 text-xs text-red border-b border-ink/8">{deleteError}</p>}
@@ -103,7 +92,7 @@ export default function Maintenance({ vehicle }) {
           {serviceHistory.map((service) => {
             const categoryIds = [...new Set(service.services.map((s) => CATEGORY_ID_BY_SERVICE[s]).filter(Boolean))]
             return (
-            <div key={service.id} className="rounded-xl border border-ink/8 bg-ink/3 hover:bg-ink/4 transition-colors px-5 py-3.5">
+            <Card key={service.id} tone="muted" padding="sm">
               <div className="flex items-start justify-between mb-2">
                 <div className="min-w-0">
                   <div className="flex items-center gap-2 flex-wrap">
@@ -137,14 +126,14 @@ export default function Maintenance({ vehicle }) {
                 </div>
               </div>
               <div className="flex justify-end gap-3">
-                <button onClick={() => setModalState({ editingRecord: service })} className="text-xs font-semibold text-accent hover:text-[oklch(0.56_0.19_258/80%)]">EDIT</button>
-                <button onClick={() => handleDelete(service.id)} disabled={deletingId === service.id} className="text-xs font-semibold text-red hover:text-[oklch(0.55_0.17_28/80%)]">DEL</button>
+                <Button variant="link" size="sm" onClick={() => setModalState({ editingRecord: service })}>EDIT</Button>
+                <Button variant="link-danger" size="sm" onClick={() => handleDelete(service.id)} disabled={deletingId === service.id}>DEL</Button>
               </div>
-            </div>
+            </Card>
             )
           })}
         </div>
-      </div>
+      </Card>
 
       {modalState && (
         <LogServiceModal

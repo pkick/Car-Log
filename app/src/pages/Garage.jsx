@@ -2,7 +2,8 @@ import { useContext, useState } from 'react'
 import { useRecords } from '../context/RecordsContext'
 import { VehicleContext } from '../context/VehicleContext'
 import { getFuelStats } from '../lib/vehicleStats'
-import { TrashIcon, AddVehicleIcon, PencilIcon, CarIcon, PaintbrushIcon } from '../components/icons'
+import { TrashIcon, AddVehicleIcon, PencilIcon, CarIcon, PaintbrushIcon, CloseIcon } from '../components/icons'
+import { Badge, Button, Card, IconButton, PageHeader } from '../components/ui'
 import { VEHICLE_COLORS, VEHICLE_COLOR_TILE_CLASS, VEHICLE_COLOR_TEXT_CLASS, VEHICLE_COLOR_SWATCH_CLASS } from '../lib/vehicleColors'
 
 export default function Garage({ vehicles, activeVehicleId, onSetActive, onEditVehicle, onDeleteVehicle, onAddVehicle }) {
@@ -23,6 +24,8 @@ export default function Garage({ vehicles, activeVehicleId, onSetActive, onEditV
 
   return (
     <main className="px-10 py-8 max-w-[1180px] w-full">
+      <PageHeader eyebrow="Garage" title="Your vehicles" action={<Button onClick={onAddVehicle}>Add vehicle</Button>} />
+
       {colorError && <p className="text-xs text-red mb-3">{colorError}</p>}
       <div className="grid grid-cols-2 gap-[22px]">
         {vehicles.map((vehicle) => {
@@ -33,7 +36,7 @@ export default function Garage({ vehicles, activeVehicleId, onSetActive, onEditV
           const pickerOpen = colorPickerId === vehicle.id
 
           return (
-          <div key={vehicle.id} className="bg-white rounded-2.5 border border-ink/10 overflow-hidden hover:shadow-md transition-shadow">
+          <Card key={vehicle.id} padding="none" className="overflow-hidden">
             {/* Vehicle Color Card */}
             <div className={`h-[180px] relative flex items-center justify-center group ${VEHICLE_COLOR_TILE_CLASS[color]}`}>
               {pickerOpen ? (
@@ -48,32 +51,27 @@ export default function Garage({ vehicles, activeVehicleId, onSetActive, onEditV
                       }`}
                     />
                   ))}
-                  <button
-                    onClick={() => setColorPickerId(null)}
-                    aria-label="Cancel"
-                    className="ml-1 w-8 h-8 rounded-full border border-ink/12 flex items-center justify-center text-ink/45 text-lg leading-none hover:bg-ink/5 flex-none"
-                  >
-                    ×
-                  </button>
+                  <IconButton size="sm" aria-label="Cancel" onClick={() => setColorPickerId(null)} className="ml-1">
+                    <CloseIcon size={16} />
+                  </IconButton>
                 </div>
               ) : (
                 <>
                   <button onClick={() => setColorPickerId(vehicle.id)} aria-label="Change vehicle color">
                     <CarIcon size={72} className={VEHICLE_COLOR_TEXT_CLASS[color]} />
                   </button>
-                  <button
-                    onClick={() => setColorPickerId(vehicle.id)}
+                  <IconButton
+                    size="sm"
                     aria-label="Change vehicle color"
-                    className="absolute bottom-3 right-3 w-8 h-8 rounded-full bg-white shadow-btn flex items-center justify-center text-ink/55 opacity-0 group-hover:opacity-100 transition-opacity hover:text-ink"
+                    onClick={() => setColorPickerId(vehicle.id)}
+                    className="absolute bottom-3 right-3 opacity-0 group-hover:opacity-100 focus-visible:opacity-100"
                   >
                     <PaintbrushIcon size={16} />
-                  </button>
+                  </IconButton>
                 </>
               )}
               {isActive && !pickerOpen && (
-                <div className="absolute top-3 right-3 bg-[oklch(0.5_0.14_150/20%)] text-green text-xs font-mono font-semibold px-2 py-1 rounded-lg">
-                  ACTIVE
-                </div>
+                <Badge tone="green" className="absolute top-3 right-3">Active</Badge>
               )}
             </div>
 
@@ -103,38 +101,27 @@ export default function Garage({ vehicles, activeVehicleId, onSetActive, onEditV
               )}
 
               {/* Actions */}
-              <div className="flex gap-2.5">
-                <button
-                  onClick={() => onSetActive?.(vehicle.id)}
-                  disabled={isActive}
-                  className="flex-1 py-2.5 px-3 bg-slate text-white text-xs font-semibold rounded-lg hover:bg-slate/90 transition-colors disabled:opacity-40 disabled:cursor-default"
-                >
+              <div className="flex items-center gap-2.5">
+                <Button size="sm" className="flex-1" onClick={() => onSetActive?.(vehicle.id)} disabled={isActive}>
                   {isActive ? 'Active' : 'Set active'}
-                </button>
-                <button
-                  onClick={() => onEditVehicle(vehicle.id)}
-                  className="flex-1 py-2.5 px-3 border border-ink/12 text-ink text-xs font-semibold rounded-lg hover:bg-[oklch(0.56_0.19_258/10%)] hover:text-accent hover:border-[oklch(0.56_0.19_258/30%)] transition-colors flex items-center justify-center gap-1.5"
-                >
+                </Button>
+                <Button variant="ghost" size="sm" className="flex-1" onClick={() => onEditVehicle(vehicle.id)}>
                   <PencilIcon size={16} className="flex-none" />
                   Edit vehicle
-                </button>
-                <button
-                  onClick={() => onDeleteVehicle?.(vehicle.id)}
-                  aria-label="Delete vehicle"
-                  className="flex-none w-9 flex items-center justify-center border border-ink/12 text-ink/50 rounded-lg hover:bg-[oklch(0.55_0.17_28/10%)] hover:text-red hover:border-[oklch(0.55_0.17_28/30%)] transition-colors"
-                >
+                </Button>
+                <IconButton variant="danger" size="sm" aria-label="Delete vehicle" onClick={() => onDeleteVehicle?.(vehicle.id)}>
                   <TrashIcon size={19} />
-                </button>
+                </IconButton>
               </div>
             </div>
-          </div>
+          </Card>
           )
         })}
 
         {/* Add Vehicle Card */}
         <div
           onClick={onAddVehicle}
-          className="group bg-white rounded-2.5 border border-dashed border-ink/20 flex flex-col items-center justify-center p-8 cursor-pointer hover:bg-[oklch(0.56_0.19_258/6%)] hover:border-[oklch(0.56_0.19_258/40%)] transition-colors"
+          className="group bg-surface rounded-card border border-dashed border-ink/20 flex flex-col items-center justify-center p-8 cursor-pointer hover:bg-accent/6 hover:border-accent/40 transition-colors"
         >
           <AddVehicleIcon size={36} className="mb-3 text-ink/40 group-hover:text-accent transition-colors" />
           <p className="font-semibold text-sm group-hover:text-accent transition-colors">Add vehicle</p>

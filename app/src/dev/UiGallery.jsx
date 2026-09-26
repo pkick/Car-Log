@@ -7,6 +7,7 @@ import {
   Badge,
   Button,
   Card,
+  Chip,
   Drawer,
   EmptyState,
   Field,
@@ -14,6 +15,7 @@ import {
   Input,
   Modal,
   NumberInput,
+  PageHeader,
   Segmented,
   Select,
   StatTile,
@@ -21,7 +23,7 @@ import {
   Switch,
   Textarea,
 } from '../components/ui'
-import { CalendarIcon, CarIcon, ExportIcon, FuelIcon, PencilIcon, TrashIcon, WrenchIcon } from '../components/icons'
+import { BrakesIcon, CalendarIcon, CarIcon, ExportIcon, FuelIcon, OilDropIcon, PencilIcon, TrashIcon, WrenchIcon } from '../components/icons'
 import ChartGallery from './ChartGallery'
 
 const TOKENS = [
@@ -40,7 +42,10 @@ const TOKENS = [
   { name: 'white', swatch: 'bg-white' },
 ]
 
-const VARIANTS = ['primary', 'secondary', 'ghost', 'danger']
+const VARIANTS = ['primary', 'secondary', 'ghost', 'danger', 'dashed']
+const ICON_VARIANTS = ['primary', 'secondary', 'ghost', 'danger']
+const TEXT_VARIANTS = ['link', 'link-danger', 'link-muted']
+const SERVICES = ['Brake pads', 'Brake fluid', 'Brake rotors', 'Brake lines']
 const PRICE_MODES = [{ value: 'perGallon', label: '$/gal' }, { value: 'total', label: 'total' }]
 const TANK = [{ value: 'full', label: 'full' }, { value: 'partial', label: 'partial' }]
 const ACTIVITY = ['All', 'Fuel', 'Service'].map((value) => ({ value, label: value }))
@@ -257,6 +262,59 @@ function DialogDemos() {
   )
 }
 
+function ChipDemos() {
+  const [category, setCategory] = useState('brakes')
+  const [picked, setPicked] = useState(['Brake pads'])
+  const toggle = (service) =>
+    setPicked(picked.includes(service) ? picked.filter((s) => s !== service) : [...picked, service])
+  const tile = (Icon, tint) => (
+    <span className={`w-7 h-7 rounded-md flex items-center justify-center flex-none ${tint}`}>
+      <Icon size={16} className="flex-none" />
+    </span>
+  )
+  return (
+    <Card>
+      <div className="flex flex-col gap-4">
+        <div className="flex flex-wrap gap-2.5">
+          <Chip icon={tile(OilDropIcon, 'bg-amber/12 text-amber')} selected={category === 'oil'} onClick={() => setCategory('oil')}>
+            Oil
+          </Chip>
+          <Chip icon={tile(BrakesIcon, 'bg-red/12 text-red')} selected={category === 'brakes'} onClick={() => setCategory('brakes')}>
+            Brakes
+            {picked.length > 0 && <Badge variant="solid" tone="accent" className="ml-1">{picked.length}</Badge>}
+          </Chip>
+          <Chip icon={tile(WrenchIcon, 'bg-slate/10 text-slate')} disabled>
+            Disabled
+          </Chip>
+        </div>
+        <div className="flex flex-wrap gap-2.5">
+          {SERVICES.map((service) => (
+            <Chip key={service} selected={picked.includes(service)} onClick={() => toggle(service)}>
+              {service}
+            </Chip>
+          ))}
+        </div>
+        <div className="flex flex-wrap gap-1.5">
+          {SERVICES.map((service) => (
+            <Chip key={service} size="sm" selected={picked.includes(service)} onClick={() => toggle(service)}>
+              {service}
+            </Chip>
+          ))}
+          <span className="text-xs font-mono text-ink/50 self-center ml-2">size=&quot;sm&quot;</span>
+        </div>
+        <div className="flex flex-wrap gap-2">
+          {picked.map((service) => (
+            <Chip key={service} removable aria-label={`Remove ${service}`} onClick={() => toggle(service)}>
+              {service}
+            </Chip>
+          ))}
+          {picked.length === 0 && <span className="text-xs font-mono text-ink/50">removable: pick a service above</span>}
+        </div>
+      </div>
+    </Card>
+  )
+}
+
 /** Every components/ui primitive in every state. Dev only, at /dev/ui. */
 export default function UiGallery() {
   const [activity, setActivity] = useState('All')
@@ -308,6 +366,25 @@ export default function UiGallery() {
             ))}
           </div>
         </Card>
+        <Card>
+          <div className="grid grid-cols-[120px_repeat(3,max-content)] items-center gap-x-8 gap-y-4">
+            <span />
+            <Caption>sm</Caption>
+            <Caption>md</Caption>
+            <Caption>disabled</Caption>
+            {TEXT_VARIANTS.map((variant) => (
+              <div key={variant} className="contents">
+                <span className="text-sm font-mono">{variant}</span>
+                <div><Button variant={variant} size="sm">EDIT</Button></div>
+                <div><Button variant={variant}>Add the default intervals</Button></div>
+                <div><Button variant={variant} size="sm" disabled>DEL</Button></div>
+              </div>
+            ))}
+          </div>
+          <p className="text-sm text-ink/45 mt-4">
+            Inside a sentence: No service intervals for The Wagon. <Button variant="link">Add the default intervals</Button>
+          </p>
+        </Card>
         <div className="grid grid-cols-2 gap-3.5">
           <Card>
             <Caption>With icons</Caption>
@@ -331,7 +408,7 @@ export default function UiGallery() {
       <Section title="IconButton" note="aria-label required; danger stays neutral until hover">
         <Card>
           <div className="flex flex-wrap items-center gap-6">
-            {VARIANTS.map((variant) => (
+            {ICON_VARIANTS.map((variant) => (
               <div key={variant} className="flex flex-col items-center gap-2">
                 <div className="flex items-center gap-2">
                   <IconButton variant={variant} size="sm" aria-label={`${variant} small`}><PencilIcon size={16} /></IconButton>
@@ -390,6 +467,16 @@ export default function UiGallery() {
             <Field label="Notes">
               <Textarea rows={2} placeholder="Parts used, receipt number…" />
             </Field>
+            <Field label="Miles" hint={'className="w-24" sets the width'}>
+              <NumberInput inputMode="numeric" defaultValue="5000" className="w-24" />
+            </Field>
+            <div>
+              <Caption>Select sm (title row)</Caption>
+              <Select size="sm" defaultValue="90-days" aria-label="Window, light" className="mt-2">
+                <option value="90-days">Rolling 90 days</option>
+                <option value="all-time">All time</option>
+              </Select>
+            </div>
           </div>
           <div className="mt-5 pt-4 border-t border-ink/8">
             <Switch label="Show the odometer error" checked={showError} onChange={setShowError} />
@@ -436,6 +523,14 @@ export default function UiGallery() {
                 <p className="text-xs font-mono font-semibold tracking-widest uppercase text-page/45">md · dark</p>
                 <Segmented tone="dark" aria-label="Range, dark" options={RANGES} value={darkRange} onChange={setDarkRange} />
               </div>
+              <div className="flex items-center justify-between">
+                <p className="text-xs font-mono font-semibold tracking-widest uppercase text-page/45">Select sm · dark</p>
+                <Select size="sm" tone="dark" defaultValue="90-days" aria-label="Window, dark">
+                  <option value="90-days">Rolling 90 days</option>
+                  <option value="6-months">6 months</option>
+                  <option value="all-time">All time</option>
+                </Select>
+              </div>
             </div>
           </Card>
         </div>
@@ -469,6 +564,17 @@ export default function UiGallery() {
               <Badge tone="red">Declined</Badge>
             </div>
             <div className="flex flex-wrap items-center gap-2">
+              <Badge variant="solid" tone="accent">3 due</Badge>
+              <Badge variant="solid" tone="accent">2</Badge>
+              <Badge variant="solid">Neutral</Badge>
+              <Badge variant="pill" tone="green">+2.1% vs prior fills</Badge>
+              <Badge variant="pill" tone="red">−0.3% vs prior fills</Badge>
+            </div>
+            <div className="bg-slate rounded-control p-3 flex items-center gap-2">
+              <span className="text-xs font-mono text-page/60">on slate:</span>
+              <Badge variant="solid" tone="accent">4 due</Badge>
+            </div>
+            <div className="flex flex-wrap items-center gap-2">
               <StatusChip status="ok" />
               <StatusChip status="coming-up" />
               <StatusChip status="overdue" />
@@ -476,6 +582,10 @@ export default function UiGallery() {
             </div>
           </div>
         </Card>
+      </Section>
+
+      <Section title="Chip" note="Toggle chips for pickers too big for Segmented; removable for the picked summary">
+        <ChipDemos />
       </Section>
 
       <Section title="Card" note="padding none / sm 16 / md 22 / lg 24; tone dark">
@@ -490,6 +600,33 @@ export default function UiGallery() {
             <p className="text-xs font-mono text-page/60 mt-1">tone=&quot;dark&quot;</p>
           </Card>
         </div>
+        <div className="grid grid-cols-3 gap-3.5">
+          <Card tone="muted" padding="sm">
+            <p className="text-sm font-semibold">Sunken panel</p>
+            <p className="text-xs font-mono text-ink/50 mt-1">tone=&quot;muted&quot;: a picker in a modal, a history row</p>
+          </Card>
+          <Card tone="accent" padding="sm">
+            <p className="font-bold text-sm text-accent mb-1">Next due in 420 mi</p>
+            <p className="text-xs text-ink/60">tone=&quot;accent&quot;: an informational callout</p>
+          </Card>
+          <Card tone="red" padding="sm">
+            <p className="font-semibold text-red text-sm mb-1">Gallons exceed tank size</p>
+            <p className="text-xs text-ink/60">tone=&quot;red&quot;: a warning, an overdue renewal</p>
+          </Card>
+        </div>
+      </Section>
+
+      <Section title="PageHeader" note="eyebrow, title, optional subtitle, primary action; on every page">
+        <Card>
+          <PageHeader
+            eyebrow="Maintenance"
+            title="The Wagon — service"
+            subtitle="Optional subtitle: 84,210 mi · driving 1,038 mi / mo"
+            action={<Button>Log service</Button>}
+          />
+          <PageHeader eyebrow="Trends" title="The Wagon — trends" />
+          <p className="text-xs font-mono text-ink/50">Without an action. PageHeader brings its own 22px bottom margin.</p>
+        </Card>
       </Section>
 
       <Section title="EmptyState">

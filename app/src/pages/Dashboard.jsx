@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import { FuelIcon, WrenchIcon } from '../components/icons'
+import { Badge, Button, Card, EmptyState, PageHeader, Segmented, StatTile } from '../components/ui'
 import { useRecords } from '../context/RecordsContext'
 import { getFuelStats, getDueSoonItems } from '../lib/vehicleStats'
 import { CATEGORY_BY_ID, CATEGORY_ICON, CATEGORY_ID_BY_SERVICE, CATEGORY_TILE_CLASS, CATEGORY_TEXT_CLASS } from '../lib/serviceCategories'
@@ -12,10 +13,10 @@ function formatServicesList(services) {
 // Tuned for the dark "Coming up" card — same hues as CATEGORY_TILE_CLASS but with more alpha
 // so the tint reads against bg-slate instead of white.
 const DUE_TILE_CLASS = {
-  amber: 'bg-[oklch(0.66_0.14_68/22%)]',
-  red: 'bg-[oklch(0.55_0.17_28/22%)]',
-  teal: 'bg-[oklch(0.56_0.13_195/22%)]',
-  accent: 'bg-[oklch(0.56_0.19_258/22%)]',
+  amber: 'bg-amber/24',
+  red: 'bg-red/24',
+  teal: 'bg-teal/24',
+  accent: 'bg-accent/24',
   slate: 'bg-white/10',
 }
 
@@ -44,7 +45,7 @@ export default function Dashboard({ vehicle, onViewTrends, onLogService, onEditV
       value: `$${spendThisMonth}`,
       unit: 'this mo',
       delta: spendDelta != null ? `${spendDelta > 0 ? '+' : ''}${spendDelta}%` : null,
-      deltaType: spendDelta > 0 ? 'negative' : 'positive',
+      deltaTone: spendDelta > 0 ? 'bad' : 'good',
     },
     {
       kind: 'service',
@@ -52,7 +53,7 @@ export default function Dashboard({ vehicle, onViewTrends, onLogService, onEditV
       value: String(dueCount),
       unit: 'due soon',
       delta: overdueCount > 0 ? `${overdueCount} overdue` : null,
-      deltaType: 'negative',
+      deltaTone: 'bad',
     },
   ].filter((stat) => (stat.kind === 'fuel' ? tracksFuel : tracksService))
 
@@ -96,37 +97,20 @@ export default function Dashboard({ vehicle, onViewTrends, onLogService, onEditV
 
   return (
     <main className="px-10 py-8 max-w-[1180px] w-full">
-      {/* Page Title */}
-      <div className="mb-5.5">
-        <p className="text-xs font-mono font-semibold tracking-widest uppercase text-ink/45 mb-2">DASHBOARD</p>
-        <h1 className="text-5xl font-bold tracking-tight mb-0">{vehicle.nickname} — overview</h1>
-      </div>
+      <PageHeader eyebrow="Dashboard" title={`${vehicle.nickname} — overview`} />
 
       {/* Stat Rail */}
       {stats.length > 0 && (
       <div className="grid grid-cols-4 gap-[14px] mb-[22px]">
         {stats.map((stat) => (
-          <div
+          <StatTile
             key={stat.label}
-            className="bg-white border border-ink/10 rounded-2.5 p-4.5 flex flex-col gap-3 hover:shadow-sm transition-shadow"
-          >
-            <div className="flex items-center justify-between gap-2">
-              <span className="text-xs font-mono font-semibold tracking-widest uppercase text-ink/45 whitespace-nowrap">{stat.label}</span>
-              {stat.delta && (
-                <span
-                  className={`text-xs font-mono font-semibold whitespace-nowrap ${
-                    stat.deltaType === 'positive' ? 'text-green' : 'text-red'
-                  }`}
-                >
-                  {stat.delta}
-                </span>
-              )}
-            </div>
-            <div className="flex items-baseline gap-1.5">
-              <span className="text-4xl font-bold tracking-tighter">{stat.value}</span>
-              <span className="text-xs font-mono whitespace-nowrap">{stat.unit}</span>
-            </div>
-          </div>
+            label={stat.label}
+            value={stat.value}
+            unit={stat.unit}
+            delta={stat.delta}
+            deltaTone={stat.deltaTone}
+          />
         ))}
       </div>
       )}
@@ -134,25 +118,14 @@ export default function Dashboard({ vehicle, onViewTrends, onLogService, onEditV
       {/* Chart + Coming Up Row */}
       <div className="grid gap-[22px] mb-[22px]" style={{ gridTemplateColumns: tracksService ? '1.5fr 1fr' : '1fr' }}>
         {!tracksFuel ? (
-          <div className="bg-white rounded-2.5 border border-dashed border-ink/20 px-6 py-[44px] flex flex-col items-center justify-center gap-[15px] text-center">
-            <div className="w-[34px] h-[34px] rounded-10 bg-ink/5 flex items-center justify-center">
-              <FuelIcon size={20} className="text-ink/35" />
-            </div>
-            <div className="flex flex-col gap-[7px] max-w-[320px]">
-              <h2 className="text-xl font-semibold tracking-tight">Fuel tracking is off for {vehicle.nickname}</h2>
-              <p className="text-xs font-mono leading-relaxed text-ink/55">
-                {tracksService && 'This vehicle logs maintenance only. '}Turn fuel on to record fill-ups, MPG, and cost per mile.
-              </p>
-            </div>
-            <button
-              onClick={onEditVehicle}
-              className="px-4.5 py-3 rounded-lg bg-slate text-page text-xs font-medium hover:bg-slate/90 transition-colors"
-            >
-              Enable fuel tracking
-            </button>
-          </div>
+          <EmptyState
+            icon={FuelIcon}
+            title={`Fuel tracking is off for ${vehicle.nickname}`}
+            body={<>{tracksService && 'This vehicle logs maintenance only. '}Turn fuel on to record fill-ups, MPG, and cost per mile.</>}
+            action={<Button size="sm" onClick={onEditVehicle}>Enable fuel tracking</Button>}
+          />
         ) : (
-        <div className="bg-white rounded-2.5 p-[22px] border border-ink/10">
+        <Card>
           <div className="flex items-center justify-between mb-5.5">
             <h2 className="text-2xl font-bold">Fuel economy</h2>
             <span className="text-xs font-mono text-ink/40 tracking-wider">LAST 10 FILLS</span>
@@ -162,13 +135,9 @@ export default function Dashboard({ vehicle, onViewTrends, onLogService, onEditV
             <div className="flex flex-col gap-1">
               <span className="text-xs font-mono">mpg avg</span>
               {mpgTrendDelta != null && (
-                <span
-                  className={`inline-block text-xs font-mono font-semibold px-2.5 py-1.5 rounded-full w-fit ${
-                    mpgTrendDelta >= 0 ? 'bg-[oklch(0.5_0.14_150/10%)] text-green' : 'bg-[oklch(0.55_0.17_28/10%)] text-red'
-                  }`}
-                >
+                <Badge variant="pill" tone={mpgTrendDelta >= 0 ? 'green' : 'red'} className="w-fit">
                   {mpgTrendDelta > 0 ? '+' : ''}{mpgTrendDelta}% vs prior fills
-                </span>
+                </Badge>
               )}
             </div>
           </div>
@@ -198,21 +167,18 @@ export default function Dashboard({ vehicle, onViewTrends, onLogService, onEditV
           </div>
           )}
 
-          <button
-            onClick={onViewTrends}
-            className="w-full py-3 border border-ink/10 rounded-2 text-sm font-semibold hover:bg-ink/3 transition-colors"
-          >
+          <Button variant="ghost" className="w-full" onClick={onViewTrends}>
             All trends
-          </button>
-        </div>
+          </Button>
+        </Card>
         )}
 
         {/* Coming Up */}
         {tracksService && (
-        <div className="bg-slate text-page rounded-2.5 p-[22px] border border-ink/10">
+        <Card tone="dark">
           <div className="flex items-center justify-between mb-[22px]">
             <h2 className="text-2xl font-bold">Coming up</h2>
-            <span className="bg-accent text-slate text-xs font-mono font-semibold px-2 py-1.5 rounded-lg">{dueCount} DUE</span>
+            <Badge variant="solid" tone="accent">{dueCount} DUE</Badge>
           </div>
 
           {comingUp.length === 0 && (
@@ -242,11 +208,7 @@ export default function Dashboard({ vehicle, onViewTrends, onLogService, onEditV
                     {item.remainingLabel}
                   </span>
                 </div>
-                <div className={`h-1 rounded-full mb-2 ${
-                  item.status === 'overdue'
-                    ? 'bg-[oklch(0.55_0.17_28/40%)]'
-                    : 'bg-[oklch(0.56_0.13_195/40%)]'
-                }`}>
+                <div className={`h-1 rounded-full mb-2 ${item.status === 'overdue' ? 'bg-red/40' : 'bg-teal/40'}`}>
                   <div
                     className={`h-full rounded-full ${item.status === 'overdue' ? 'bg-red' : 'bg-teal'}`}
                     style={{ width: `${Math.min(item.progress, 1) * 100}%` }}
@@ -258,36 +220,24 @@ export default function Dashboard({ vehicle, onViewTrends, onLogService, onEditV
             )
           })}
 
-          <button
-            onClick={onLogService}
-            className="w-full mt-[22px] py-3 border border-white/20 rounded-2 text-page font-semibold hover:bg-white/8 transition-colors"
-          >
+          <Button variant="ghost" tone="dark" className="w-full mt-[22px]" onClick={onLogService}>
             Log service
-          </button>
-        </div>
+          </Button>
+        </Card>
         )}
       </div>
 
       {/* Recent Activity */}
-      <div className="bg-white rounded-2.5 border border-ink/10">
+      <Card padding="none">
         <div className="flex items-center justify-between px-6 py-4 border-b border-ink/8">
           <h2 className="text-2xl font-bold">Recent activity</h2>
           {activityFilters.length > 1 && (
-          <div className="flex gap-1.5 p-1 bg-ink/6 rounded-lg">
-            {activityFilters.map((filter) => (
-              <button
-                key={filter}
-                onClick={() => setSelectedFilter(filter)}
-                className={`px-3 py-1.5 rounded text-xs font-mono font-semibold transition-colors ${
-                  filter === activityFilter
-                    ? 'bg-slate text-white'
-                    : 'text-ink/40 hover:text-ink/60'
-                }`}
-              >
-                {filter}
-              </button>
-            ))}
-          </div>
+            <Segmented
+              aria-label="Activity filter"
+              options={activityFilters.map((filter) => ({ value: filter, label: filter }))}
+              value={activityFilter}
+              onChange={setSelectedFilter}
+            />
           )}
         </div>
         <div className="h-[296px] overflow-y-auto p-6">
@@ -302,7 +252,7 @@ export default function Dashboard({ vehicle, onViewTrends, onLogService, onEditV
                   <div key={item.key} className="flex items-center justify-between gap-4 py-3 first:pt-0 last:pb-0">
                     <div className="flex items-center gap-3 min-w-0">
                       {item.type === 'Fuel' ? (
-                        <div className="w-8 h-8 rounded-lg bg-[oklch(0.56_0.19_258/10%)] text-accent flex items-center justify-center flex-none">
+                        <div className="w-8 h-8 rounded-lg bg-accent/10 text-accent flex items-center justify-center flex-none">
                           <FuelIcon size={24} />
                         </div>
                       ) : (
@@ -345,7 +295,7 @@ export default function Dashboard({ vehicle, onViewTrends, onLogService, onEditV
             </div>
           )}
         </div>
-      </div>
+      </Card>
     </main>
   )
 }

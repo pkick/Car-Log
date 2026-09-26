@@ -58,9 +58,9 @@ function AppContent() {
           />
         )
       case 'fuel-log':
-        return <FuelLog vehicle={activeVehicle} />
+        return <FuelLog vehicle={activeVehicle} onLogFillup={() => setShowLogFillup(true)} />
       case 'maintenance':
-        return <Maintenance vehicle={activeVehicle} />
+        return <Maintenance vehicle={activeVehicle} onLogService={() => setShowLogService(true)} />
       case 'documents':
         return <Documents vehicle={activeVehicle} />
       case 'trends':

@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { CATEGORY_BY_ID, CATEGORY_ICON, CATEGORY_TILE_CLASS, CATEGORY_TEXT_CLASS } from '../lib/serviceCategories'
 import { FuelIcon } from '../components/icons'
+import { Card, PageHeader, Segmented, Select } from '../components/ui'
 import { useRecords } from '../context/RecordsContext'
 import {
   computeFillMpg,
@@ -17,6 +18,8 @@ const shortDate = (dateStr) => parseISODate(dateStr)?.toLocaleDateString('en-US'
 
 const WINDOW_DAYS = { '90-days': 90, '6-months': 182, '1-year': 365, 'all-time': Infinity }
 const WINDOW_LABEL = { '90-days': 'ROLLING 90 DAYS', '6-months': 'ROLLING 6 MONTHS', '1-year': 'ROLLING 1 YEAR', 'all-time': 'ALL TIME' }
+
+const RANGES = ['12 fills', '6 mo', '1 yr'].map((value) => ({ value, label: value }))
 
 const PRICE_BAR_CLASS = { high: 'bg-red', normal: 'bg-accent', low: 'bg-green' }
 // Half the price chart's height spans at least this change from the average, so a 1% wobble stays small.
@@ -92,25 +95,13 @@ export default function Trends({ vehicle }) {
 
   return (
     <main className="px-10 py-8 max-w-[1180px] w-full space-y-[22px]">
+      <PageHeader eyebrow="Trends" title={`${vehicle.nickname} — trends`} />
+
       {/* Fuel Economy Chart */}
-      <div className="bg-white rounded-2.5 border border-ink/10 p-6">
+      <Card padding="lg">
         <div className="flex items-center justify-between mb-5.5">
           <h2 className="text-2xl font-bold">Fuel economy over time</h2>
-          <div className="flex gap-2">
-            {['12 fills', '6 mo', '1 yr'].map((range) => (
-              <button
-                key={range}
-                onClick={() => setTrendRange(range)}
-                className={`px-3 py-1.5 text-xs font-mono font-semibold rounded transition-colors ${
-                  trendRange === range
-                    ? 'bg-slate text-white'
-                    : 'bg-ink/6 text-ink/45 hover:bg-ink/10'
-                }`}
-              >
-                {range}
-              </button>
-            ))}
-          </div>
+          <Segmented aria-label="Range" options={RANGES} value={trendRange} onChange={setTrendRange} />
         </div>
 
         {chartData.length === 0 ? (
@@ -137,24 +128,26 @@ export default function Trends({ vehicle }) {
           <div className="w-2 h-2 rounded-full bg-accent mt-1" />
           <span className="text-xs font-mono">Average: {chartAvg != null ? `${chartAvg} mpg` : '—'}</span>
         </div>
-      </div>
+      </Card>
 
       {/* Three-card row */}
       <div className="grid gap-[22px]" style={{ gridTemplateColumns: '1fr 1fr 1fr' }}>
         {/* Cost Per Mile */}
-        <div className="bg-slate text-page rounded-2.5 border border-ink/10 p-6">
+        <Card tone="dark" padding="lg">
           <div className="flex items-center justify-between mb-5.5">
             <h3 className="font-semibold text-sm">Cost per mile</h3>
-            <select
+            <Select
+              size="sm"
+              tone="dark"
+              aria-label="Cost per mile window"
               value={cpmWindow}
               onChange={(e) => setCpmWindow(e.target.value)}
-              className="bg-slate border border-white/24 rounded-lg text-xs font-mono text-page px-2 py-1.5 [color-scheme:dark]"
             >
               <option value="90-days">Rolling 90 days</option>
               <option value="6-months">6 months</option>
               <option value="1-year">1 year</option>
               <option value="all-time">All time</option>
-            </select>
+            </Select>
           </div>
           <div className="text-4xl font-bold tracking-tighter text-accent mb-3">
             {windowCostPerMile != null ? `$${windowCostPerMile.toFixed(2)}` : '—'}
@@ -180,10 +173,10 @@ export default function Trends({ vehicle }) {
               <div className="h-full bg-teal" style={{ width: `${maintPct}%` }} />
             </div>
           </div>
-        </div>
+        </Card>
 
         {/* Records */}
-        <div className="bg-white rounded-2.5 border border-ink/10 p-6">
+        <Card padding="lg">
           <h3 className="font-semibold text-sm mb-4">Records</h3>
           <div className="space-y-3">
             <div>
@@ -203,10 +196,10 @@ export default function Trends({ vehicle }) {
               <p className="text-lg font-bold">{records4.totalMiles.toLocaleString()} mi</p>
             </div>
           </div>
-        </div>
+        </Card>
 
         {/* Monthly Spend */}
-        <div className="bg-white rounded-2.5 border border-ink/10 p-6">
+        <Card padding="lg">
           <h3 className="font-semibold text-sm mb-4">Monthly spend</h3>
           <div className="space-y-2 mb-4">
             {monthlyData.map((item) => {
@@ -239,13 +232,13 @@ export default function Trends({ vehicle }) {
               <span className="font-mono">Service</span>
             </div>
           </div>
-        </div>
+        </Card>
       </div>
 
       {/* Bottom Row */}
       <div className="grid gap-[22px]" style={{ gridTemplateColumns: '1.25fr 1fr' }}>
         {/* Price Paid Per Gallon */}
-        <div className="bg-white rounded-2.5 border border-ink/10 p-6">
+        <Card padding="lg">
           <div className="mb-5.5">
             <p className="text-xs font-mono text-ink/45 tracking-widest uppercase mb-2">
               Last {priceHistory.points.length} {priceHistory.points.length === 1 ? 'fill-up' : 'fill-ups'}
@@ -312,10 +305,10 @@ export default function Trends({ vehicle }) {
             <p className="text-ink/60" title={fuelAveragesHint}>Gal / month <span className="float-right font-semibold">{fuelAverages.gallonsPerMonth ?? '—'}</span></p>
             <p className="text-ink/60">Cheapest fill <span className="float-right font-semibold">{records4.cheapestGal != null ? `$${records4.cheapestGal.toFixed(2)}/gal` : '—'}</span></p>
           </div>
-        </div>
+        </Card>
 
         {/* Looking Ahead */}
-        <div className="bg-white rounded-2.5 border border-ink/10 p-6">
+        <Card padding="lg">
           <h3 className="font-semibold text-sm mb-4">Looking ahead</h3>
           <div className="space-y-3">
             {dueSoonItems.length === 0 && (
@@ -337,7 +330,7 @@ export default function Trends({ vehicle }) {
               )
             })}
             <div className="flex items-start gap-3">
-              <div className="w-6 h-6 rounded bg-[oklch(0.56_0.19_258/20%)] flex items-center justify-center text-accent flex-none">
+              <div className="w-6 h-6 rounded bg-accent/20 flex items-center justify-center text-accent flex-none">
                 <FuelIcon size={14} />
               </div>
               <div className="flex-1">
@@ -352,7 +345,7 @@ export default function Trends({ vehicle }) {
               <strong>Driving rate</strong> — {drivingRate.milesPerMonth.toLocaleString()} mi/mo · {drivingRate.milesPerYear.toLocaleString()} mi/yr projected · {drivingRate.fillsPerYear} fill-ups/yr at this rate
             </p>
           </div>
-        </div>
+        </Card>
       </div>
     </main>
   )

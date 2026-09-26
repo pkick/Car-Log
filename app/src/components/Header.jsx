@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react'
 import { FuelIcon, WrenchIcon, AddVehicleIcon, CarIcon } from './icons'
+import { Button } from './ui'
 
 const HEALTH_POLL_MS = 30000
 
@@ -83,7 +84,7 @@ export default function Header({ vehicle, vehicles = [], activeVehicleId, onSele
                   <div className="w-9 h-9 rounded-lg bg-ink/6 flex items-center justify-center flex-none">
                     <CarIcon size={22} className="text-ink/70" />
                   </div>
-                  <div className="flex flex-col gap-0.75 items-end ml-auto">
+                  <div className="flex flex-col gap-0.5 items-end ml-auto">
                     <span className="font-semibold text-sm">{v.nickname}</span>
                     <span className="text-xs font-mono text-ink/52">{v.year} {v.make} {v.model}</span>
                     <span className="text-xs font-mono font-semibold text-ink/75">{v.odometer.toLocaleString()} mi</span>
@@ -108,22 +109,16 @@ export default function Header({ vehicle, vehicles = [], activeVehicleId, onSele
         <div className="ml-auto flex items-center gap-2.5 flex-wrap justify-end">
           <ConnectionStatus />
           {tracksService && (
-          <button
-            onClick={onLogService}
-            className="flex items-center gap-2 px-4.5 py-3 border border-ink/18 rounded-2xl bg-transparent text-ink font-semibold text-sm hover:bg-ink/5 transition-colors whitespace-nowrap"
-          >
-            <WrenchIcon size={24} className="flex-none" />
-            Log service
-          </button>
+            <Button variant="ghost" onClick={onLogService}>
+              <WrenchIcon size={24} className="flex-none" />
+              Log service
+            </Button>
           )}
           {tracksFuel && (
-          <button
-            onClick={onLogFillup}
-            className="flex items-center gap-2 px-5 py-3 rounded-2xl bg-slate text-page font-semibold text-sm hover:bg-slate/90 transition-colors shadow-btn whitespace-nowrap"
-          >
-            <FuelIcon size={24} className="flex-none" />
-            Log fill-up
-          </button>
+            <Button onClick={onLogFillup}>
+              <FuelIcon size={24} className="flex-none" />
+              Log fill-up
+            </Button>
           )}
         </div>
       </div>

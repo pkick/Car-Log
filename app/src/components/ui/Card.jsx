@@ -1,5 +1,13 @@
 import { cx } from './cx'
 
+const TONES = {
+  light: 'bg-surface border-ink/10',
+  dark: 'bg-slate text-page border-ink/10',
+  muted: 'bg-ink/3 border-ink/10',
+  accent: 'bg-accent/10 border-accent/30',
+  red: 'bg-red/10 border-red/30',
+}
+
 const PADDING = {
   none: '',
   sm: 'p-4',
@@ -11,7 +19,10 @@ const PADDING = {
  * Surface for a group of content: 10px radius, hairline border.
  *
  * @param {object} props
- * @param {'light' | 'dark'} [props.tone='light'] dark is the slate panel ("Coming up", "Cost per mile").
+ * @param {'light' | 'dark' | 'muted' | 'accent' | 'red'} [props.tone='light'] dark is the slate
+ *   panel ("Coming up", "Cost per mile"); muted is a sunken panel on whatever is behind it (a picker
+ *   inside a modal, a history row); accent and red are callouts (the next service due, a warning,
+ *   an overdue renewal).
  * @param {'none' | 'sm' | 'md' | 'lg'} [props.padding='md'] 0, 16, 22 (the handoff's card
  *   padding) or 24px. Use none for tables and lists that run edge to edge.
  * @param {import('react').ElementType} [props.as='div'] e.g. 'section'.
@@ -20,15 +31,7 @@ const PADDING = {
  */
 export function Card({ tone = 'light', padding = 'md', as: Tag = 'div', className, children, ...props }) {
   return (
-    <Tag
-      className={cx(
-        'rounded-card border border-ink/10',
-        tone === 'dark' ? 'bg-slate text-page' : 'bg-surface',
-        PADDING[padding],
-        className
-      )}
-      {...props}
-    >
+    <Tag className={cx('rounded-card border', TONES[tone], PADDING[padding], className)} {...props}>
       {children}
     </Tag>
   )

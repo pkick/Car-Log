@@ -21,7 +21,7 @@ const DELTA_TONES = {
  */
 export function StatTile({ label, value, unit, delta, deltaTone = 'neutral', className, children }) {
   return (
-    <div className={cx('bg-surface border border-ink/10 rounded-card p-4.5 flex flex-col gap-3 hover:shadow-sm transition-shadow', className)}>
+    <div className={cx('bg-surface border border-ink/10 rounded-card p-4.5 flex flex-col gap-3', className)}>
       <div className="flex items-center justify-between gap-2">
         <span className="text-xs font-mono font-semibold tracking-widest uppercase text-ink/45 whitespace-nowrap">{label}</span>
         {delta != null && delta !== '' && (

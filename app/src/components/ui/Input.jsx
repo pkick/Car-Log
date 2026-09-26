@@ -3,7 +3,11 @@ import { cx } from './cx'
 
 // The one place the text-control look is defined. P2-B's acceptance check greps for this string.
 const CONTROL = 'px-3 py-2.5 border border-ink/12 rounded-lg text-sm focus:outline-none focus:border-accent'
-const CONTROL_STATES = 'w-full bg-surface text-ink placeholder:text-ink/35 aria-[invalid=true]:border-red disabled:bg-ink/4 disabled:text-ink/35 disabled:cursor-not-allowed'
+const CONTROL_STATES = 'bg-surface text-ink placeholder:text-ink/35 aria-[invalid=true]:border-red disabled:bg-ink/4 disabled:text-ink/35 disabled:cursor-not-allowed'
+
+// Controls fill their container unless className sets a width (w-24, w-auto). Tailwind emits w-full
+// after the spacing widths, so both at once would always resolve to full width.
+const fill = (className) => (/(^|\s)([\w-]+:)*w-/.test(className ?? '') ? null : 'w-full')
 
 /**
  * Single-line text input (text, date, email, ...). For numbers use NumberInput.
@@ -11,11 +15,11 @@ const CONTROL_STATES = 'w-full bg-surface text-ink placeholder:text-ink/35 aria-
  *
  * @param {object} props
  * @param {string} [props.type='text']
- * @param {string} [props.className] Layout only (width).
+ * @param {string} [props.className] Layout only. Full width unless this sets a width (w-24).
  * Other props (value, onChange, name, placeholder, ref, ...) go to the <input>.
  */
 export function Input({ type = 'text', className, ...props }) {
-  return <input type={type} className={cx(CONTROL, CONTROL_STATES, className)} {...props} />
+  return <input type={type} className={cx(CONTROL, CONTROL_STATES, fill(className), className)} {...props} />
 }
 
 /**
@@ -27,20 +31,31 @@ export function Input({ type = 'text', className, ...props }) {
  * Other props go to the <textarea>.
  */
 export function Textarea({ rows = 3, className, ...props }) {
-  return <textarea rows={rows} className={cx(CONTROL, CONTROL_STATES, 'resize-none', className)} {...props} />
+  return <textarea rows={rows} className={cx(CONTROL, CONTROL_STATES, fill(className), 'resize-none', className)} {...props} />
+}
+
+// A compact select that sits in a card's title row, sized to its content.
+const SELECT_SM = 'px-2 py-1.5 border rounded-lg text-xs font-mono focus:outline-none focus:border-accent disabled:opacity-40 disabled:cursor-not-allowed'
+const SELECT_SM_TONES = {
+  light: 'bg-surface text-ink border-ink/12',
+  dark: 'bg-slate text-page border-white/24 [color-scheme:dark]',
 }
 
 /**
  * Native select with the shared control look. Pass <option> elements as children.
  *
  * @param {object} props
+ * @param {'sm' | 'md'} [props.size='md'] md is the full-width form control; sm is the compact mono
+ *   select for a card's title row (Trends' cost-per-mile window).
+ * @param {'light' | 'dark'} [props.tone='light'] For sm: use dark on slate cards.
  * @param {string} [props.className] Layout only.
  * @param {import('react').ReactNode} props.children
  * Other props (value, onChange, ...) go to the <select>.
  */
-export function Select({ className, children, ...props }) {
+export function Select({ size = 'md', tone = 'light', className, children, ...props }) {
+  const look = size === 'sm' ? cx(SELECT_SM, SELECT_SM_TONES[tone]) : cx(CONTROL, CONTROL_STATES, fill(className))
   return (
-    <select className={cx(CONTROL, CONTROL_STATES, className)} {...props}>
+    <select className={cx(look, className)} {...props}>
       {children}
     </select>
   )
@@ -69,7 +84,7 @@ export function NumberInput({ unit, inputMode = 'decimal', className, style, ...
       type="text"
       inputMode={inputMode}
       autoComplete="off"
-      className={cx(CONTROL, CONTROL_STATES, 'tabular-nums', !unit && className)}
+      className={cx(CONTROL, CONTROL_STATES, 'tabular-nums', unit ? 'w-full' : cx(fill(className), className))}
       style={unit ? { paddingRight: unitPadding(unit), ...style } : style}
       {...props}
       aria-describedby={describedBy}

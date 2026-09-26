@@ -2,14 +2,24 @@ import { useEffect } from 'react'
 import { SpinnerIcon } from '../icons'
 import { cx, FOCUS_RING } from './cx'
 
-// Every variant has a border (transparent when unused) so all variants share one height.
-const BASE = 'inline-flex items-center justify-center gap-1.5 border font-semibold rounded-control transition-colors whitespace-nowrap disabled:opacity-40 disabled:cursor-default'
+const BASE = 'inline-flex items-center justify-center gap-1.5 font-semibold transition-colors whitespace-nowrap disabled:opacity-40 disabled:cursor-default'
+
+// Every boxed variant has a border (transparent when unused) so they all share one height.
+const BOX = 'border rounded-control'
 
 const VARIANTS = {
   primary: 'bg-slate text-white border-transparent shadow-button enabled:hover:bg-slate/90',
   secondary: 'bg-accent/10 text-accent border-transparent enabled:hover:bg-accent/15',
   ghost: 'bg-transparent text-ink border-ink/12 enabled:hover:bg-ink/3',
   danger: 'bg-red text-white border-transparent enabled:hover:bg-red/90',
+  dashed: 'bg-transparent text-ink border-dashed border-ink/20 enabled:hover:bg-ink/3',
+}
+
+// Borderless, unpadded text buttons: a row's EDIT / DEL, a link inside a sentence.
+const TEXT_VARIANTS = {
+  link: 'text-accent enabled:hover:text-accent/80',
+  'link-danger': 'text-red enabled:hover:text-red/80',
+  'link-muted': 'text-ink/50 enabled:hover:text-ink',
 }
 
 const DARK_GHOST = 'bg-transparent text-page border-white/20 enabled:hover:bg-white/8'
@@ -19,14 +29,22 @@ const SIZES = {
   md: 'px-4 py-2.5 text-sm',
 }
 
+const TEXT_SIZES = {
+  sm: 'text-xs',
+  md: 'text-sm',
+}
+
 /**
  * The app's button.
  *
  * @param {object} props
- * @param {'primary' | 'secondary' | 'ghost' | 'danger'} [props.variant='primary'] primary is the
- *   slate call to action; secondary is an accent tint; ghost is transparent with a hairline border
- *   (Cancel, "All trends"); danger is red, for confirming a delete.
- * @param {'sm' | 'md'} [props.size='md']
+ * @param {'primary' | 'secondary' | 'ghost' | 'danger' | 'dashed' | 'link' | 'link-danger' | 'link-muted'} [props.variant='primary']
+ *   primary is the slate call to action; secondary is an accent tint; ghost is transparent with a
+ *   hairline border (Cancel, "All trends"); danger is red, for confirming a delete; dashed is ghost
+ *   with a dashed border, for adding a row ("+ Add interval"). The link variants have no border or
+ *   padding: link is accent (a row's EDIT, "Add the default intervals"), link-danger is red (DEL),
+ *   link-muted is quiet ink until hovered.
+ * @param {'sm' | 'md'} [props.size='md'] For the link variants this is only the text size.
  * @param {'light' | 'dark'} [props.tone='light'] Use dark on slate panels. Only changes ghost.
  * @param {boolean} [props.loading=false] Shows a spinner, disables the button and sets aria-busy.
  * @param {boolean} [props.disabled]
@@ -50,7 +68,14 @@ export function Button({
       type={type}
       disabled={disabled || loading}
       aria-busy={loading || undefined}
-      className={cx(BASE, SIZES[size], tone === 'dark' && variant === 'ghost' ? DARK_GHOST : VARIANTS[variant], FOCUS_RING, className)}
+      className={cx(
+        BASE,
+        variant in TEXT_VARIANTS
+          ? cx('rounded', TEXT_SIZES[size], TEXT_VARIANTS[variant])
+          : cx(BOX, SIZES[size], tone === 'dark' && variant === 'ghost' ? DARK_GHOST : VARIANTS[variant]),
+        FOCUS_RING,
+        className
+      )}
       {...props}
     >
       {loading && <SpinnerIcon size={size === 'sm' ? 14 : 16} className="flex-none motion-safe:animate-spin" />}
