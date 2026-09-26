@@ -10,8 +10,6 @@ export default function FuelLog({ vehicle, onLogFillup }) {
   const [editingFill, setEditingFill] = useState(null)
   // Bumped to remount the panel's form with empty fields.
   const [formKey, setFormKey] = useState(0)
-  const [deletingId, setDeletingId] = useState(null)
-  const [deleteError, setDeleteError] = useState(null)
 
   const fillsAsc = [...getFillUpsForVehicle(vehicle.id)].sort((a, b) => a.odometer - b.odometer)
   const fillsWithMpg = computeFillMpg(fillsAsc)
@@ -28,21 +26,9 @@ export default function FuelLog({ vehicle, onLogFillup }) {
     setFormKey((key) => key + 1)
   }
 
-  const handleDelete = async (id) => {
-    setDeletingId(id)
-    try {
-      await deleteFillUp(id)
-      setDeleteError(null)
-      if (editingFillId === id) resetForm()
-    } catch (err) {
-      setDeleteError(`Couldn't delete: ${err.message}`)
-    }
-    setDeletingId(null)
-  }
-
-  const handleSaved = () => {
-    resetForm()
-    setDeleteError(null)
+  const handleDelete = (id) => {
+    deleteFillUp(id)
+    if (editingFillId === id) resetForm()
   }
 
   return (
@@ -56,7 +42,6 @@ export default function FuelLog({ vehicle, onLogFillup }) {
       <div className="grid gap-5.5" style={{ gridTemplateColumns: '1fr 320px' }}>
         {/* Fuel Log Table */}
         <Card padding="none" className="overflow-hidden">
-          {deleteError && <p className="px-6 py-3 text-xs text-red border-b border-ink/8">{deleteError}</p>}
           <div className="overflow-x-auto">
             <table className="w-full">
               <thead>
@@ -97,7 +82,7 @@ export default function FuelLog({ vehicle, onLogFillup }) {
                     <td className="px-6 py-4 text-sm font-mono">
                       <Button variant="link" size="sm" onClick={() => handleEdit(fill)}>EDIT</Button>
                       <span className="mx-2 text-ink/20">·</span>
-                      <Button variant="link-danger" size="sm" onClick={() => handleDelete(fill.id)} disabled={deletingId === fill.id}>DEL</Button>
+                      <Button variant="link-danger" size="sm" onClick={() => handleDelete(fill.id)}>DEL</Button>
                     </td>
                   </tr>
                 ))}
@@ -111,7 +96,7 @@ export default function FuelLog({ vehicle, onLogFillup }) {
           key={`${editingFillId ?? 'new'}-${formKey}`}
           vehicle={vehicle}
           editingFillUp={editingFill}
-          onSaved={handleSaved}
+          onSaved={resetForm}
           onCancel={resetForm}
           compact
         >

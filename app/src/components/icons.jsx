@@ -412,3 +412,19 @@ export function SpinnerIcon({ size = 20, className = '', ...props }) {
     </svg>
   )
 }
+
+export function UndoIcon({ size = 20, className = '', ...props }) {
+  return (
+    <svg viewBox="0 0 24 24" width={size} height={size} fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true" className={className} {...props}>
+      <path d="M9 14L4 9L9 4M4 9H14.5C17.5376 9 20 11.4624 20 14.5C20 17.5376 17.5376 20 14.5 20H11" />
+    </svg>
+  )
+}
+
+export function AlertIcon({ size = 20, className = '', ...props }) {
+  return (
+    <svg viewBox="0 0 24 24" width={size} height={size} fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true" className={className} {...props}>
+      <path d="M12 5V14M12 19H12.01" />
+    </svg>
+  )
+}

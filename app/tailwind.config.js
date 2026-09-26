@@ -123,7 +123,11 @@ export default {
         fab: '0 12px 24px -12px rgba(47, 107, 216, 0.8)',
         knob: '0 1px 3px rgba(18, 18, 18, 0.3)',
       },
-      // Dialog motion, used with the motion-safe: variant so prefers-reduced-motion turns it off.
+      // Above modals (z-50), so a toast fired while a dialog is open stays visible.
+      zIndex: {
+        toast: '60',
+      },
+      // Dialog and toast motion, used with the motion-safe: variant so prefers-reduced-motion turns it off.
       keyframes: {
         'fade-in': {
           from: { opacity: '0' },
@@ -137,11 +141,18 @@ export default {
           from: { transform: 'translateX(100%)' },
           to: { transform: 'none' },
         },
+        // An undo toast's time bar; the toast sets the duration.
+        countdown: {
+          from: { transform: 'scaleX(1)' },
+          to: { transform: 'scaleX(0)' },
+        },
       },
       animation: {
         'fade-in': 'fade-in 0.18s ease both',
         'dialog-in': 'dialog-in 0.18s ease both',
         'drawer-in': 'drawer-in 0.22s cubic-bezier(0.2, 0.8, 0.2, 1) both',
+        'toast-in': 'dialog-in 0.2s ease both',
+        countdown: 'countdown linear both',
       },
     },
   },

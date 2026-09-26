@@ -16,9 +16,12 @@ import LogServiceModal from './components/LogServiceModal'
 import LogFillupModal from './components/LogFillupModal'
 import DeleteVehicleModal from './components/DeleteVehicleModal'
 import FirstVehiclePanel from './components/FirstVehiclePanel'
+import AppSkeleton from './components/AppSkeleton'
+import ErrorBoundary, { ErrorScreen } from './components/ErrorBoundary'
 import { VehicleContext, VehicleProvider } from './context/VehicleContext'
 import { UIPrefsProvider } from './context/UIPrefsContext'
-import { RecordsProvider } from './context/RecordsContext'
+import { RecordsProvider, useRecords } from './context/RecordsContext'
+import { ToastProvider } from './context/ToastProvider'
 import { useScrollRestoration } from './hooks/useScrollRestoration'
 import { findVehicle, tracksSection, vehiclePath } from './lib/routes'
 
@@ -33,6 +36,16 @@ function VehicleRoute({ section, children }) {
   if (!vehicle) return <Navigate to="/" replace />
   if (!tracksSection(vehicle, section)) return <Navigate to={vehiclePath(vehicle)} replace />
   return children(vehicle)
+}
+
+/** One skeleton while the vehicles and records load side by side, then the app, or the error if either failed. */
+function LoadGate({ children }) {
+  const vehicles = useContext(VehicleContext)
+  const records = useRecords()
+  const error = vehicles.error ?? records.error
+  if (error) return <ErrorScreen title="Couldn't reach the server" message={error} />
+  if (vehicles.loading || records.loading) return <AppSkeleton />
+  return children
 }
 
 function AppContent() {
@@ -203,15 +216,21 @@ function AppContent() {
 
 function App() {
   return (
-    <BrowserRouter>
-      <UIPrefsProvider>
-        <VehicleProvider>
-          <RecordsProvider>
-            <AppContent />
-          </RecordsProvider>
-        </VehicleProvider>
-      </UIPrefsProvider>
-    </BrowserRouter>
+    <ErrorBoundary>
+      <BrowserRouter>
+        <UIPrefsProvider>
+          <ToastProvider>
+            <VehicleProvider>
+              <RecordsProvider>
+                <LoadGate>
+                  <AppContent />
+                </LoadGate>
+              </RecordsProvider>
+            </VehicleProvider>
+          </ToastProvider>
+        </UIPrefsProvider>
+      </BrowserRouter>
+    </ErrorBoundary>
   )
 }
 

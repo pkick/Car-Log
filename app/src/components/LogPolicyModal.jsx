@@ -4,7 +4,9 @@ import { Field, Input, Modal, NumberInput, Segmented, Textarea } from './ui'
 import FormActions from './FormActions'
 import { useRecords } from '../context/RecordsContext'
 import { VehicleContext } from '../context/VehicleContext'
+import { useToast } from '../context/toast'
 import { todayISO } from '../lib/dates'
+import { paymentSavedDetail } from '../lib/toastDetails'
 
 // Fields with an error line under their input. Errors for any other field show above the buttons.
 const FORM_FIELDS = ['date', 'cost', 'renewalDate']
@@ -17,6 +19,7 @@ const TYPES = [
 export default function LogPolicyModal({ vehicle, onClose, editingRecord = null, defaultType = 'insurance' }) {
   const { addPolicyRecord, updatePolicyRecord } = useRecords()
   const { updateVehicle } = useContext(VehicleContext)
+  const toast = useToast()
 
   const [formData, setFormData] = useState({
     type: editingRecord?.type || defaultType,
@@ -64,6 +67,7 @@ export default function LogPolicyModal({ vehicle, onClose, editingRecord = null,
         const field = formData.type === 'insurance' ? 'insuranceRenewal' : 'registrationRenewal'
         await updateVehicle(vehicle.id, { [field]: formData.renewalDate })
       }
+      toast.success('Payment saved', paymentSavedDetail({ type: formData.type, cost }))
       onClose()
     } catch (err) {
       if (FORM_FIELDS.includes(err.field)) setFieldErrors({ [err.field]: err.message })

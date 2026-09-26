@@ -19,13 +19,17 @@ import {
   PageHeader,
   Segmented,
   Select,
+  Skeleton,
   StatTile,
   StatusChip,
   Switch,
   Textarea,
+  Toast,
 } from '../components/ui'
 import { BrakesIcon, CalendarIcon, CarIcon, ExportIcon, FuelIcon, OilDropIcon, PencilIcon, TrashIcon, WrenchIcon } from '../components/icons'
 import ChartGallery from './ChartGallery'
+import { ToastProvider } from '../context/ToastProvider'
+import { useToast } from '../context/toast'
 
 const TOKENS = [
   { name: 'page', swatch: 'bg-page' },
@@ -316,6 +320,47 @@ function ChipDemos() {
   )
 }
 
+function ToastDemos() {
+  const toast = useToast()
+  const [outcome, setOutcome] = useState(null)
+  const undo = () =>
+    toast.undo('Fill-up deleted', {
+      onUndo: () => setOutcome('Undone: nothing was sent'),
+      onExpire: () => setOutcome('Expired: the DELETE would go now'),
+    })
+  return (
+    <>
+      <Card tone="muted">
+        <div className="grid grid-cols-2 gap-x-6 gap-y-3 items-start">
+          <Toast variant="success" message="Fill-up saved" detail="32.2 mpg" onClose={() => {}} />
+          <Toast variant="success" message="Vehicle updated" onClose={() => {}} />
+          <Toast
+            variant="error"
+            message="Couldn't delete the fill-up"
+            detail="Can't reach the server. Check that it's running and try again."
+            onClose={() => {}}
+          />
+          <Toast variant="undo" message="Service deleted" duration={60000} onUndo={() => {}} onClose={() => {}} />
+        </div>
+      </Card>
+      <Card>
+        <div className="flex flex-wrap items-center gap-3">
+          <Button variant="ghost" onClick={() => toast.success('Fill-up saved', '32.2 mpg')}>Success</Button>
+          <Button variant="ghost" onClick={() => toast.error("Couldn't delete the payment", 'Request failed: 500')}>Error</Button>
+          <Button variant="ghost" onClick={undo}>Undo (5 s)</Button>
+          <Button
+            variant="ghost"
+            onClick={() => ['Fill-up saved', 'Service saved', 'Payment saved', 'Vehicle updated'].forEach((m) => toast.success(m))}
+          >
+            Four at once
+          </Button>
+          <span className="text-xs font-mono text-ink/50">{outcome ?? 'Undo outcome shows here'}</span>
+        </div>
+      </Card>
+    </>
+  )
+}
+
 /** Every components/ui primitive in every state. Dev only, at /dev/ui. */
 export default function UiGallery() {
   const [activity, setActivity] = useState('All')
@@ -401,6 +446,11 @@ export default function UiGallery() {
               <Button tone="dark" variant="ghost">Log service</Button>
               <Button tone="dark" variant="ghost" size="sm">All trends</Button>
               <Button tone="dark" variant="ghost" disabled>Disabled</Button>
+            </div>
+            <p className="text-xs font-mono font-semibold tracking-widest uppercase text-page/45 mt-4">link, link-muted</p>
+            <div className="flex flex-wrap gap-4 mt-3">
+              <Button tone="dark" variant="link">Undo</Button>
+              <Button tone="dark" variant="link-muted">All trends</Button>
             </div>
           </Card>
         </div>
@@ -673,6 +723,43 @@ export default function UiGallery() {
               children: sparkline slot
             </div>
           </StatTile>
+        </div>
+      </Section>
+
+      <Section
+        title="Toast"
+        note="useToast(): success (4 s), error (stays), undo (5 s bar, pauses on hover and focus). Max three; bottom right; polite live region"
+      >
+        <ToastProvider>
+          <ToastDemos />
+        </ToastProvider>
+      </Section>
+
+      <Section title="Skeleton" note="Grey blocks while loading; className sets the size. Pulses unless reduced motion is on">
+        <div className="grid grid-cols-[1fr_236px] gap-3.5">
+          <Card>
+            <div className="flex flex-col gap-3">
+              <Skeleton className="w-24 h-3" />
+              <Skeleton className="w-64 h-8" />
+              <div className="grid grid-cols-3 gap-3">
+                <Skeleton className="h-20" />
+                <Skeleton className="h-20" />
+                <Skeleton className="h-20" />
+              </div>
+              <div className="flex items-center gap-3">
+                <Skeleton shape="circle" className="w-9 h-9" />
+                <Skeleton className="flex-1 h-4" />
+              </div>
+            </div>
+          </Card>
+          <Card tone="dark">
+            <div className="flex flex-col gap-2">
+              <Skeleton tone="dark" className="w-24 h-4" />
+              <Skeleton tone="dark" className="h-9" />
+              <Skeleton tone="dark" className="h-9" />
+              <Skeleton tone="dark" className="h-9" />
+            </div>
+          </Card>
         </div>
       </Section>
 

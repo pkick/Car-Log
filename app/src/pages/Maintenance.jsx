@@ -14,23 +14,10 @@ function formatServicesList(services) {
 export default function Maintenance({ vehicle, onLogService }) {
   const { getServiceRecordsForVehicle, deleteServiceRecord } = useRecords()
   const [modalState, setModalState] = useState(null) // { editingRecord, defaultCategoryId } | null
-  const [deletingId, setDeletingId] = useState(null)
-  const [deleteError, setDeleteError] = useState(null)
 
   const records = getServiceRecordsForVehicle(vehicle.id)
   const dueSoon = getDueSoonItems(vehicle, records, vehicle.odometer).filter((item) => item.status !== 'ok')
   const serviceHistory = getServiceHistorySorted(records)
-
-  const handleDelete = async (id) => {
-    setDeletingId(id)
-    try {
-      await deleteServiceRecord(id)
-      setDeleteError(null)
-    } catch (err) {
-      setDeleteError(`Couldn't delete: ${err.message}`)
-    }
-    setDeletingId(null)
-  }
 
   return (
     <main className="px-10 py-8 max-w-[1180px] w-full">
@@ -82,7 +69,6 @@ export default function Maintenance({ vehicle, onLogService }) {
           <h2 className="text-2xl font-bold">Service history</h2>
         </div>
 
-        {deleteError && <p className="px-6 py-3 text-xs text-red border-b border-ink/8">{deleteError}</p>}
         <div className="p-4 space-y-2.5">
           {serviceHistory.length === 0 && (
             <div className="px-2 py-10 text-center text-sm text-ink/45">
@@ -127,7 +113,7 @@ export default function Maintenance({ vehicle, onLogService }) {
               </div>
               <div className="flex justify-end gap-3">
                 <Button variant="link" size="sm" onClick={() => setModalState({ editingRecord: service })}>EDIT</Button>
-                <Button variant="link-danger" size="sm" onClick={() => handleDelete(service.id)} disabled={deletingId === service.id}>DEL</Button>
+                <Button variant="link-danger" size="sm" onClick={() => deleteServiceRecord(service.id)}>DEL</Button>
               </div>
             </Card>
             )

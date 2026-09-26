@@ -1,5 +1,6 @@
 import { useState, useContext } from 'react'
 import { VehicleContext } from '../context/VehicleContext'
+import { useToast } from '../context/toast'
 import { currentYear } from '../lib/dates'
 import { Field, Input, Modal, NumberInput, Switch } from './ui'
 import FormActions from './FormActions'
@@ -13,6 +14,7 @@ const FORM_FIELDS = [
 
 export default function AddVehicleModal({ onClose, onAdded }) {
   const { addVehicle } = useContext(VehicleContext)
+  const toast = useToast()
 
   const [formData, setFormData] = useState({
     nickname: '',
@@ -74,6 +76,7 @@ export default function AddVehicleModal({ onClose, onAdded }) {
         tracksService: trackMode.service,
         odometer: purchaseOdometer,
       })
+      toast.success('Vehicle added', formData.nickname.trim())
       onAdded?.()
       onClose()
     } catch (err) {

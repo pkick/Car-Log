@@ -4,8 +4,10 @@ import { CalendarIcon } from './icons'
 import { Badge, Card, Chip, Field, Input, Modal, NumberInput, Segmented, Textarea } from './ui'
 import FormActions from './FormActions'
 import { useRecords } from '../context/RecordsContext'
+import { useToast } from '../context/toast'
 import { getDueSoonItems, formatLastReading, getLastReading } from '../lib/vehicleStats'
 import { todayISO } from '../lib/dates'
+import { summarizeServices } from '../lib/toastDetails'
 
 const PERFORMED_BY = [
   { value: 'shop', label: 'Shop' },
@@ -14,6 +16,7 @@ const PERFORMED_BY = [
 
 export default function LogServiceModal({ vehicle, onClose, editingRecord = null, defaultCategoryId = 'oil' }) {
   const { getFillUpsForVehicle, getServiceRecordsForVehicle, addServiceRecord, updateServiceRecord } = useRecords()
+  const toast = useToast()
 
   const [activeCategory, setActiveCategory] = useState(editingRecord?.categoryId || defaultCategoryId)
   const [selectedServices, setSelectedServices] = useState(editingRecord?.services || [])
@@ -80,6 +83,7 @@ export default function LogServiceModal({ vehicle, onClose, editingRecord = null
       } else {
         await addServiceRecord(payload)
       }
+      toast.success('Service saved', summarizeServices(selectedServices))
       onClose()
     } catch (err) {
       if (err.field === 'odometer') setOdometerError(err.message)

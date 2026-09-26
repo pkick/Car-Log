@@ -1,12 +1,14 @@
 import { useContext, useState } from 'react'
 import { VehicleContext } from '../context/VehicleContext'
 import { useRecords } from '../context/RecordsContext'
+import { useToast } from '../context/toast'
 import { Modal } from './ui'
 import FormActions from './FormActions'
 
 export default function DeleteVehicleModal({ vehicleId, onClose, onDeleted }) {
   const { vehicles, deleteVehicle } = useContext(VehicleContext)
   const { removeVehicleRecords } = useRecords()
+  const toast = useToast()
   const [deleting, setDeleting] = useState(false)
   const [deleteError, setDeleteError] = useState(null)
   const vehicle = vehicles.find((v) => v.id === vehicleId)
@@ -19,6 +21,7 @@ export default function DeleteVehicleModal({ vehicleId, onClose, onDeleted }) {
     try {
       await deleteVehicle(vehicleId)
       removeVehicleRecords(vehicleId)
+      toast.success('Vehicle deleted')
       onDeleted?.(vehicleId)
       onClose()
     } catch (err) {

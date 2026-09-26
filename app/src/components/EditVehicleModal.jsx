@@ -1,5 +1,6 @@
 import { Fragment, useState, useContext, useRef } from 'react'
 import { VehicleContext } from '../context/VehicleContext'
+import { useToast } from '../context/toast'
 import { FuelIcon, CheckIcon, WrenchIcon, TrashIcon } from './icons'
 import { Button, Card, Chip, Field, IconButton, Input, Modal, NumberInput, Select, Switch } from './ui'
 import FormActions from './FormActions'
@@ -29,6 +30,7 @@ const FORM_FIELDS = ['nickname', 'year', 'purchaseDate', 'purchaseOdometer', 're
 
 export default function EditVehicleModal({ vehicleId, onClose }) {
   const { vehicles, updateVehicle, getDefaultIntervals } = useContext(VehicleContext)
+  const toast = useToast()
   const vehicle = vehicles.find(v => v.id === vehicleId)
 
   const [formData, setFormData] = useState(vehicle || {})
@@ -108,6 +110,7 @@ export default function EditVehicleModal({ vehicleId, onClose }) {
         tracksService: trackMode.service,
         intervals,
       })
+      toast.success('Vehicle updated')
       onClose()
     } catch (err) {
       if (FORM_FIELDS.includes(err.field)) setFieldErrors({ [err.field]: err.message })

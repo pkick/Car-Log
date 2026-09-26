@@ -62,25 +62,12 @@ export default function Documents({ vehicle }) {
   const { getPolicyRecordsForVehicle, deletePolicyRecord } = useRecords()
   const [modalState, setModalState] = useState(null) // { editingRecord, defaultType } | null
   const [filter, setFilter] = useState('All')
-  const [deletingId, setDeletingId] = useState(null)
-  const [deleteError, setDeleteError] = useState(null)
 
   const records = getPolicyRecordsForVehicle(vehicle.id)
   const renewals = getRenewalItems(vehicle, records)
   const history = [...records]
     .sort((a, b) => b.date.localeCompare(a.date))
     .filter((r) => filter === 'All' || (filter === 'Insurance' ? r.type === 'insurance' : r.type === 'registration'))
-
-  const handleDelete = async (id) => {
-    setDeletingId(id)
-    try {
-      await deletePolicyRecord(id)
-      setDeleteError(null)
-    } catch (err) {
-      setDeleteError(`Couldn't delete: ${err.message}`)
-    }
-    setDeletingId(null)
-  }
 
   return (
     <main className="px-10 py-8 max-w-[1180px] w-full">
@@ -110,7 +97,6 @@ export default function Documents({ vehicle }) {
           <Segmented aria-label="Payment type" options={FILTERS} value={filter} onChange={setFilter} />
         </div>
 
-        {deleteError && <p className="px-6 py-3 text-xs text-red border-b border-ink/8">{deleteError}</p>}
         <div className="divide-y divide-ink/8">
           {history.length === 0 && (
             <div className="px-6 py-10 text-center text-sm text-ink/45">
@@ -142,7 +128,7 @@ export default function Documents({ vehicle }) {
                 <Button variant="link" size="sm" onClick={() => setModalState({ editingRecord: record })}>
                   EDIT
                 </Button>
-                <Button variant="link-danger" size="sm" onClick={() => handleDelete(record.id)} disabled={deletingId === record.id}>
+                <Button variant="link-danger" size="sm" onClick={() => deletePolicyRecord(record.id)}>
                   DEL
                 </Button>
               </div>

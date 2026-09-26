@@ -3,8 +3,10 @@ import { CalendarIcon } from './icons'
 import { Card, Field, Input, NumberInput, Segmented } from './ui'
 import FormActions from './FormActions'
 import { useRecords } from '../context/RecordsContext'
+import { useToast } from '../context/toast'
 import { computeFillMpg, formatLastReading, getLastReading } from '../lib/vehicleStats'
 import { todayISO } from '../lib/dates'
+import { fillUpSavedDetail } from '../lib/toastDetails'
 
 const PRICE_MODES = [
   { value: 'perGallon', label: '$/gal' },
@@ -45,6 +47,7 @@ const initialForm = (fill) => ({
  */
 export default function FillUpForm({ vehicle, editingFillUp = null, onSaved, onCancel, compact = false, odometerRef, children }) {
   const { getFillUpsForVehicle, getServiceRecordsForVehicle, addFillUp, updateFillUp } = useRecords()
+  const toast = useToast()
   const [formData, setFormData] = useState(() => initialForm(editingFillUp))
   const [saving, setSaving] = useState(false)
   const [odometerError, setOdometerError] = useState(null)
@@ -107,6 +110,7 @@ export default function FillUpForm({ vehicle, editingFillUp = null, onSaved, onC
       } else {
         await addFillUp(payload)
       }
+      toast.success('Fill-up saved', fillUpSavedDetail({ isFull: formData.isFull, mpg }))
       onSaved()
     } catch (err) {
       if (err.field === 'odometer') setOdometerError(err.message)

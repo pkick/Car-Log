@@ -27,6 +27,10 @@ async function api(path, options) {
   return res.status === 204 ? null : res.json()
 }
 
+/**
+ * Loads the vehicles and keeps them in sync with the server. It renders its children straight away and reports
+ * `loading` and `error`, so the records load at the same time; the app shows one skeleton until both are in.
+ */
 export function VehicleProvider({ children }) {
   const [vehicles, setVehicles] = useState([])
   const [rememberedId, setRememberedId] = useState(() => {
@@ -81,21 +85,10 @@ export function VehicleProvider({ children }) {
     if (rememberedId === id) rememberVehicle(null)
   }
 
-  if (loading) {
-    return <div className="flex items-center justify-center h-screen text-sm text-ink/50">Loading…</div>
-  }
-
-  if (error) {
-    return (
-      <div className="flex flex-col items-center justify-center h-screen gap-2 text-center px-6">
-        <p className="text-sm font-semibold text-red">Couldn't reach the server</p>
-        <p className="text-xs text-ink/50">Is the backend running? ({error})</p>
-      </div>
-    )
-  }
-
   return (
     <VehicleContext.Provider value={{
+      loading,
+      error,
       vehicles,
       lastVehicleId,
       rememberVehicle,

@@ -24,6 +24,12 @@ const TEXT_VARIANTS = {
 
 const DARK_GHOST = 'bg-transparent text-page border-white/20 enabled:hover:bg-white/8'
 
+// On slate, accent and ink text are too dark to read.
+const DARK_TEXT_VARIANTS = {
+  link: 'text-accent-on-dark enabled:hover:text-accent-on-dark/80',
+  'link-muted': 'text-page/62 enabled:hover:text-page',
+}
+
 const SIZES = {
   sm: 'px-3 py-2 text-xs',
   md: 'px-4 py-2.5 text-sm',
@@ -45,7 +51,8 @@ const TEXT_SIZES = {
  *   padding: link is accent (a row's EDIT, "Add the default intervals"), link-danger is red (DEL),
  *   link-muted is quiet ink until hovered.
  * @param {'sm' | 'md'} [props.size='md'] For the link variants this is only the text size.
- * @param {'light' | 'dark'} [props.tone='light'] Use dark on slate panels. Only changes ghost.
+ * @param {'light' | 'dark'} [props.tone='light'] Use dark on slate panels (a toast's Undo). Changes ghost,
+ *   link and link-muted.
  * @param {boolean} [props.loading=false] Shows a spinner, disables the button and sets aria-busy.
  * @param {boolean} [props.disabled]
  * @param {'button' | 'submit' | 'reset'} [props.type='button']
@@ -71,7 +78,7 @@ export function Button({
       className={cx(
         BASE,
         variant in TEXT_VARIANTS
-          ? cx('rounded', TEXT_SIZES[size], TEXT_VARIANTS[variant])
+          ? cx('rounded', TEXT_SIZES[size], (tone === 'dark' && DARK_TEXT_VARIANTS[variant]) || TEXT_VARIANTS[variant])
           : cx(BOX, SIZES[size], tone === 'dark' && variant === 'ghost' ? DARK_GHOST : VARIANTS[variant]),
         FOCUS_RING,
         className
