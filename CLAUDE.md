@@ -65,6 +65,7 @@ primitive in every state, run the dev server and open http://localhost:5173/dev/
   `tone="dark"` on slate panels.
 - `IconButton`: icon-only buttons; `aria-label` is required. Its `danger` is the neutral-until-hover row delete.
 - `Field`: label plus hint or error around one control; wires `id`, `aria-describedby` and `aria-invalid`.
+  `FieldGroup` gives a group of controls (such as chip pickers) the same label, as a `role="group"`.
 - `Input`, `Textarea`, `Select`: text, multi-line and native select controls (`Select` has `size="sm"` and
   `tone="dark"` for dark cards). A width class such as `w-24` works on all of them.
 - `NumberInput`: every numeric field (`type="text"`, `inputMode`, optional `unit`); the value stays a string.

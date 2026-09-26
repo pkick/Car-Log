@@ -343,17 +343,17 @@ Branch `feat/p3c-fillup-drawer`. Depends on P2-D, P2-E. Wireframe: roadmap 3B.
 ### P3-D · Maintenance schedule
 Branch `feat/p3d-maintenance`. Depends on P3-A, P1-C, P2-D. Wireframe: roadmap 3C.
 
-- [ ] **P3-D1** `lib/projections.js`: driving pace (mi/day over the last 6 months of readings) and
+- [x] **P3-D1** `lib/projections.js`: driving pace (mi/day over the last 6 months of readings) and
       `projectDueDate(interval, lastService, pace)`, with tests.
-- [ ] **P3-D2** Schedule rows with `ProgressTrack`, rule text, status chip, projected date.
-- [ ] **P3-D3** Status summary chips that filter the schedule.
-- [ ] **P3-D4** One-click "Mark done": creates a record with the interval's first service at the current odometer
+- [x] **P3-D2** Schedule rows with `ProgressTrack`, rule text, status chip, projected date.
+- [x] **P3-D3** Status summary chips that filter the schedule.
+- [x] **P3-D4** One-click "Mark done": creates a record with the interval's first service at the current odometer
       and today's date, then an undo toast.
-- [ ] **P3-D5** "Set last done" for intervals with no history: stores a baseline date and odometer on the
+- [x] **P3-D5** "Set last done" for intervals with no history: stores a baseline date and odometer on the
       interval, used until a real record exists.
-- [ ] **P3-D6** History with search (services, shop, parts, notes), category chips, and a yearly spend card by
+- [x] **P3-D6** History with search (services, shop, parts, notes), category chips, and a yearly spend card by
       category.
-- [ ] **P3-D7** Log service modal rebuilt on primitives; keeps the category and subcategory chips.
+- [x] **P3-D7** Log service modal rebuilt on primitives; keeps the category and subcategory chips.
 
 ### P3-E · Command palette
 Branch `feat/p3e-command-palette`. Depends on P2-C, P2-E. Wireframe: roadmap 3D.
@@ -546,6 +546,7 @@ Backlog (not scheduled): units and currency settings (L/100 km, km, liters), hou
 Newest first. One line per merged PR: date, group, PR link, one-sentence summary.
 
 - 2026-09-25 · P1-C · Intervals list the services that reset them (D10); the server owns the defaults (`GET /api/defaults/intervals`); due items carry `progress`, `dueDate` and `dueOdometer`, labels follow whichever limit is closer, and the Coming up bars use `progress` (finishes P1-F2). Needs a dev DB reset.
+- 2026-09-26 · P3-D · Maintenance schedule: progress tracks, status filter chips, projected due dates from the driving pace (`lib/projections.js`), one-click Mark done with Undo, Set last done baselines for intervals with no history, searchable history with category chips and a yearly spend card; Log service shows the next milestone.
 - 2026-09-26 · P4-G · First-run screen (no header, 3-step strip that keeps guiding on the Dashboard until set up), empty-vehicle Dashboard with em-dash tiles and invitation cards, and opt-in demo data (`POST`/`DELETE /api/demo`, migration `002_demo_flag`, a Clear demo data banner). The Import CSV button joins the first-run screen with P4-E.
 - 2026-09-26 · P2-D · Toasts (success, error, undo; max three, bottom-right, announced); deleting a fill-up, service or payment hides it with a 5-second Undo before the DELETE is sent (flushed on page close); success toasts carry a detail such as the MPG; vehicles and records load together behind one skeleton, with an error boundary and Retry.
 - 2026-09-26 · P3-G · Garage cards show tracking badges and a due count, open the vehicle on click (stretched `CardLink`) and the Add vehicle tile is a real button; Documents has renewal cards with countdowns, status and the last payment, from a tested `lib/renewals.js` that P3-B's attention banner will use.

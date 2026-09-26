@@ -42,7 +42,9 @@ export const SUBCATEGORIES = {
 // Reverse lookup: subcategory service name -> the categoryId it belongs to (first match wins
 // for names that appear under more than one category, e.g. "Brake fluid").
 export const CATEGORY_ID_BY_SERVICE = Object.fromEntries(
-  Object.entries(SUBCATEGORIES).flatMap(([categoryId, services]) => services.map((s) => [s, categoryId]))
+  Object.entries(SUBCATEGORIES)
+    .flatMap(([categoryId, services]) => services.map((s) => [s, categoryId]))
+    .reverse()
 )
 
 export const CATEGORY_ICON = {
