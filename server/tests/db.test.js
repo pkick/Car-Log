@@ -12,14 +12,17 @@ const RECORD_TABLES = ['fill_ups', 'service_records', 'policy_records']
 test('the database is migrated and records each migration', () => {
   const rows = db.prepare('SELECT version, name, appliedAt FROM schema_migrations ORDER BY version').all()
 
-  assert.deepEqual(rows.map(({ version, name }) => ({ version, name })), [{ version: 1, name: 'initial' }])
+  assert.deepEqual(rows.map(({ version, name }) => ({ version, name })), [
+    { version: 1, name: 'initial' },
+    { version: 2, name: 'demo_flag' },
+  ])
   assert.match(rows[0].appliedAt, /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}Z$/)
 })
 
 test('vehicles have every column the API writes, including color', () => {
   const columns = db.prepare('PRAGMA table_info(vehicles)').all().map((c) => c.name)
 
-  for (const column of ['nickname', 'purchaseOdometer', 'tracksFuel', 'tracksService', 'odometer', 'intervals', 'color']) {
+  for (const column of ['nickname', 'purchaseOdometer', 'tracksFuel', 'tracksService', 'odometer', 'intervals', 'color', 'isDemo']) {
     assert.ok(columns.includes(column), column)
   }
 })
@@ -32,10 +35,13 @@ test('foreign keys are enforced and every record table cascades deletes', () => 
   }
 })
 
-test('SEED_DEMO=1 loads the demo vehicles into an empty database', () => {
-  const names = db.prepare('SELECT nickname FROM vehicles ORDER BY id').all().map((v) => v.nickname)
+test('SEED_DEMO=1 loads the demo vehicles into an empty database, flagged as demo data', () => {
+  const rows = db.prepare('SELECT id, nickname, isDemo FROM vehicles ORDER BY id').all()
 
-  assert.deepEqual(names, ['The Wagon', 'The Truck'])
+  assert.deepEqual(rows.map((v) => ({ ...v })), [
+    { id: 1, nickname: 'The Wagon', isDemo: 1 },
+    { id: 2, nickname: 'The Truck', isDemo: 1 },
+  ])
 })
 
 test('without SEED_DEMO the database starts empty', () => {

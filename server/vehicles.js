@@ -11,6 +11,7 @@ export function rowToVehicle(row) {
     tracksFuel: !!row.tracksFuel,
     tracksService: !!row.tracksService,
     intervals: row.intervals ? JSON.parse(row.intervals) : [],
+    isDemo: !!row.isDemo,
   }
 }
 

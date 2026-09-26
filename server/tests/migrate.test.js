@@ -169,3 +169,28 @@ test('the shipped migrations build the schema the server expects', () => {
   assert.equal(currentSchemaVersion(db), listMigrations(dir).at(-1).version)
   for (const table of ['vehicles', 'fill_ups', 'service_records', 'policy_records']) assert.ok(tableExists(db, table), table)
 })
+
+test('002_demo_flag applies on top of a database at 001 and keeps its vehicles as real data', () => {
+  const shipped = fileURLToPath(new URL('../migrations', import.meta.url))
+  const initial = fs.readFileSync(path.join(shipped, '001_initial.sql'), 'utf8')
+  const db = new DatabaseSync(':memory:')
+  db.exec('PRAGMA foreign_keys = ON')
+  runMigrations(db, migrationsDir({ '001_initial.sql': initial }))
+  db.exec(`
+    INSERT INTO vehicles (id, nickname, intervals) VALUES (1, 'Existing', '[]');
+    INSERT INTO fill_ups (vehicleId, date, odometer, gallons, pricePerGal, total) VALUES (1, '2026-09-01', 1000, 10, 3.5, 35);
+  `)
+  assert.equal(columns(db, 'vehicles').includes('isDemo'), false)
+
+  assert.deepEqual(runMigrations(db, shipped).map((m) => m.file), ['002_demo_flag.sql'])
+
+  assert.ok(columns(db, 'vehicles').includes('isDemo'))
+  assert.deepEqual({ ...db.prepare('SELECT nickname, isDemo FROM vehicles').get() }, { nickname: 'Existing', isDemo: 0 })
+  assert.equal(db.prepare('SELECT COUNT(*) AS n FROM fill_ups').get().n, 1)
+  assert.throws(() => db.exec("INSERT INTO vehicles (nickname, isDemo) VALUES ('No flag', NULL)"), /NOT NULL/)
+
+  db.exec("INSERT INTO vehicles (id, nickname, isDemo) VALUES (2, 'Demo', 1)")
+  db.exec("INSERT INTO fill_ups (vehicleId, date, odometer, gallons, pricePerGal, total) VALUES (2, '2026-09-01', 1000, 10, 3.5, 35)")
+  db.exec('DELETE FROM vehicles WHERE isDemo = 1')
+  assert.deepEqual(db.prepare('SELECT vehicleId FROM fill_ups').all().map((f) => f.vehicleId), [1], 'records still cascade')
+})

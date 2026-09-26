@@ -1,3 +1,5 @@
+import { rollback } from './migrate.js'
+
 /**
  * Intervals every new vehicle starts with. Each interval is reset by a service record that includes any of
  * its `services` (D10); `categoryId` is the category of its first service and picks the icon.
@@ -126,48 +128,61 @@ export const SEED_POLICY_RECORDS = [
 ]
 
 /**
- * Loads the demo vehicles and their records. `db.js` calls it on start when `SEED_DEMO=1` and the database
- * has no vehicles.
- * @param {import('node:sqlite').DatabaseSync} database A migrated database.
- * @returns {void}
+ * Loads the demo vehicles and their records in one transaction, with every vehicle flagged `isDemo` so
+ * `DELETE /api/demo` removes exactly them. The database assigns the ids, so demo data never reuses the id of a
+ * vehicle or record that was deleted; on an empty database they match the ids above. `POST /api/demo` calls it,
+ * and so does `db.js` on start when `SEED_DEMO=1` and the database has no vehicles.
+ * @param {import('node:sqlite').DatabaseSync} database A migrated database, not inside a transaction.
+ * @returns {number[]} The new vehicles' ids, in `SEED_VEHICLES` order.
  */
 export function seedDemoData(database) {
   const insertVehicle = database.prepare(`
-    INSERT INTO vehicles (id, nickname, year, make, model, trim, vin, plate, purchaseDate, purchaseOdometer, registrationRenewal, insuranceRenewal, tankSize, tracksFuel, tracksService, odometer, intervals, color)
-    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+    INSERT INTO vehicles (nickname, year, make, model, trim, vin, plate, purchaseDate, purchaseOdometer, registrationRenewal, insuranceRenewal, tankSize, tracksFuel, tracksService, odometer, intervals, color, isDemo)
+    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 1)
   `)
-  for (const v of SEED_VEHICLES) {
-    insertVehicle.run(
-      v.id, v.nickname, v.year, v.make, v.model, v.trim, v.vin, v.plate,
-      v.purchaseDate, v.purchaseOdometer, v.registrationRenewal, v.insuranceRenewal,
-      v.tankSize, v.tracksFuel ? 1 : 0, v.tracksService ? 1 : 0, v.odometer, JSON.stringify(v.intervals),
-      v.color ?? null
-    )
-  }
-
   const insertFillUp = database.prepare(`
-    INSERT INTO fill_ups (id, vehicleId, date, odometer, gallons, pricePerGal, total, isFull)
-    VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+    INSERT INTO fill_ups (vehicleId, date, odometer, gallons, pricePerGal, total, isFull)
+    VALUES (?, ?, ?, ?, ?, ?, ?)
   `)
-  for (const f of SEED_FILL_UPS) {
-    insertFillUp.run(f.id, f.vehicleId, f.date, f.odometer, f.gallons, f.pricePerGal, f.total, f.isFull ? 1 : 0)
-  }
-
   const insertServiceRecord = database.prepare(`
-    INSERT INTO service_records (id, vehicleId, date, odometer, categoryId, services, cost, performedBy, shopName, partsUsed, notes)
-    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+    INSERT INTO service_records (vehicleId, date, odometer, categoryId, services, cost, performedBy, shopName, partsUsed, notes)
+    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
   `)
-  for (const r of SEED_SERVICE_RECORDS) {
-    insertServiceRecord.run(r.id, r.vehicleId, r.date, r.odometer, r.categoryId, JSON.stringify(r.services), r.cost, r.performedBy, r.shopName, r.partsUsed, r.notes)
-  }
-
   const insertPolicyRecord = database.prepare(`
-    INSERT INTO policy_records (id, vehicleId, type, date, cost, renewalDate, provider, notes)
-    VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+    INSERT INTO policy_records (vehicleId, type, date, cost, renewalDate, provider, notes)
+    VALUES (?, ?, ?, ?, ?, ?, ?)
   `)
-  for (const p of SEED_POLICY_RECORDS) {
-    insertPolicyRecord.run(p.id, p.vehicleId, p.type, p.date, p.cost, p.renewalDate, p.provider, p.notes)
-  }
 
-  console.log(`Seeded demo data: ${SEED_VEHICLES.length} vehicles, ${SEED_FILL_UPS.length} fill-ups, ${SEED_SERVICE_RECORDS.length} service records, ${SEED_POLICY_RECORDS.length} policy records`)
+  database.exec('BEGIN')
+  try {
+    const vehicleIds = new Map()
+    for (const v of SEED_VEHICLES) {
+      const { lastInsertRowid } = insertVehicle.run(
+        v.nickname, v.year, v.make, v.model, v.trim, v.vin, v.plate,
+        v.purchaseDate, v.purchaseOdometer, v.registrationRenewal, v.insuranceRenewal,
+        v.tankSize, v.tracksFuel ? 1 : 0, v.tracksService ? 1 : 0, v.odometer, JSON.stringify(v.intervals),
+        v.color ?? null
+      )
+      vehicleIds.set(v.id, Number(lastInsertRowid))
+    }
+    for (const f of SEED_FILL_UPS) {
+      insertFillUp.run(vehicleIds.get(f.vehicleId), f.date, f.odometer, f.gallons, f.pricePerGal, f.total, f.isFull ? 1 : 0)
+    }
+    for (const r of SEED_SERVICE_RECORDS) {
+      insertServiceRecord.run(
+        vehicleIds.get(r.vehicleId), r.date, r.odometer, r.categoryId, JSON.stringify(r.services), r.cost, r.performedBy,
+        r.shopName, r.partsUsed, r.notes
+      )
+    }
+    for (const p of SEED_POLICY_RECORDS) {
+      insertPolicyRecord.run(vehicleIds.get(p.vehicleId), p.type, p.date, p.cost, p.renewalDate, p.provider, p.notes)
+    }
+    database.exec('COMMIT')
+
+    console.log(`Seeded demo data: ${SEED_VEHICLES.length} vehicles, ${SEED_FILL_UPS.length} fill-ups, ${SEED_SERVICE_RECORDS.length} service records, ${SEED_POLICY_RECORDS.length} policy records`)
+    return [...vehicleIds.values()]
+  } catch (err) {
+    rollback(database)
+    throw err
+  }
 }

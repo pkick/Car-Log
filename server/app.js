@@ -10,6 +10,7 @@ import policyRecordsRouter from './routes/policyRecords.js'
 import defaultsRouter from './routes/defaults.js'
 import backupRouter from './routes/backup.js'
 import vinRouter from './routes/vin.js'
+import demoRouter from './routes/demo.js'
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url))
 
@@ -31,6 +32,7 @@ app.use('/api/service-records', serviceRecordsRouter)
 app.use('/api/policy-records', policyRecordsRouter)
 app.use('/api/defaults', defaultsRouter)
 app.use('/api/vin', vinRouter)
+app.use('/api/demo', demoRouter)
 app.use('/api', backupRouter)
 app.use('/api', (req, res) => res.status(404).json({ error: 'Not found' }))
 

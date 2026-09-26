@@ -15,9 +15,10 @@ import AddVehicleModal from './components/AddVehicleModal'
 import LogServiceModal from './components/LogServiceModal'
 import LogFillupModal from './components/LogFillupModal'
 import DeleteVehicleModal from './components/DeleteVehicleModal'
-import FirstVehiclePanel from './components/FirstVehiclePanel'
 import AppSkeleton from './components/AppSkeleton'
 import ErrorBoundary, { ErrorScreen } from './components/ErrorBoundary'
+import FirstRun from './components/FirstRun'
+import DemoBanner from './components/DemoBanner'
 import { VehicleContext, VehicleProvider } from './context/VehicleContext'
 import { UIPrefsProvider } from './context/UIPrefsContext'
 import { RecordsProvider, useRecords } from './context/RecordsContext'
@@ -60,6 +61,8 @@ function AppContent() {
   const vehicleMatch = useMatch('/v/:vehicleId/*')
   const routeVehicle = findVehicle(vehicles, vehicleMatch?.params.vehicleId)
   const lastVehicle = vehicles.find((v) => v.id === lastVehicleId)
+  // The first-run screen at `/` has no page header.
+  const firstRun = useMatch('/') != null && vehicles.length === 0
   // The URL's vehicle; on Garage, Settings and the 404 page, the last one shown.
   const activeVehicle = routeVehicle ?? lastVehicle
   const scrollRef = useRef(null)
@@ -94,22 +97,25 @@ function AppContent() {
       <div className="flex h-screen bg-page">
         <Sidebar activeVehicle={activeVehicle} />
         <main className="flex-1 overflow-hidden flex flex-col">
-          <Header
-            vehicle={activeVehicle}
-            vehicles={vehicles}
-            activeVehicleId={activeVehicle?.id}
-            onSelectVehicle={selectVehicle}
-            onEditVehicle={setEditingVehicleId}
-            onAddVehicle={openAddVehicle}
-            onLogService={openLogService}
-            onLogFillup={openLogFillup}
-          />
+          {!firstRun && (
+            <Header
+              vehicle={activeVehicle}
+              vehicles={vehicles}
+              activeVehicleId={activeVehicle?.id}
+              onSelectVehicle={selectVehicle}
+              onEditVehicle={setEditingVehicleId}
+              onAddVehicle={openAddVehicle}
+              onLogService={openLogService}
+              onLogFillup={openLogFillup}
+            />
+          )}
+          <DemoBanner />
           <div ref={scrollRef} className="flex-1 overflow-auto">
             <Routes>
               <Route
                 path="/"
                 element={
-                  lastVehicle ? <Navigate to={vehiclePath(lastVehicle)} replace /> : <FirstVehiclePanel onAddVehicle={openAddVehicle} />
+                  lastVehicle ? <Navigate to={vehiclePath(lastVehicle)} replace /> : <FirstRun onAddVehicle={openAddVehicle} />
                 }
               />
               <Route path="/v/:vehicleId">
@@ -123,6 +129,7 @@ function AppContent() {
                           vehicle={vehicle}
                           onViewTrends={() => navigate(vehiclePath(vehicle, 'trends'))}
                           onLogService={openLogService}
+                          onLogFillup={openLogFillup}
                           onEditVehicle={() => setEditingVehicleId(vehicle.id)}
                         />
                       )}

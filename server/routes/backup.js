@@ -120,14 +120,15 @@ function replaceAllData(backup) {
   db.prepare(`DELETE FROM sqlite_sequence WHERE name IN (${TABLES.map(() => '?').join(', ')})`).run(...TABLES)
 
   const insertVehicle = db.prepare(`
-    INSERT INTO vehicles (id, nickname, year, make, model, trim, vin, plate, purchaseDate, purchaseOdometer, registrationRenewal, insuranceRenewal, tankSize, tracksFuel, tracksService, intervals, color)
-    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+    INSERT INTO vehicles (id, nickname, year, make, model, trim, vin, plate, purchaseDate, purchaseOdometer, registrationRenewal, insuranceRenewal, tankSize, tracksFuel, tracksService, intervals, color, isDemo)
+    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
   `)
+  // Backups from before schema 2 have no isDemo: everything in them is real data.
   insertAll(backup.vehicles, 'Vehicle', (v) => validateVehicle(v) ?? checkVehicleText(v), (v) => insertVehicle.run(
     v.id, v.nickname, v.year ?? null, v.make ?? null, v.model ?? null, v.trim ?? null, v.vin ?? null, v.plate ?? null,
     v.purchaseDate ?? null, v.purchaseOdometer ?? null, v.registrationRenewal ?? null, v.insuranceRenewal ?? null,
     v.tankSize ?? null, v.tracksFuel === false ? 0 : 1, v.tracksService === false ? 0 : 1,
-    JSON.stringify(v.intervals ?? []), v.color ?? 'slate'
+    JSON.stringify(v.intervals ?? []), v.color ?? 'slate', v.isDemo === true ? 1 : 0
   ))
 
   const insertFillUp = db.prepare(`

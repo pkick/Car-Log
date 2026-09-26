@@ -37,7 +37,7 @@ test('GET /api/export sends every table as a dated attachment, in the shapes the
   assert.match(res.headers.get('content-type'), /^application\/json/)
   assert.equal(res.headers.get('content-disposition'), `attachment; filename="odometer-backup-${today}.json"`)
   assert.equal(backup.app, 'odometer')
-  assert.equal(backup.schemaVersion, 1)
+  assert.equal(backup.schemaVersion, 2)
   assert.match(backup.exportedAt, new RegExp(`^${today}T\\d{2}:\\d{2}:\\d{2}[+-]\\d{2}:\\d{2}$`))
 
   const current = await snapshot()
@@ -46,6 +46,7 @@ test('GET /api/export sends every table as a dated attachment, in the shapes the
   }
   const exported = backup.vehicles.find((v) => v.id === vehicle.id)
   assert.equal(exported.tracksFuel, false)
+  assert.equal(exported.isDemo, false)
   assert.ok(Array.isArray(exported.intervals))
   assert.ok(Array.isArray(backup.serviceRecords.find((r) => r.vehicleId === vehicle.id).services))
   assert.equal(backup.fillUps.find((f) => f.vehicleId === vehicle.id).isFull, true)
@@ -81,6 +82,31 @@ test('an export imported back reproduces every GET exactly', async () => {
   assert.equal(next.id, Math.max(...backup.vehicles.map((v) => v.id)) + 1)
 })
 
+test('isDemo survives a round trip, and a backup from before it existed restores as real data', async () => {
+  const real = await createVehicle({ nickname: 'Mine' })
+  const { backup } = await exportBackup()
+  const flags = Object.fromEntries(backup.vehicles.map((v) => [v.id, v.isDemo]))
+  assert.equal(flags[1], true, 'the SEED_DEMO vehicles are demo data')
+  assert.equal(flags[real.id], false)
+
+  assert.equal((await request('POST', '/api/import', backup)).status, 200)
+  const restored = (await request('GET', '/api/vehicles')).body
+  assert.deepEqual(Object.fromEntries(restored.map((v) => [v.id, v.isDemo])), flags)
+
+  const old = {
+    ...backup,
+    schemaVersion: 1,
+    vehicles: backup.vehicles.map(({ isDemo, ...vehicle }) => vehicle),
+  }
+  const { status, body } = await request('POST', '/api/import', old)
+
+  assert.equal(status, 200)
+  assert.equal(body.vehicles, backup.vehicles.length)
+  const imported = (await request('GET', '/api/vehicles')).body
+  assert.ok(imported.length > 0)
+  assert.ok(imported.every((v) => v.isDemo === false))
+})
+
 test('import rejects files it cannot restore and changes nothing', async () => {
   await createVehicle({ nickname: 'Keep me' })
   const before = await snapshot()
@@ -89,7 +115,7 @@ test('import rejects files it cannot restore and changes nothing', async () => {
   const cases = [
     [{ ...backup, app: 'something-else' }, /isn't an Odometer backup/],
     [[backup], /isn't an Odometer backup/],
-    [{ ...backup, schemaVersion: backup.schemaVersion + 1 }, /newer version of Odometer \(schema 2; this server is on 1\)/],
+    [{ ...backup, schemaVersion: backup.schemaVersion + 1 }, /newer version of Odometer \(schema 3; this server is on 2\)/],
     [{ ...backup, schemaVersion: '1' }, /doesn't say which schema version/],
     [{ ...backup, policyRecords: undefined }, /no policyRecords list/],
   ]

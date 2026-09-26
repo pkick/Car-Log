@@ -1,7 +1,10 @@
 import { useState } from 'react'
 import { FuelIcon, WrenchIcon } from '../components/icons'
 import { Badge, Button, Card, EmptyState, PageHeader, Segmented, StatTile } from '../components/ui'
+import EmptyVehicleDashboard from '../components/EmptyVehicleDashboard'
+import SetupCard from '../components/SetupCard'
 import { useRecords } from '../context/RecordsContext'
+import { isEmptyVehicle } from '../lib/onboarding'
 import { getFuelStats, getDueSoonItems } from '../lib/vehicleStats'
 import { CATEGORY_BY_ID, CATEGORY_ICON, CATEGORY_ID_BY_SERVICE, CATEGORY_TILE_CLASS, CATEGORY_TEXT_CLASS } from '../lib/serviceCategories'
 
@@ -20,7 +23,7 @@ const DUE_TILE_CLASS = {
   slate: 'bg-white/10',
 }
 
-export default function Dashboard({ vehicle, onViewTrends, onLogService, onEditVehicle }) {
+export default function Dashboard({ vehicle, onViewTrends, onLogService, onLogFillup, onEditVehicle }) {
   const { getFillUpsForVehicle, getServiceRecordsForVehicle } = useRecords()
   const [selectedFilter, setSelectedFilter] = useState('All')
   const tracksFuel = vehicle.tracksFuel ?? true
@@ -29,6 +32,12 @@ export default function Dashboard({ vehicle, onViewTrends, onLogService, onEditV
   const activityFilter = activityFilters.includes(selectedFilter) ? selectedFilter : 'All'
   const fills = getFillUpsForVehicle(vehicle.id)
   const records = getServiceRecordsForVehicle(vehicle.id)
+
+  if (isEmptyVehicle(vehicle, fills, records)) {
+    return (
+      <EmptyVehicleDashboard vehicle={vehicle} onLogFillup={onLogFillup} onLogService={onLogService} onEditVehicle={onEditVehicle} />
+    )
+  }
 
   const { avgMpg, costPerMile, spendThisMonth, spendDelta, withMpg } = getFuelStats(fills)
   const dueSoonItems = getDueSoonItems(vehicle, records, vehicle.odometer)
@@ -98,6 +107,7 @@ export default function Dashboard({ vehicle, onViewTrends, onLogService, onEditV
   return (
     <main className="px-10 py-8 max-w-[1180px] w-full">
       <PageHeader eyebrow="Dashboard" title={`${vehicle.nickname} — overview`} />
+      <SetupCard vehicle={vehicle} fillUps={fills} serviceRecords={records} onEditVehicle={onEditVehicle} onLogFillup={onLogFillup} />
 
       {/* Stat Rail */}
       {stats.length > 0 && (
