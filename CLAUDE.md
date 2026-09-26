@@ -16,6 +16,8 @@ Before starting, find the next unchecked task group whose dependencies are merge
   (URL helpers in `lib/routes.js`); pages receive the route's `vehicle` as a prop.
 - `server/`: Express 4 + `node:sqlite`. Routes in `routes/`, schema in `migrations/` (run by `migrate.js` from `db.js`),
   demo data in `seed.js`. Uploaded receipts are files under `DATA_DIR/receipts` (D17), served by `routes/receipts.js`. `index.js` starts the server; `docker-entrypoint.js` is the container's start command.
+- `shared/`: plain ESM the app and server both import (D16): dates, due-soon math, renewals and the service catalog.
+  `app/src/lib` re-exports it, so app code keeps importing from `lib/`. Reminders live in `server/notify/`.
 - `design_handoff_car_tracker/README.md`: the original design spec (tokens, screens, behavior). Treat it as
   the source of truth for visual details unless PLAN.md says otherwise.
 

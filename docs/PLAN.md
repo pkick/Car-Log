@@ -453,16 +453,16 @@ Acceptance
 ### P4-D · Reminders
 Branch `feat/p4d-reminders`. Depends on P2-F, P3-D, P3-G. See D15 and D16.
 
-- [ ] **P4-D1** Move the due-soon and renewal math into `shared/` (D16) and import it from the app and the server.
-- [ ] **P4-D2** Settings › Notifications: ntfy (server, topic, token), Pushover (user key, app token) and SMTP
+- [x] **P4-D1** Move the due-soon and renewal math into `shared/` (D16) and import it from the app and the server.
+- [x] **P4-D2** Settings › Notifications: ntfy (server, topic, token), Pushover (user key, app token) and SMTP
       email (host, port, TLS, user, password, from, to). Stored server-side in a `settings` table (migration);
       secrets are write-only in the API. "Send test" per channel.
-- [ ] **P4-D3** Daily check at a configured local time (default 8:00): one message per interval or renewal when it
+- [x] **P4-D3** Daily check at a configured local time (default 8:00): one message per interval or renewal when it
       becomes due soon and again when it becomes overdue, deduplicated through a `notification_log` table.
-- [ ] **P4-D4** Weekly digest on a configured day: what's coming up and this month's spend.
-- [ ] **P4-D5** Default warn-at values (miles and days) in Settings, used for new intervals and for renewals
+- [x] **P4-D4** Weekly digest on a configured day: what's coming up and this month's spend.
+- [x] **P4-D5** Default warn-at values (miles and days) in Settings, used for new intervals and for renewals
       (currently a fixed 30 days).
-- [ ] **P4-D6** Tests: the pure "what to send today" function, dedupe, message text, and each channel against a
+- [x] **P4-D6** Tests: the pure "what to send today" function, dedupe, message text, and each channel against a
       local mock (ntfy and Pushover over HTTP, SMTP through `nodemailer`'s stream transport).
 
 Acceptance
@@ -545,6 +545,7 @@ Backlog (not scheduled): units and currency settings (L/100 km, km, liters), hou
 
 Newest first. One line per merged PR: date, group, PR link, one-sentence summary.
 
+- 2026-09-26 · P4-D · Reminders from the server (D15): Settings › Notifications for ntfy, Pushover and SMTP with masked secrets and Send test, a daily check at a set local time that sends one message when an interval or renewal comes up and again when it's overdue (deduped in `notification_log`, migration `005`), a weekly digest, and warn-at defaults for new intervals and renewal reminders. The due-soon, renewal, date and service catalog logic moved to `shared/` (D16), re-exported from `app/src/lib`.
 - 2026-09-26 · P4-E + P3-C1 · CSV import from Settings and the first-run screen (papaparse, loaded on demand): Fuelly, Drivvo and Odometer presets, column mapping, date format detection, a preview with new / duplicate / invalid rows and reasons, and `POST /api/import/fill-ups` in one transaction with the same checks as single writes. Fill-ups gain `station` and `notes` (migration `004`, with a `(vehicleId, date, id)` index), `GET /api/stations` feeds suggestions, and the CSV export carries both.
 - 2026-09-26 · P4-C · Receipts (migration `003_receipts`, `multer`, random names under `DATA_DIR/receipts`, extension, MIME and signature checks): drop zones in Log service and Log payment with browser-made thumbnails and per-file progress, thumbnails on history and payment rows, a viewer with next / previous, embedded PDFs and download, and a Vehicle documents card on Documents. Deleting a record, a vehicle, a receipt or the demo data removes the files; a payment moved to another vehicle takes its receipts along; the JSON backup carries receipt rows.
 - 2026-09-25 · P1-C · Intervals list the services that reset them (D10); the server owns the defaults (`GET /api/defaults/intervals`); due items carry `progress`, `dueDate` and `dueOdometer`, labels follow whichever limit is closer, and the Coming up bars use `progress` (finishes P1-F2). Needs a dev DB reset.

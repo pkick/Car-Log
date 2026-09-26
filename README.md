@@ -22,6 +22,8 @@ A car log app that is hosted on a local NAS, letting you record fuel-ups, mainte
 app/                          React frontend (Vite)
 server/                       Express API + SQLite database
 server/migrations/            Numbered schema migrations, applied on start
+server/notify/                Reminders: the daily check, digest and ntfy / Pushover / email senders
+shared/                       Logic both sides use: dates, due-soon math, renewals, service catalog
 unraid/odometer.xml           unraid Docker template
 Dockerfile, docker-compose.yml
 design_handoff_car_tracker/   Design reference files
