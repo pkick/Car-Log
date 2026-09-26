@@ -1,3 +1,4 @@
+import { Link } from 'react-router'
 import { cx } from './cx'
 
 const TONES = {
@@ -34,5 +35,32 @@ export function Card({ tone = 'light', padding = 'md', as: Tag = 'div', classNam
     <Tag className={cx('rounded-card border', TONES[tone], PADDING[padding], className)} {...props}>
       {children}
     </Tag>
+  )
+}
+
+/**
+ * The link that opens a whole Card. Put it on the card's title: its click area stretches over the card
+ * (the stretched-link pattern), so the card is one target named by its title. Give the Card
+ * `className="relative"`, and wrap the card's other controls in `relative z-10` so they stay clickable.
+ * Hovering the card turns the title accent; keyboard focus rings the whole card.
+ *
+ * @param {object} props
+ * @param {string} props.to Where it goes, as for react-router's Link.
+ * @param {string} [props.className] Layout only.
+ * @param {import('react').ReactNode} props.children The title text.
+ * Other props go to the Link.
+ */
+export function CardLink({ className, children, ...props }) {
+  return (
+    <Link
+      className={cx(
+        'transition-colors hover:text-accent after:absolute after:inset-0 after:rounded-card',
+        'focus-visible:outline-none focus-visible:after:ring-2 focus-visible:after:ring-inset focus-visible:after:ring-accent',
+        className
+      )}
+      {...props}
+    >
+      {children}
+    </Link>
   )
 }

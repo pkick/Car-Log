@@ -2,51 +2,56 @@ import { useState } from 'react'
 import { useRecords } from '../context/RecordsContext'
 import LogPolicyModal from '../components/LogPolicyModal'
 import { InsuranceIcon, RegistrationIcon } from '../components/icons'
-import { Badge, Button, Card, PageHeader, Segmented } from '../components/ui'
-import { daysBetween, todayISO } from '../lib/dates'
+import { Button, Card, EmptyState, PageHeader, Segmented, StatusChip } from '../components/ui'
+import { RENEWAL_TYPES, formatFullDate, formatRenewalCountdown, getRenewalItems } from '../lib/renewals'
 
-function getRenewalStatus(dateStr) {
-  if (!dateStr) return { status: 'unknown', daysUntil: null }
-  const daysUntil = daysBetween(todayISO(), dateStr)
-  if (daysUntil < 0) return { status: 'overdue', daysUntil }
-  if (daysUntil <= 30) return { status: 'coming-up', daysUntil }
-  return { status: 'ok', daysUntil }
-}
-
-const STATUS_BADGE = {
-  overdue: { tone: 'red', label: 'Overdue' },
-  'coming-up': { tone: 'amber', label: 'Due soon' },
-  ok: { tone: 'neutral', label: 'OK' },
+const RENEWAL_ICONS = {
+  insurance: { icon: InsuranceIcon, iconClass: 'text-accent' },
+  registration: { icon: RegistrationIcon, iconClass: 'text-teal' },
 }
 
 const FILTERS = ['All', 'Insurance', 'Registration'].map((value) => ({ value, label: value }))
 
-function SummaryCard({ label, icon: Icon, iconClass, renewalDate, onLogPayment }) {
-  const { status, daysUntil } = getRenewalStatus(renewalDate)
-  const badge = STATUS_BADGE[status]
+function RenewalCard({ type, label, item, onLogPayment }) {
+  const { icon: Icon, iconClass } = RENEWAL_ICONS[type]
 
+  if (!item) {
+    return (
+      <EmptyState
+        icon={Icon}
+        title={label}
+        body="No renewal date. Log a payment with its renewal date, or add it in Edit vehicle."
+        action={
+          <Button variant="secondary" size="sm" onClick={onLogPayment}>
+            Log payment
+          </Button>
+        }
+      />
+    )
+  }
+
+  const { status, renewalDate, daysUntil, lastPayment } = item
   return (
-    <Card tone={status === 'overdue' ? 'red' : 'light'}>
-      <div className="flex items-center justify-between mb-3">
+    <Card tone={status === 'overdue' ? 'red' : 'light'} className="flex flex-col">
+      <div className="flex items-center justify-between gap-3 mb-3">
         <h3 className="font-semibold text-sm flex items-center gap-2">
           <Icon size={48} className={`flex-none ${iconClass}`} />
           {label}
         </h3>
-        {badge && <Badge tone={badge.tone}>{badge.label}</Badge>}
+        <StatusChip status={status} />
       </div>
 
-      {renewalDate ? (
-        <>
-          <p className="text-2xl font-bold tracking-tighter mb-1">{renewalDate}</p>
-          <p className="text-xs font-mono text-ink/50 mb-4">
-            {daysUntil < 0 ? `${Math.abs(daysUntil)} days ago` : `in ${daysUntil} days`}
-          </p>
-        </>
-      ) : (
-        <p className="text-sm text-ink/45 mb-4">No renewal date on file yet.</p>
-      )}
+      <p className="text-4xl font-bold tracking-tighter mb-1.5">{formatRenewalCountdown(daysUntil)}</p>
+      <p className="text-xs font-mono text-ink/50">{formatFullDate(renewalDate)}</p>
 
-      <Button variant="secondary" size="sm" className="w-full" onClick={onLogPayment}>
+      <div className="flex items-center justify-between gap-3 mt-4 mb-4 pt-4 border-t border-ink/8 text-xs font-mono">
+        <span className="text-ink/45">Last payment</span>
+        <span className="font-semibold text-right">
+          {lastPayment ? [`$${lastPayment.cost.toFixed(2)}`, lastPayment.provider].filter(Boolean).join(' · ') : 'None logged'}
+        </span>
+      </div>
+
+      <Button variant="secondary" size="sm" className="w-full mt-auto" onClick={onLogPayment}>
         Log payment
       </Button>
     </Card>
@@ -61,6 +66,7 @@ export default function Documents({ vehicle }) {
   const [deleteError, setDeleteError] = useState(null)
 
   const records = getPolicyRecordsForVehicle(vehicle.id)
+  const renewals = getRenewalItems(vehicle, records)
   const history = [...records]
     .sort((a, b) => b.date.localeCompare(a.date))
     .filter((r) => filter === 'All' || (filter === 'Insurance' ? r.type === 'insurance' : r.type === 'registration'))
@@ -84,22 +90,17 @@ export default function Documents({ vehicle }) {
         action={<Button onClick={() => setModalState({})}>Log payment</Button>}
       />
 
-      {/* Summary Cards */}
+      {/* Renewals */}
       <div className="grid grid-cols-2 gap-[14px] mb-[22px]">
-        <SummaryCard
-          label="Insurance"
-          icon={InsuranceIcon}
-          iconClass="text-accent"
-          renewalDate={vehicle.insuranceRenewal}
-          onLogPayment={() => setModalState({ defaultType: 'insurance' })}
-        />
-        <SummaryCard
-          label="Registration"
-          icon={RegistrationIcon}
-          iconClass="text-teal"
-          renewalDate={vehicle.registrationRenewal}
-          onLogPayment={() => setModalState({ defaultType: 'registration' })}
-        />
+        {RENEWAL_TYPES.map(({ type, label }) => (
+          <RenewalCard
+            key={type}
+            type={type}
+            label={label}
+            item={renewals.find((renewal) => renewal.type === type)}
+            onLogPayment={() => setModalState({ defaultType: type })}
+          />
+        ))}
       </div>
 
       {/* History */}
@@ -130,8 +131,8 @@ export default function Documents({ vehicle }) {
                   <div>
                     <h3 className="font-semibold text-sm">{record.type === 'insurance' ? 'Insurance payment' : 'Registration payment'}</h3>
                     <p className="text-xs font-mono text-ink/50">
-                      {record.provider || '—'} · {record.date}
-                      {record.renewalDate ? ` · renews ${record.renewalDate}` : ''}
+                      {record.provider || '—'} · {formatFullDate(record.date)}
+                      {record.renewalDate ? ` · renews ${formatFullDate(record.renewalDate)}` : ''}
                     </p>
                   </div>
                 </div>

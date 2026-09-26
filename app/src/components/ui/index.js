@@ -1,6 +1,6 @@
 export { Badge, StatusChip } from './Badge'
 export { Button, IconButton } from './Button'
-export { Card } from './Card'
+export { Card, CardLink } from './Card'
 export { Chip } from './Chip'
 export { Drawer, Modal } from './Dialog'
 export { EmptyState } from './EmptyState'

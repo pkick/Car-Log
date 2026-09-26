@@ -2,10 +2,12 @@
 // import.meta.env.DEV is true; the production build never includes it. main.jsx checks the path
 // before it renders the app, so the gallery needs no route (in a build, /dev/ui is the 404 page).
 import { useEffect, useRef, useState } from 'react'
+import { MemoryRouter } from 'react-router'
 import {
   Badge,
   Button,
   Card,
+  CardLink,
   Chip,
   Drawer,
   EmptyState,
@@ -587,7 +589,7 @@ export default function UiGallery() {
         <ChipDemos />
       </Section>
 
-      <Section title="Card" note="padding none / sm 16 / md 22 / lg 24; tone dark">
+      <Section title="Card" note="padding none / sm 16 / md 22 / lg 24; tone dark; CardLink makes the whole card a link">
         <div className="grid grid-cols-5 gap-3.5">
           {['none', 'sm', 'md', 'lg'].map((padding) => (
             <Card key={padding} padding={padding}>
@@ -613,6 +615,22 @@ export default function UiGallery() {
             <p className="text-xs text-ink/60">tone=&quot;red&quot;: a warning, an overdue renewal</p>
           </Card>
         </div>
+        {/* The gallery has no router of its own; CardLink is a react-router Link. */}
+        <MemoryRouter>
+          <div className="grid grid-cols-3 gap-3.5">
+            <Card padding="sm" className="relative">
+              <h3 className="text-lg font-semibold">
+                <CardLink to="/v/1/overview">The Wagon</CardLink>
+              </h3>
+              <p className="text-xs font-mono text-ink/50 mt-1 mb-3">
+                CardLink: click anywhere on the card, or Tab to it for the focus ring
+              </p>
+              <div className="relative z-10">
+                <Button variant="ghost" size="sm">Own button, relative z-10</Button>
+              </div>
+            </Card>
+          </div>
+        </MemoryRouter>
       </Section>
 
       <Section title="PageHeader" note="eyebrow, title, optional subtitle, primary action; on every page">
