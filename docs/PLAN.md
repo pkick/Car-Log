@@ -327,7 +327,7 @@ Branch `feat/p3b-dashboard`. Depends on P3-A, P2-C, P2-D. Wireframe: roadmap 3A.
 ### P3-C · Smart fill-up drawer
 Branch `feat/p3c-fillup-drawer`. Depends on P2-D, P2-E. Wireframe: roadmap 3B.
 
-- [ ] **P3-C1** Schema: add `station TEXT` and `notes TEXT` to `fill_ups` (migration). `GET /api/stations?vehicleId=`
+- [x] **P3-C1** Schema: add `station TEXT` and `notes TEXT` to `fill_ups` (migration). `GET /api/stations?vehicleId=`
       returns recent distinct stations.
 - [ ] **P3-C2** One `FillUpDrawer` opened from the header, the Fuel page, `F`, and ⌘K; also used for editing
       (row click on the Fuel table). Delete the old modal and the Fuel page side panel.
@@ -472,13 +472,13 @@ Acceptance
 ### P4-E · CSV import
 Branch `feat/p4e-csv-import`. Depends on P2-F, P2-D.
 
-- [ ] **P4-E1** Upload a CSV in Settings (and from first run, P4-G); parse in the browser with `papaparse`.
-- [ ] **P4-E2** Mapping step: pick the target vehicle, map columns to date, odometer, gallons, price per gallon,
+- [x] **P4-E1** Upload a CSV in Settings (and from first run, P4-G); parse in the browser with `papaparse`.
+- [x] **P4-E2** Mapping step: pick the target vehicle, map columns to date, odometer, gallons, price per gallon,
       total, full / partial, station and notes; preview the first 10 rows as they will be saved.
-- [ ] **P4-E3** Presets that auto-map Fuelly and Drivvo exports and this app's own CSV export.
-- [ ] **P4-E4** Row checks in `lib/` with tests: invalid rows with reasons, duplicates (same vehicle, date and
+- [x] **P4-E3** Presets that auto-map Fuelly and Drivvo exports and this app's own CSV export.
+- [x] **P4-E4** Row checks in `lib/` with tests: invalid rows with reasons, duplicates (same vehicle, date and
       odometer), and odometer order across existing plus imported fill-ups.
-- [ ] **P4-E5** `POST /api/import/fill-ups`: one transaction, the same validation as single writes, returns
+- [x] **P4-E5** `POST /api/import/fill-ups`: one transaction, the same validation as single writes, returns
       per-row results; the odometer is recomputed once at the end.
 
 Acceptance
@@ -545,6 +545,7 @@ Backlog (not scheduled): units and currency settings (L/100 km, km, liters), hou
 
 Newest first. One line per merged PR: date, group, PR link, one-sentence summary.
 
+- 2026-09-26 · P4-E + P3-C1 · CSV import from Settings and the first-run screen (papaparse, loaded on demand): Fuelly, Drivvo and Odometer presets, column mapping, date format detection, a preview with new / duplicate / invalid rows and reasons, and `POST /api/import/fill-ups` in one transaction with the same checks as single writes. Fill-ups gain `station` and `notes` (migration `004`, with a `(vehicleId, date, id)` index), `GET /api/stations` feeds suggestions, and the CSV export carries both.
 - 2026-09-26 · P4-C · Receipts (migration `003_receipts`, `multer`, random names under `DATA_DIR/receipts`, extension, MIME and signature checks): drop zones in Log service and Log payment with browser-made thumbnails and per-file progress, thumbnails on history and payment rows, a viewer with next / previous, embedded PDFs and download, and a Vehicle documents card on Documents. Deleting a record, a vehicle, a receipt or the demo data removes the files; a payment moved to another vehicle takes its receipts along; the JSON backup carries receipt rows.
 - 2026-09-25 · P1-C · Intervals list the services that reset them (D10); the server owns the defaults (`GET /api/defaults/intervals`); due items carry `progress`, `dueDate` and `dueOdometer`, labels follow whichever limit is closer, and the Coming up bars use `progress` (finishes P1-F2). Needs a dev DB reset.
 - 2026-09-26 · P3-B · Dashboard 2.0: vehicle switcher in the sidebar, an attention banner for the single most urgent service or renewal (Snooze 2 wks), sparkline stat tiles with a 90 days / 1 year / All time range, an MPG line chart, Up next with progress tracks and projected dates, and a month-grouped activity timeline with Edit and a More menu. New `Menu` primitive.
