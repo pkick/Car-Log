@@ -75,7 +75,8 @@ primitive in every state, run the dev server and open http://localhost:5173/dev/
 - `Badge`, `StatusChip`: small labels. `Badge` variants `tag` (tinted), `solid` (counts such as "4 DUE") and `pill`
   (deltas). `StatusChip` maps an interval `status` to green, amber or red.
 - `Card`: any bordered surface; `padding` none / sm / md / lg; `tone` `dark` (slate panels), `muted` (sunken rows),
-  `accent` (callouts) or `red` (warnings, overdue).
+  `accent` (callouts) or `red` (warnings, overdue). `CardLink` makes a whole card open a route while its own buttons
+  stay clickable.
 - `PageHeader`: eyebrow, title, optional subtitle and the page's primary action; every page starts with one.
 - `EmptyState`: "nothing here yet" and "turned off" panels with one action.
 - `StatTile`: one stat-rail number with unit, delta and `deltaTone` (good / bad / neutral news).
